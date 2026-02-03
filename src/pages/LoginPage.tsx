@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { useAuthStore } from '../stores/useAuthStore';
 import type { UserRole } from '../types/auth';
 
@@ -7,8 +8,8 @@ export function LoginPage() {
   const navigate = useNavigate();
   const { loginWithCredentials } = useAuthStore();
   const [role, setRole] = useState<UserRole>('mentee');
-  const [id, setId] = useState(() => localStorage.getItem('savedId') ?? '');
-  const [password, setPassword] = useState('');
+  const [id, setId] = useState('mentee01');
+  const [password, setPassword] = useState('test1234');
   const [rememberId, setRememberId] = useState(() => !!localStorage.getItem('savedId'));
   const [error, setError] = useState('');
 
@@ -34,8 +35,9 @@ export function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 py-12">
       {/* Header */}
-      <h1 className="mb-2 text-3xl font-bold text-slate-800">설스터디</h1>
-      <p className="mb-12 text-slate-500">오늘도 당신의 꿈을 응원합니다</p>
+      <img src="/logo.svg" alt="설스터디" className="h-16" />
+      <h1 className="mt-3 text-2xl font-bold text-slate-800">설스터디</h1>
+      <p className="mt-2 mb-10 text-slate-500">오늘도 당신의 꿈을 응원합니다</p>
 
       {/* Login Card */}
       <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -43,7 +45,11 @@ export function LoginPage() {
         <div className="mb-6 flex rounded-lg bg-slate-100 p-1">
           <button
             type="button"
-            onClick={() => setRole('mentee')}
+            onClick={() => {
+              setRole('mentee');
+              setId('mentee01');
+              setPassword('test1234');
+            }}
             className={`flex-1 rounded-md py-2.5 text-sm font-medium transition ${
               role === 'mentee'
                 ? 'bg-white text-slate-800 shadow-sm'
@@ -54,7 +60,11 @@ export function LoginPage() {
           </button>
           <button
             type="button"
-            onClick={() => setRole('mentor')}
+            onClick={() => {
+              setRole('mentor');
+              setId('mentor01');
+              setPassword('test1234');
+            }}
             className={`flex-1 rounded-md py-2.5 text-sm font-medium transition ${
               role === 'mentor'
                 ? 'bg-white text-slate-800 shadow-sm'
@@ -106,9 +116,7 @@ export function LoginPage() {
             <span className="text-sm text-slate-700">아이디 저장하기</span>
           </label>
 
-          {error && (
-            <p className="text-sm text-red-500">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-500">{error}</p>}
 
           <button
             type="submit"
@@ -117,18 +125,6 @@ export function LoginPage() {
             로그인
           </button>
         </form>
-      </div>
-
-      {/* Test Accounts */}
-      <div className="mt-8 w-full max-w-md space-y-3 text-center">
-        <p className="text-sm text-slate-500">테스트 계정으로 접속 가능합니다</p>
-        <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-4 text-left">
-          <p className="mb-2 text-sm font-medium text-slate-600">멘티 계정</p>
-          <p className="text-sm text-slate-500">ID: mentee01 / PW: test1234</p>
-          <p className="text-sm text-slate-500">ID: mentee02 / PW: test1234</p>
-          <p className="mt-3 text-sm font-medium text-slate-600">멘토 계정</p>
-          <p className="text-sm text-slate-500">ID: mentor01 / PW: test1234</p>
-        </div>
       </div>
 
       {/* Footer */}

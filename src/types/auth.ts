@@ -4,5 +4,6 @@ export interface User {
   id: string;
   name: string;
   role: UserRole;
-  school?: string; // 멘티용
+  school?: string;
+  profileImage?: string;
 }
