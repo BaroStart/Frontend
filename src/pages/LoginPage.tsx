@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { useAuthStore } from '../stores/useAuthStore';
-import type { UserRole } from '../types/auth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { STORAGE_KEYS } from '@/constants';
+import { useAuthStore } from '@/stores/useAuthStore';
+import type { UserRole } from '@/types/auth';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -10,14 +14,14 @@ export function LoginPage() {
   const [role, setRole] = useState<UserRole>('mentee');
   const [id, setId] = useState('mentee01');
   const [password, setPassword] = useState('test1234');
-  const [rememberId, setRememberId] = useState(() => !!localStorage.getItem('savedId'));
+  const [rememberId, setRememberId] = useState(() => !!localStorage.getItem(STORAGE_KEYS.SAVED_ID));
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (rememberId && id) {
-      localStorage.setItem('savedId', id);
+      localStorage.setItem(STORAGE_KEYS.SAVED_ID, id);
     } else {
-      localStorage.removeItem('savedId');
+      localStorage.removeItem(STORAGE_KEYS.SAVED_ID);
     }
   }, [rememberId, id]);
 
@@ -76,32 +80,26 @@ export function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="id" className="mb-1.5 block text-sm font-medium text-slate-700">
-              아이디
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="id">아이디</Label>
+            <Input
               id="id"
               type="text"
               value={id}
               onChange={(e) => setId(e.target.value)}
               placeholder="아이디를 입력하세요"
-              className="w-full rounded-lg border border-slate-200 px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
               autoComplete="username"
             />
           </div>
 
-          <div>
-            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-700">
-              비밀번호
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="password">비밀번호</Label>
+            <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="비밀번호를 입력하세요"
-              className="w-full rounded-lg border border-slate-200 px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
               autoComplete="current-password"
             />
           </div>
@@ -116,14 +114,11 @@ export function LoginPage() {
             <span className="text-sm text-slate-700">아이디 저장하기</span>
           </label>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-slate-700 py-3.5 font-semibold text-white transition hover:bg-slate-800"
-          >
+          <Button type="submit" className="w-full">
             로그인
-          </button>
+          </Button>
         </form>
       </div>
 
