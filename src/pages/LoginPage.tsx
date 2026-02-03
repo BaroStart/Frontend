@@ -8,8 +8,8 @@ export function LoginPage() {
   const navigate = useNavigate();
   const { loginWithCredentials } = useAuthStore();
   const [role, setRole] = useState<UserRole>('mentee');
-  const [id, setId] = useState(() => localStorage.getItem('savedId') ?? '');
-  const [password, setPassword] = useState('');
+  const [id, setId] = useState('mentee01');
+  const [password, setPassword] = useState('test1234');
   const [rememberId, setRememberId] = useState(() => !!localStorage.getItem('savedId'));
   const [error, setError] = useState('');
 
@@ -44,7 +44,11 @@ export function LoginPage() {
         <div className="mb-6 flex rounded-lg bg-slate-100 p-1">
           <button
             type="button"
-            onClick={() => setRole('mentee')}
+            onClick={() => {
+              setRole('mentee');
+              setId('mentee01');
+              setPassword('test1234');
+            }}
             className={`flex-1 rounded-md py-2.5 text-sm font-medium transition ${
               role === 'mentee'
                 ? 'bg-white text-slate-800 shadow-sm'
@@ -55,7 +59,11 @@ export function LoginPage() {
           </button>
           <button
             type="button"
-            onClick={() => setRole('mentor')}
+            onClick={() => {
+              setRole('mentor');
+              setId('mentor01');
+              setPassword('test1234');
+            }}
             className={`flex-1 rounded-md py-2.5 text-sm font-medium transition ${
               role === 'mentor'
                 ? 'bg-white text-slate-800 shadow-sm'
