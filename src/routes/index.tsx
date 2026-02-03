@@ -14,9 +14,12 @@ import {
   NotificationPage,
 } from '@/pages/mentee';
 import {
+  AssignmentManagePage,
   AssignmentRegisterPage,
+  FeedbackManagePage,
   FeedbackWritePage,
   MenteeDetailPage,
+  MenteeListPage,
   MentorMainPage,
   TemplatesPage,
 } from '@/pages/mentor';
@@ -32,6 +35,7 @@ export function AppRoutes() {
         <Route element={<ProtectedRoute allowedRole="mentor" />}>
           <Route element={<MentorLayout />}>
             <Route path="/mentor" element={<MentorMainPage />} />
+            <Route path="/mentor/mentees" element={<MenteeListPage />} />
             <Route path="/mentor/mentees/:menteeId" element={<MenteeDetailPage />} />
             <Route
               path="/mentor/mentees/:menteeId/assignments/new"
@@ -41,6 +45,8 @@ export function AppRoutes() {
               path="/mentor/mentees/:menteeId/feedback/:assignmentId"
               element={<FeedbackWritePage />}
             />
+            <Route path="/mentor/assignments" element={<AssignmentManagePage />} />
+            <Route path="/mentor/feedback" element={<FeedbackManagePage />} />
             <Route path="/mentor/templates" element={<TemplatesPage />} />
           </Route>
         </Route>
