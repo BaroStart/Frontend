@@ -30,7 +30,21 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-      'simple-import-sort/imports': 'error',
+      'simple-import-sort/imports': [
+        'error',
+        {
+          groups: [
+            // 1. react 관련
+            ['^react', '^react-dom'],
+            // 2. 외부 라이브러리
+            ['^@?\\w'],
+            // 3. 내부 절대 경로 (@/)
+            ['^@/'],
+            // 4. 상대 경로
+            ['^\\.'],
+          ],
+        },
+      ],
       'simple-import-sort/exports': 'error',
       'prettier/prettier': 'warn',
     },
