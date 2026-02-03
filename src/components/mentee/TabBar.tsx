@@ -34,15 +34,15 @@ export function TabBar() {
             end={tab.end}
             className={({ isActive }) =>
               `flex flex-1 flex-col items-center gap-1 py-2 transition-colors ${
-                isActive ? 'text-[#1FB6B0]' : 'text-gray-400'
+                isActive ? 'text-[#0E9ABE]' : 'text-gray-400'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <span className={isActive ? 'text-[#1FB6B0]' : 'text-gray-400'}>{tab.icon}</span>
+                <span className={isActive ? 'text-[#0E9ABE]' : 'text-gray-400'}>{tab.icon}</span>
                 <span
-                  className={`text-xs font-medium ${isActive ? 'text-[#1FB6B0]' : 'text-gray-400'}`}
+                  className={`text-xs font-medium ${isActive ? 'text-[#0E9ABE]' : 'text-gray-400'}`}
                 >
                   {tab.label}
                 </span>
