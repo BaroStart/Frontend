@@ -35,8 +35,9 @@ export function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 py-12">
       {/* Header */}
-      <h1 className="mb-2 text-3xl font-bold text-slate-800">설스터디</h1>
-      <p className="mb-12 text-slate-500">오늘도 당신의 꿈을 응원합니다</p>
+      <img src="/logo.svg" alt="설스터디" className="h-16" />
+      <h1 className="mt-3 text-2xl font-bold text-slate-800">설스터디</h1>
+      <p className="mt-2 mb-10 text-slate-500">오늘도 당신의 꿈을 응원합니다</p>
 
       {/* Login Card */}
       <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -124,18 +125,6 @@ export function LoginPage() {
             로그인
           </button>
         </form>
-      </div>
-
-      {/* Test Accounts */}
-      <div className="mt-8 w-full max-w-md space-y-3 text-center">
-        <p className="text-sm text-slate-500">테스트 계정으로 접속 가능합니다</p>
-        <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-4 text-left">
-          <p className="mb-2 text-sm font-medium text-slate-600">멘티 계정</p>
-          <p className="text-sm text-slate-500">ID: mentee01 / PW: test1234</p>
-          <p className="text-sm text-slate-500">ID: mentee02 / PW: test1234</p>
-          <p className="mt-3 text-sm font-medium text-slate-600">멘토 계정</p>
-          <p className="text-sm text-slate-500">ID: mentor01 / PW: test1234</p>
-        </div>
       </div>
 
       {/* Footer */}
