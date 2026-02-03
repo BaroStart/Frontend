@@ -1,6 +1,7 @@
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 
-import { ChevronLeft, ChevronRight, FileText, MessageSquare, Search, User } from 'lucide-react';
+import { AssignmentIcon, FeedbackIcon, UserIcon } from '@/components/icons';
 
 // 멘티 목 데이터
 interface Mentee {
@@ -28,12 +29,12 @@ const quickMenu: MenuItem[] = [
   {
     label: '과제 관리',
     path: '/mentor/assignments',
-    icon: <FileText size={18} />,
+    icon: <AssignmentIcon className="h-[18px] w-[18px]" />,
   },
   {
     label: '피드백 관리',
     path: '/mentor/feedback',
-    icon: <MessageSquare size={18} />,
+    icon: <FeedbackIcon className="h-[18px] w-[18px]" />,
   },
 ];
 
@@ -101,7 +102,7 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
                   className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-slate-100"
                 >
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200">
-                    <User size={16} className="text-slate-500" />
+                    <UserIcon className="h-4 w-4 text-slate-500" />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-slate-900">{mentee.name}</span>
@@ -175,7 +176,7 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 transition-colors hover:bg-slate-300"
                 title={`${mentee.name} (${mentee.grade} · ${mentee.track})`}
               >
-                <User size={18} className="text-slate-500" />
+                <UserIcon className="h-[18px] w-[18px] text-slate-500" />
               </button>
             ))}
           </div>
