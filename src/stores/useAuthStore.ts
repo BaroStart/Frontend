@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import type { User, UserRole } from '../types/auth';
+import { STORAGE_KEYS } from '@/constants';
+import type { User, UserRole } from '@/types/auth';
 
 interface AuthState {
   user: User | null;
@@ -58,7 +59,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ user: null, accessToken: null, isAuthenticated: false }),
     }),
     {
-      name: 'auth-storage', // TODO: localStorage key 이름 수정
+      name: STORAGE_KEYS.AUTH,
     },
   ),
 );
