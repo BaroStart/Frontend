@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { useAuthStore } from '../stores/useAuthStore';
 import type { UserRole } from '../types/auth';
 
@@ -106,9 +107,7 @@ export function LoginPage() {
             <span className="text-sm text-slate-700">아이디 저장하기</span>
           </label>
 
-          {error && (
-            <p className="text-sm text-red-500">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-500">{error}</p>}
 
           <button
             type="submit"
