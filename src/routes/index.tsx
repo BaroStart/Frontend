@@ -22,6 +22,7 @@ import {
   MentorMainPage,
   TemplatesPage,
 } from '@/pages/mentor';
+import { NotFoundPage } from '@/pages/NotFoundPage';
 
 export function AppRoutes() {
   return (
@@ -62,7 +63,7 @@ export function AppRoutes() {
           </Route>
         </Route>
 
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );
