@@ -1,7 +1,7 @@
 import { Calendar, Clock, Copy, FileUp, Save, Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { registerAssignment } from '@/api/assignments';
 
@@ -29,10 +29,19 @@ import { cn } from '@/lib/utils';
 
 const MAIN_SUBJECTS = ['국어', '영어', '수학'] as const;
 
+interface EditAssignmentState {
+  title: string;
+  goal: string;
+  subject: string;
+  columnContent: string;
+}
+
 export function AssignmentRegisterPage() {
   const { menteeId: urlMenteeId } = useParams<{ menteeId: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const editAssignment = (location.state as { editAssignment?: EditAssignmentState })?.editAssignment;
   const { data: mentees = [] } = useMentees();
   const { data: selectedMentee } = useMentee(urlMenteeId ?? undefined);
   const { data: kpi } = useMenteeKpi(urlMenteeId ?? undefined);
@@ -67,6 +76,17 @@ export function AssignmentRegisterPage() {
   useEffect(() => {
     if (urlMenteeId) setMenteeId(urlMenteeId);
   }, [urlMenteeId]);
+
+  useEffect(() => {
+    if (editAssignment) {
+      setTitle(editAssignment.title);
+      setGoal(editAssignment.goal);
+      setSubject(editAssignment.subject as (typeof MAIN_SUBJECTS)[number]);
+      setColumnContent(editAssignment.columnContent);
+      setEditorKey((k) => k + 1);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [editAssignment, navigate, location.pathname]);
 
   const displayMentee = menteeId ? mentees.find((m) => m.id === menteeId) ?? selectedMentee : null;
 
@@ -202,6 +222,8 @@ export function AssignmentRegisterPage() {
     if (result.success) {
       await queryClient.invalidateQueries({ queryKey: ['menteeTasks', menteeId] });
       await queryClient.invalidateQueries({ queryKey: ['incompleteAssignments', menteeId] });
+      await queryClient.invalidateQueries({ queryKey: ['mentees'] });
+      await queryClient.invalidateQueries({ queryKey: ['submittedAssignments'] });
       navigate(menteeId ? `/mentor/mentees/${menteeId}` : '/mentor');
     }
   };

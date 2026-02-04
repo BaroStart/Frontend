@@ -9,7 +9,8 @@
 | 환경 변수 | 설명 | 예시 |
 |-----------|------|------|
 | `VITE_USE_MOCK` | `false`로 설정 시 실제 API 호출 | `false` |
-| `VITE_API_URL` | API 베이스 URL | `https://api.example.com` |
+| `VITE_API_URL` | API 베이스 URL (프로덕션/외부 API) | `https://api.example.com` |
+| `VITE_API_PROXY_TARGET` | 개발 시 `/api` 프록시 대상 (Vite) | `http://localhost:3000` |
 
 **인증**: `Authorization: Bearer {accessToken}` 헤더로 JWT 전달 (axiosInstance에서 자동 첨부)
 
@@ -191,6 +192,96 @@ interface MenteeKpi {
   scoreChange: number;
   attendanceRate: number;
   attendanceChange: number;
+}
+```
+
+---
+
+### 4. 과제 상세 (Assignment Detail)
+
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| GET | `/mentor/mentees/:menteeId/assignments/:assignmentId` | 과제 상세 조회 |
+
+**응답: AssignmentDetail**
+
+```ts
+interface AssignmentDetail {
+  assignmentId: string;
+  title: string;
+  subject: string;
+  date: string;
+  goal: string;
+  content: string;
+  contentChecklist?: string[];
+  relatedResources?: { id: string; name: string }[];
+  studyColumn?: { title: string; content: string; readMoreLink?: string };
+  providedPdfs: { id: string; name: string; size?: string }[];
+  studentPhotos: { id: string; url: string; caption?: string }[];
+  studentMemo?: string;
+}
+```
+
+---
+
+### 5. 피드백 작성 (Feedback)
+
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| POST | `/mentor/mentees/:menteeId/assignments/:assignmentId/feedback` | 피드백 제출 |
+| GET | `/mentor/mentees/:menteeId/assignments/:assignmentId/feedback` | 피드백 조회 |
+
+**POST 피드백 요청: SubmitFeedbackPayload**
+
+```ts
+interface SubmitFeedbackPayload {
+  feedbackText: string;
+  status: 'partial' | 'completed';
+  progress?: number;  // partial 시 0-100
+}
+```
+
+**POST/GET 피드백 응답: FeedbackDetail**
+
+```ts
+interface FeedbackDetail {
+  id: string;
+  assignmentId: string;
+  menteeId: string;
+  feedbackText: string;
+  status: 'partial' | 'completed';
+  progress?: number;
+  feedbackDate: string;
+  lastUpdate?: string;
+}
+```
+
+---
+
+### 6. 학습 분석 (Learning Analysis)
+
+| 메서드 | 경로 | 설명 | Query |
+|--------|------|------|-------|
+| GET | `/mentor/mentees/:id/learning/subject-times` | 과목별 학습 시간 | - |
+| GET | `/mentor/mentees/:id/learning/weekly-patterns` | 주간 학습 패턴 | - |
+
+**SubjectStudyTime[]**
+
+```ts
+interface SubjectStudyTime {
+  subject: string;
+  hours: number;
+}
+```
+
+**DailyStudyPattern[]**
+
+```ts
+interface DailyStudyPattern {
+  day: string;        // "월요일", "화요일", ...
+  hours?: number;
+  filledBlocks: number;
+  totalBlocks?: number;
 }
 ```
 

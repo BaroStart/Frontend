@@ -36,11 +36,11 @@ export function MentorLayout() {
 
       {/* 모바일: 전체 너비 / 데스크톱: 사이드바 너비만큼 margin */}
       <div
-        className={`transition-all duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-60'}`}
+        className={`min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-60'}`}
       >
         <Header onMenuClick={handleMobileSidebarToggle} />
 
-        <main className="p-4 sm:p-6">
+        <main className="min-w-0 p-4 sm:p-6">
           <Outlet />
         </main>
       </div>

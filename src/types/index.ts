@@ -9,6 +9,7 @@ export type {
   IncompleteAssignment,
   AssignmentIconType,
 } from './assignment';
+export type { AssignmentDetail } from './assignmentDetail';
 
 export type { FeedbackItem } from './feedback';
 export type { MenteeTask } from './task';

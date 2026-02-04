@@ -7,8 +7,13 @@
 - `VITE_USE_MOCK=true` (기본값): mock 데이터 사용
 - `VITE_USE_MOCK=false`: 실제 백엔드 API 호출
 - `VITE_API_URL`: API 베이스 URL (예: `https://api.example.com`)
+- `VITE_API_PROXY_TARGET`: 개발 시 `/api` 프록시 대상 (기본: `http://localhost:3000`)
 
 `.env` 파일에 설정하거나 빌드 시 환경 변수로 전달하세요.
+
+## 에러 처리
+
+API 호출 실패 시 `useApiErrorStore`에 에러가 저장되며, 화면 상단에 `ApiErrorBanner`로 표시됩니다. (401은 자동 로그아웃 처리)
 
 ## API 엔드포인트 (백엔드 구현 시 참고)
 
@@ -24,6 +29,11 @@
 | menteeDetail | GET | `/mentor/mentees/:id/tasks` | 학습 일정 |
 | menteeDetail | GET | `/mentor/mentees/:id/comments/today` | 오늘의 한마디 |
 | menteeDetail | GET | `/mentor/mentees/:id/kpi` | KPI 지표 |
+| assignmentDetail | GET | `/mentor/mentees/:menteeId/assignments/:assignmentId` | 과제 상세 |
+| feedback | GET | `/mentor/mentees/:menteeId/assignments/:assignmentId/feedback` | 피드백 조회 |
+| feedback | POST | `/mentor/mentees/:menteeId/assignments/:assignmentId/feedback` | 피드백 제출 |
+| learningAnalysis | GET | `/mentor/mentees/:id/learning/subject-times` | 과목별 학습 시간 |
+| learningAnalysis | GET | `/mentor/mentees/:id/learning/weekly-patterns` | 주간 학습 패턴 |
 
 ## 인증
 

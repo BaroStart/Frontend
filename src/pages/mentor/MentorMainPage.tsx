@@ -11,6 +11,7 @@ import {
   MessageCircle,
   MoreVertical,
   Plus,
+  Trash2,
   TrendingUp,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -34,6 +35,7 @@ export function MentorMainPage() {
   const { user } = useAuthStore();
   const [filterTab, setFilterTab] = useState<(typeof FILTER_TABS)[number]['id']>('all');
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [deletedMenteeIds, setDeletedMenteeIds] = useState<Set<string>>(new Set());
 
   const { data: mentees = [] } = useMentees();
   const { data: submittedAssignments = [] } = useSubmittedAssignments();
@@ -41,15 +43,24 @@ export function MentorMainPage() {
   const totalPendingFeedback = mentees.reduce((sum, m) => sum + m.pendingFeedbackCount, 0);
   const weeklyCompleted = 8;
 
-  const filteredMentees = mentees.filter((mentee) => {
-    if (filterTab === 'all') return true;
-    if (filterTab === 'pending') return mentee.todaySubmitted < mentee.todayTotal;
-    if (filterTab === 'feedback') return mentee.pendingFeedbackCount > 0;
-    return true;
-  });
+  const filteredMentees = mentees
+    .filter((m) => !deletedMenteeIds.has(m.id))
+    .filter((mentee) => {
+      if (filterTab === 'all') return true;
+      if (filterTab === 'pending') return mentee.todaySubmitted < mentee.todayTotal;
+      if (filterTab === 'feedback') return mentee.pendingFeedbackCount > 0;
+      return true;
+    });
+
+  const handleDeleteMentee = (menteeId: string, menteeName: string) => {
+    if (window.confirm(`"${menteeName}" 멘티를 삭제하시겠습니까?\n삭제된 멘티는 목록에서 제거됩니다.`)) {
+      setDeletedMenteeIds((prev) => new Set(prev).add(menteeId));
+      alert('멘티가 삭제되었습니다.');
+    }
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       {/* 상단: 다크 헤더 (환영 메시지 + 요약 카드) */}
       <section className="flex flex-col gap-4 rounded-xl bg-slate-800 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
         <div className="min-w-0">
@@ -119,6 +130,7 @@ export function MentorMainPage() {
               key={mentee.id}
               mentee={mentee}
               recentAssignments={submittedAssignments.filter((a) => a.menteeId === mentee.id)}
+              onDelete={() => handleDeleteMentee(mentee.id, mentee.name)}
             />
           ))}
         </div>
@@ -178,14 +190,14 @@ function RecentAssignmentItem({
         : FileText;
 
   return (
-    <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 p-2.5">
-      <div className="flex min-w-0 flex-1 items-center gap-2">
+    <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-slate-200 p-2.5">
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-slate-100 text-slate-600">
           <Icon className="h-4 w-4" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1 overflow-hidden">
           <p className="truncate text-sm font-medium text-slate-900">{assignment.title}</p>
-          <p className="text-xs text-slate-500">{assignment.submittedAt} 제출</p>
+          <p className="truncate text-xs text-slate-500">{assignment.submittedAt} 제출</p>
         </div>
       </div>
       {assignment.feedbackDone ? (
@@ -194,8 +206,13 @@ function RecentAssignmentItem({
           피드백 완료
         </span>
       ) : (
-        <Link to={`/mentor/mentees/${menteeId}/feedback/${assignment.id}`}>
-          <Button size="sm">피드백 작성하기</Button>
+        <Link
+          to={`/mentor/mentees/${menteeId}/feedback/${assignment.id}`}
+          className="shrink-0"
+        >
+          <Button size="sm" className="whitespace-nowrap">
+            피드백 작성하기
+          </Button>
         </Link>
       )}
     </div>
@@ -205,15 +222,18 @@ function RecentAssignmentItem({
 function MenteeCard({
   mentee,
   recentAssignments,
+  onDelete,
 }: {
   mentee: MenteeSummary;
   recentAssignments: SubmittedAssignment[];
+  onDelete: () => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const todayProgress =
     mentee.todayTotal > 0 ? (mentee.todaySubmitted / mentee.todayTotal) * 100 : 0;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+    <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
       {/* 프로필 헤더 */}
       <div className="flex items-start gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 sm:h-14 sm:w-14">
@@ -243,13 +263,39 @@ function MenteeCard({
             </span>
           </div>
         </div>
-        <button
-          type="button"
-          className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-          title="더보기"
-        >
-          <MoreVertical className="h-5 w-5" />
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((prev) => !prev)}
+            className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            title="더보기"
+            aria-expanded={menuOpen}
+          >
+            <MoreVertical className="h-5 w-5" />
+          </button>
+          {menuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setMenuOpen(false)}
+                aria-hidden="true"
+              />
+              <div className="absolute right-0 top-full z-20 mt-1 min-w-[120px] rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDelete();
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  삭제
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* 요약 통계 3개 */}
@@ -311,7 +357,7 @@ function MenteeCard({
             <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-        <div className="max-h-[160px] space-y-2 overflow-y-auto">
+        <div className="min-w-0 space-y-2">
           {(() => {
             const recent = [...recentAssignments]
               .sort((a, b) => (b.submittedAt > a.submittedAt ? 1 : -1))
@@ -328,13 +374,13 @@ function MenteeCard({
       </div>
 
       {/* 하단 액션 버튼 */}
-      <div className="mt-4 flex items-center gap-2">
+      <div className="mt-4 flex min-w-0 items-center gap-2">
         <Link
           to={`/mentor/mentees/${mentee.id}/assignments/new`}
-          className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
         >
-          <Plus className="h-4 w-4" />
-          새 과제 등록
+          <Plus className="h-4 w-4 shrink-0" />
+          <span className="truncate">새 과제 등록</span>
         </Link>
         <Link
           to={`/mentor/mentees/${mentee.id}`}

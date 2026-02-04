@@ -2,6 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 
 import { API_CONFIG } from '@/api/config';
 import {
+  fetchSubjectStudyTimes,
+  fetchWeeklyPatterns,
+} from '@/api/learningAnalysis';
+import {
   MOCK_SUBJECT_STUDY_TIMES,
   MOCK_WEEKLY_PATTERNS,
 } from '@/data/learningAnalysisMock';
@@ -15,8 +19,7 @@ export function useSubjectStudyTimes(menteeId: string | undefined) {
       if (API_CONFIG.useMock) {
         return MOCK_SUBJECT_STUDY_TIMES[menteeId] ?? MOCK_SUBJECT_STUDY_TIMES.s1 ?? [];
       }
-      // TODO: API 호출
-      return [];
+      return fetchSubjectStudyTimes(menteeId);
     },
     enabled: !!menteeId,
   });
@@ -30,8 +33,7 @@ export function useWeeklyPatterns(menteeId: string | undefined) {
       if (API_CONFIG.useMock) {
         return MOCK_WEEKLY_PATTERNS[menteeId] ?? MOCK_WEEKLY_PATTERNS.s1 ?? [];
       }
-      // TODO: API 호출
-      return [];
+      return fetchWeeklyPatterns(menteeId);
     },
     enabled: !!menteeId,
   });

@@ -1,4 +1,5 @@
 import type {
+  AssignmentDetail,
   FeedbackItem,
   IncompleteAssignment,
   MenteeKpi,
@@ -34,19 +35,23 @@ export const MOCK_FEEDBACK_ITEMS: FeedbackItem[] = [
   { id: 'f10', assignmentId: 'a10', menteeId: 's2', title: '영어 독해 - 지문 분석', subject: '영어', submittedAt: '2025.02.01', status: 'completed', feedbackDate: '2025.02.02 오후 5:00' },
 ];
 
+/**
+ * 미완료 과제 - IncompleteAssignment.id = FeedbackItem.assignmentId (동일 과제는 같은 ID 사용)
+ * 과제 완료 시 피드백 대시보드에 추가되므로, 이미 피드백 항목이 있으면 중복 생성하지 않음
+ */
 export const MOCK_INCOMPLETE_ASSIGNMENTS: IncompleteAssignment[] = [
-  { id: 'i1', menteeId: 's1', title: '영어 독해 - Chapter 5 문제풀이', subject: '영어', description: '교재: 수능특강 영어독해/페이지: 45-52', status: 'completed', completedAt: '오전 10:45', completedAtDate: '2025-02-02' },
-  { id: 'i2', menteeId: 's1', title: '수학 미적분 - 연습문제 3-2', subject: '수학', description: '교재: EBS 수능완성 수학 / 페이지: 78-82', deadline: '오후 11:59', deadlineDate: '2025-02-02', status: 'in_progress' },
-  { id: 'i3', menteeId: 's1', title: '국어 문법 - 품사 분류 연습', subject: '국어', description: '워크시트 5장 / 온라인 제출', deadline: '오후 11:59', deadlineDate: '2025-02-03', status: 'not_started' },
-  { id: 'i4', menteeId: 's1', title: '영어 단어 암기 - Day 15', subject: '영어', description: '단어장: 수능필수 영단어 / 50개', status: 'completed', completedAt: '오후 3:20', completedAtDate: '2025-02-02' },
-  { id: 'i5', menteeId: 's1', title: '수학 오답노트 정리', subject: '수학', description: '지난주 모의고사 틀린 문제 5개', deadline: '1시간 후', deadlineDate: '2025-02-02', status: 'deadline_soon' },
-  { id: 'i6', menteeId: 's1', title: '영어 에세이 - 환경 문제', subject: '영어', description: '200자 이상 영작', deadline: '오후 11:59', deadlineDate: '2025-02-06', status: 'not_started' },
-  { id: 'i11', menteeId: 's1', title: '국어 문학 감상문', subject: '국어', description: '시 2편 분석', deadline: '오후 11:59', deadlineDate: '2025-02-04', status: 'deadline_soon' },
-  { id: 'i12', menteeId: 's1', title: '과학 실험 예비보고서', subject: '과학', description: '실험 설계 및 가설', status: 'completed', completedAt: '오전 11:00', completedAtDate: '2025-02-04' },
-  { id: 'i7', menteeId: 's1', title: '과학 탐구 보고서', subject: '과학', description: '주제 선정 및 계획서', deadline: '오후 11:59', deadlineDate: '2025-02-15', status: 'not_started' },
-  { id: 'i8', menteeId: 's2', title: '물리 실험 보고서', subject: '과학', description: '뉴턴 제2법칙 검증 실험', deadline: '오후 11:59', deadlineDate: '2025-02-04', status: 'deadline_soon' },
-  { id: 'i9', menteeId: 's2', title: '수학 미적분 문제집', subject: '수학', description: '3단원 연습문제 1-20', deadline: '오후 11:59', deadlineDate: '2025-02-05', status: 'in_progress' },
-  { id: 'i10', menteeId: 's2', title: '영어 에세이', subject: '영어', description: '환경 보호 주제 200자', status: 'completed', completedAt: '오후 2:00', completedAtDate: '2025-02-03' },
+  { id: 'a1', menteeId: 's1', title: '영어 독해 - Chapter 5 문제풀이', subject: '영어', description: '교재: 수능특강 영어독해/페이지: 45-52', status: 'completed', completedAt: '오전 10:45', completedAtDate: '2025-02-02' },
+  { id: 'a3', menteeId: 's1', title: '수학 미적분 - 연습문제 3-2', subject: '수학', description: '교재: EBS 수능완성 수학 / 페이지: 78-82', deadline: '오후 11:59', deadlineDate: '2025-02-02', status: 'in_progress' },
+  { id: 'a13', menteeId: 's1', title: '국어 문법 - 품사 분류 연습', subject: '국어', description: '워크시트 5장 / 온라인 제출', deadline: '오후 11:59', deadlineDate: '2025-02-03', status: 'not_started' },
+  { id: 'a2', menteeId: 's1', title: '영어 단어 암기 - Day 15', subject: '영어', description: '단어장: 수능필수 영단어 / 50개', status: 'completed', completedAt: '오후 3:20', completedAtDate: '2025-02-02' },
+  { id: 'a11', menteeId: 's1', title: '수학 오답노트 정리', subject: '수학', description: '지난주 모의고사 틀린 문제 5개', deadline: '1시간 후', deadlineDate: '2025-02-02', status: 'deadline_soon' },
+  { id: 'a14', menteeId: 's1', title: '영어 에세이 - 환경 문제', subject: '영어', description: '200자 이상 영작', deadline: '오후 11:59', deadlineDate: '2025-02-06', status: 'not_started' },
+  { id: 'a7', menteeId: 's1', title: '국어 문학 감상문', subject: '국어', description: '시 2편 분석', deadline: '오후 11:59', deadlineDate: '2025-02-04', status: 'deadline_soon' },
+  { id: 'a6', menteeId: 's1', title: '과학 실험 예비보고서', subject: '과학', description: '실험 설계 및 가설', status: 'completed', completedAt: '오전 11:00', completedAtDate: '2025-02-04' },
+  { id: 'a15', menteeId: 's1', title: '과학 탐구 보고서', subject: '과학', description: '주제 선정 및 계획서', deadline: '오후 11:59', deadlineDate: '2025-02-15', status: 'not_started' },
+  { id: 'a8', menteeId: 's2', title: '물리 실험 보고서', subject: '과학', description: '뉴턴 제2법칙 검증 실험', deadline: '오후 11:59', deadlineDate: '2025-02-04', status: 'deadline_soon' },
+  { id: 'a9', menteeId: 's2', title: '수학 미적분 문제집', subject: '수학', description: '3단원 연습문제 1-20', deadline: '오후 11:59', deadlineDate: '2025-02-05', status: 'in_progress' },
+  { id: 'a16', menteeId: 's2', title: '영어 에세이', subject: '영어', description: '환경 보호 주제 200자', status: 'completed', completedAt: '오후 2:00', completedAtDate: '2025-02-03' },
 ];
 
 export const MOCK_TODAY_COMMENTS: TodayComment[] = [
@@ -60,3 +65,86 @@ export const MOCK_MENTEE_KPIS: MenteeKpi[] = [
 ];
 
 export const SUBJECTS = ['전체', '국어', '영어', '수학', '과학', '사회', '자기주도'] as const;
+
+/** 과제 상세 mock (assignmentId로 조회) */
+export const MOCK_ASSIGNMENT_DETAILS: Record<string, AssignmentDetail> = {
+  a11: {
+    assignmentId: 'a11',
+    title: '수학 오답노트 정리',
+    subject: '수학',
+    date: '2025.02.04',
+    goal: '지난주 모의고사에서 틀린 문제 5개를 분석하고 유형별로 정리하여 재시험 대비',
+    content: `
+<p>지난주 수학 모의고사에서 틀린 문제를 중심으로 오답노트를 작성해 주세요.</p>
+<ul>
+  <li>틀린 문제 5개 선정 (난이도 고른 분포 권장)</li>
+  <li>각 문제별: 오답 원인, 올바른 풀이, 유사 유형 정리</li>
+  <li>해당 단원 개념 복습 노트 1페이지 분량</li>
+</ul>
+<p>EBS 수능완성 수학 교재 3단원 참고하여 풀이 방식을 정리해 보세요.</p>
+    `.trim(),
+    contentChecklist: [
+      '지난주 모의고사에서 틀린 문제 5개를 선정하고 오답 원인을 분석해 주세요.',
+      '각 문제별 올바른 풀이와 유사 유형을 노트에 정리해 주세요.',
+      '해당 단원 개념을 복습하고 1페이지 분량으로 정리해 주세요.',
+    ],
+    relatedResources: [
+      { id: 'r1', name: '수학 오답노트 양식' },
+      { id: 'r2', name: '3단원 핵심개념 정리' },
+    ],
+    studyColumn: {
+      title: '설스터디 칼럼: 수학 오답노트 작성법',
+      content: '오답노트를 작성할 때는 "왜 틀렸는지"를 정확히 파악하는 것이 핵심입니다. 단순히 정답을 적는 것보다, 유사한 유형이 나왔을 때 다시 풀 수 있는지 확인해 보세요.',
+      readMoreLink: '#',
+    },
+    providedPdfs: [
+      { id: 'pdf1', name: '수학_오답노트_양식.pdf', size: '245 KB' },
+      { id: 'pdf2', name: '3단원_개념정리.pdf', size: '1.2 MB' },
+    ],
+    studentPhotos: [
+      { id: 'p1', url: '/student-notebook.png', caption: '오답노트 1페이지' },
+      { id: 'p2', url: '/student-notebook.png', caption: '오답노트 2페이지' },
+      { id: 'p3', url: '/student-notebook.png', caption: '개념 정리' },
+    ],
+    studentMemo: '어려웠어요',
+  },
+  a1: {
+    assignmentId: 'a1',
+    title: '비문학 독해 연습',
+    subject: '국어',
+    date: '2025.02.02',
+    goal: '과학 지문 3개 풀이 및 오답 분석',
+    content: '<p>교재: 수능특강 영어독해 / 페이지: 45-52</p><p>지문 2개 읽고 문제 풀이 후 오답 체크해 주세요.</p>',
+    contentChecklist: [
+      '오늘은 과학 지문 3개를 풀어주세요. 시간을 재면서 푸는 것이 중요해요!',
+      '틀린 문제는 왜 틀렸는지 반드시 분석해서 노트에 적어주세요.',
+      '모르는 어휘는 별도로 정리하면 좋아요. 특히 전문 용어!',
+    ],
+    relatedResources: [
+      { id: 'r1', name: '수학 오답노트 양식' },
+      { id: 'r2', name: '과학지문 핵심개념 정리' },
+    ],
+    studyColumn: {
+      title: '설스터디 칼럼: 비문학 독해 팁',
+      content: '과학 지문을 읽을 때는 인과관계를 파악하는 것이 핵심입니다. \'원인 → 결과\' 구조를 머릿속에 그리면서 읽어보세요.',
+      readMoreLink: '#',
+    },
+    providedPdfs: [{ id: 'pdf1', name: '영어독해_Chapter5_지문.pdf', size: '380 KB' }],
+    studentPhotos: [
+      { id: 'p1', url: '/student-notebook.png', caption: '풀이 사진' },
+    ],
+    studentMemo: '어려웠어요',
+  },
+  a7: {
+    assignmentId: 'a7',
+    title: '국어 문학 - 시 감상문',
+    subject: '국어',
+    date: '2025.02.04',
+    goal: '시 2편을 읽고 감상문 작성 (각 200자 이상)',
+    content: '<p>시 2편 분석 후 감상문을 작성해 주세요. 시의 주제, 표현 기법, 느낀 점을 포함해 주세요.</p>',
+    providedPdfs: [],
+    studentPhotos: [
+      { id: 'p1', url: '/student-notebook.png', caption: '감상문 초안' },
+    ],
+  },
+};

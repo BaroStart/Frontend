@@ -16,6 +16,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import { AssignmentDetailModal } from '@/components/mentor/AssignmentDetailModal';
 import { ChatModal } from '@/components/mentor/ChatModal';
 import { DatePickerModal } from '@/components/mentor/DatePickerModal';
 import { LearningAnalysisModal } from '@/components/mentor/LearningAnalysisModal';
@@ -34,6 +35,7 @@ import {
 } from '@/hooks/useMenteeDetail';
 import { SUBJECTS } from '@/data/menteeDetailMock';
 import type {
+  AssignmentDetail,
   FeedbackItem,
   IncompleteAssignment,
   MenteeSummary,
@@ -121,6 +123,17 @@ export function MenteeDetailPage() {
   }, [serverIncomplete]);
   const [feedbackItemsState, setFeedbackItemsState] = useState<FeedbackItem[]>([]);
   const [scheduleAddModalOpen, setScheduleAddModalOpen] = useState(false);
+  const [assignmentDetailModalOpen, setAssignmentDetailModalOpen] = useState(false);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [selectedAssignmentSource, setSelectedAssignmentSource] = useState<'feedback' | 'incomplete'>('feedback');
+  const [selectedFeedbackStatus, setSelectedFeedbackStatus] = useState<
+    'urgent' | 'pending' | 'partial' | 'completed' | null
+  >(null);
+  const [selectedAssignmentFallback, setSelectedAssignmentFallback] = useState<{
+    title: string;
+    goal?: string;
+    subject?: string;
+  } | null>(null);
   const [learningAnalysisModalOpen, setLearningAnalysisModalOpen] = useState(false);
   const [profileEditModalOpen, setProfileEditModalOpen] = useState(false);
   const [menteeOverride, setMenteeOverride] = useState<MenteeSummary | null>(null);
@@ -170,7 +183,15 @@ export function MenteeDetailPage() {
   }, [viewMode, selectedDate]);
 
   const feedbackItems = useMemo(() => {
-    const baseItems = [...serverFeedbackItems.filter((f) => f.menteeId === menteeId), ...feedbackItemsState];
+    const serverItems = serverFeedbackItems.filter((f) => f.menteeId === menteeId);
+    const localItems = feedbackItemsState;
+    const seen = new Set<string>();
+    const baseItems: FeedbackItem[] = [];
+    for (const f of [...localItems, ...serverItems]) {
+      if (seen.has(f.assignmentId)) continue;
+      seen.add(f.assignmentId);
+      baseItems.push(f);
+    }
     const bySubject = feedbackSubjectFilter === '전체' ? baseItems : baseItems.filter((f) => f.subject === feedbackSubjectFilter);
     return bySubject.filter((f) => {
       const dateStr = f.status === 'completed' && f.feedbackDate
@@ -179,15 +200,16 @@ export function MenteeDetailPage() {
       if (!dateStr) return true;
       return isDateInRange(dateStr, dateRange.start, dateRange.end);
     });
-  }, [menteeId, feedbackSubjectFilter, feedbackItemsState, dateRange]);
+  }, [menteeId, feedbackSubjectFilter, feedbackItemsState, serverFeedbackItems, dateRange]);
 
   const filteredAndSortedAssignments = useMemo(() => {
-    const filtered = incompleteAssignments.filter((a) => {
-      const dateStr = a.status === 'completed' ? a.completedAtDate : a.deadlineDate;
+    const onlyIncomplete = incompleteAssignments.filter((a) => a.status !== 'completed');
+    const filtered = onlyIncomplete.filter((a) => {
+      const dateStr = a.deadlineDate;
       if (!dateStr) return true;
       return isDateInRange(dateStr, dateRange.start, dateRange.end);
     });
-    const incompleteOrder = ['deadline_soon', 'not_started', 'in_progress', 'completed'];
+    const incompleteOrder = ['deadline_soon', 'not_started', 'in_progress'];
     return [...filtered].sort((a, b) => {
       const ai = incompleteOrder.indexOf(a.status);
       const bi = incompleteOrder.indexOf(b.status);
@@ -196,7 +218,6 @@ export function MenteeDetailPage() {
   }, [incompleteAssignments, dateRange]);
 
   const pendingFeedbackCount = feedbackItems.filter((f) => f.status !== 'completed').length;
-  const completedCount = filteredAndSortedAssignments.filter((a) => a.status === 'completed').length;
   const totalCount = filteredAndSortedAssignments.length;
   const todayComment = todayCommentData;
   const highlightDates = useMemo(
@@ -221,23 +242,17 @@ export function MenteeDetailPage() {
     if (mode === 'today') setSelectedDate(todayStr);
   };
 
-  const handleAssignmentComplete = (id: string) => {
-    const assignment = incompleteAssignments.find((a) => a.id === id);
+  const handleAssignmentComplete = (assignmentId: string) => {
+    const assignment = incompleteAssignments.find((a) => a.id === assignmentId);
     if (!assignment || menteeId == null) return;
 
-    setIncompleteAssignments((prev) =>
-      prev.map((a) =>
-        a.id === id
-          ? { ...a, status: 'completed' as const, completedAt: '방금', completedAtDate: DEMO_REF_DATE }
-          : a
-      )
-    );
+    const completedDate = selectedDate;
+    setIncompleteAssignments((prev) => prev.filter((a) => a.id !== assignmentId));
 
-    // 피드백 대시보드에 자동 추가 (체크 시 바로 피드백 대시보드로 이동)
-    const datePart = `${DEMO_REF_DATE.replace(/-/g, '.')}`;
+    const datePart = `${completedDate.replace(/-/g, '.')}`;
     const newFeedbackItem: FeedbackItem = {
-      id: `fb-${id}-${Date.now()}`,
-      assignmentId: id,
+      id: `fb-${assignmentId}-${Date.now()}`,
+      assignmentId,
       menteeId,
       title: assignment.title,
       subject: assignment.subject,
@@ -250,6 +265,44 @@ export function MenteeDetailPage() {
   const handleAssignmentDelete = (id: string) => {
     setIncompleteAssignments((prev) => prev.filter((a) => a.id !== id));
     setShowDeleteConfirm(null);
+  };
+
+  const [assignmentDetailOverrides, setAssignmentDetailOverrides] = useState<
+    Record<string, Partial<AssignmentDetail>>
+  >({});
+
+  const openAssignmentDetail = (
+    assignmentId: string,
+    fallback?: { title: string; goal?: string; subject?: string },
+    source: 'feedback' | 'incomplete' = 'feedback',
+    feedbackStatus?: 'urgent' | 'pending' | 'partial' | 'completed'
+  ) => {
+    setSelectedAssignmentId(assignmentId);
+    setSelectedAssignmentFallback(fallback ?? null);
+    setSelectedAssignmentSource(source);
+    setSelectedFeedbackStatus(feedbackStatus ?? null);
+    setAssignmentDetailModalOpen(true);
+  };
+
+  const handleSaveAssignmentDetail = (
+    id: string,
+    data: Partial<AssignmentDetail>,
+    source: 'feedback' | 'incomplete'
+  ) => {
+    setAssignmentDetailOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...data } }));
+    if (source === 'incomplete' && (data.title != null || data.goal != null)) {
+      setIncompleteAssignments((prev) =>
+        prev.map((a) =>
+          a.id === id
+            ? {
+                ...a,
+                ...(data.title != null && { title: data.title }),
+                ...(data.goal != null && { description: data.goal }),
+              }
+            : a
+        )
+      );
+    }
   };
 
   if (isMenteeLoading) {
@@ -468,7 +521,19 @@ export function MenteeDetailPage() {
           </div>
           <div className="max-h-[360px] space-y-2 overflow-y-auto">
             {feedbackItems.map((item) => (
-              <FeedbackCard key={item.id} item={item} menteeId={menteeId!} />
+              <FeedbackCard
+                key={item.id}
+                item={item}
+                menteeId={menteeId!}
+                onViewAssignment={() =>
+                  openAssignmentDetail(
+                    item.assignmentId,
+                    { title: item.title, subject: item.subject },
+                    'feedback',
+                    item.status
+                  )
+                }
+              />
             ))}
           </div>
         </div>
@@ -481,7 +546,7 @@ export function MenteeDetailPage() {
               미완료 과제
             </h3>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">완료: {completedCount}/{totalCount}</span>
+              <span className="text-xs text-slate-500">총 {totalCount}개</span>
               <Link to={`/mentor/mentees/${menteeId}/assignments/new`}>
                 <Button size="sm" variant="outline">
                   <Plus className="h-4 w-4" />
@@ -500,6 +565,13 @@ export function MenteeDetailPage() {
                 showDeleteConfirm={showDeleteConfirm === a.id}
                 onConfirmDelete={() => handleAssignmentDelete(a.id)}
                 onCancelDelete={() => setShowDeleteConfirm(null)}
+                onViewAssignment={() =>
+                  openAssignmentDetail(
+                    a.id,
+                    { title: a.title, goal: a.description, subject: a.subject },
+                    'incomplete'
+                  )
+                }
               />
             ))}
           </div>
@@ -624,6 +696,33 @@ export function MenteeDetailPage() {
           )
         }
       />
+
+      <AssignmentDetailModal
+        isOpen={assignmentDetailModalOpen}
+        onClose={() => {
+          setAssignmentDetailModalOpen(false);
+          setSelectedAssignmentId(null);
+          setSelectedAssignmentFallback(null);
+          setSelectedFeedbackStatus(null);
+        }}
+        assignmentId={selectedAssignmentId ?? ''}
+        source={selectedAssignmentSource}
+        feedbackStatus={selectedFeedbackStatus}
+        menteeId={menteeId ?? undefined}
+        fallback={selectedAssignmentFallback ?? undefined}
+        overrides={
+          selectedAssignmentSource === 'incomplete'
+            ? assignmentDetailOverrides[selectedAssignmentId ?? '']
+            : undefined
+        }
+        onSave={
+          selectedAssignmentSource === 'incomplete'
+            ? (data: Partial<AssignmentDetail>) =>
+                selectedAssignmentId &&
+                handleSaveAssignmentDetail(selectedAssignmentId, data, 'incomplete')
+            : undefined
+        }
+      />
     </div>
   );
 }
@@ -678,11 +777,30 @@ function TaskItem({ task }: { task: MenteeTask }) {
   );
 }
 
-function FeedbackCard({ item, menteeId }: { item: FeedbackItem; menteeId: string }) {
+function FeedbackCard({
+  item,
+  menteeId,
+  onViewAssignment,
+}: {
+  item: FeedbackItem;
+  menteeId: string;
+  onViewAssignment: () => void;
+}) {
   const statusLabels = { urgent: '긴급', pending: '대기중', partial: '부분완료', completed: '완료' };
 
   return (
-    <div className="rounded-lg border border-slate-200 p-3">
+    <div
+      role="button"
+      tabIndex={0}
+      className="cursor-pointer rounded-lg border border-slate-200 p-3 transition-colors hover:border-slate-300 hover:bg-slate-50/50"
+      onClick={onViewAssignment}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onViewAssignment();
+        }
+      }}
+    >
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">
@@ -713,20 +831,25 @@ function FeedbackCard({ item, menteeId }: { item: FeedbackItem; menteeId: string
           )}
         </div>
       </div>
-      <div className="mt-2 flex gap-2">
+      <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
         {item.status !== 'completed' ? (
           <>
             <Link to={`/mentor/mentees/${menteeId}/feedback/${item.assignmentId}`}>
               <Button size="sm">피드백 작성하기</Button>
             </Link>
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="outline" onClick={onViewAssignment}>
               ● 과제 보기
             </Button>
           </>
         ) : (
-          <Button size="sm" variant="outline">
-            전체 피드백 보기
-          </Button>
+          <>
+            <Button size="sm" variant="outline" onClick={onViewAssignment}>
+              ● 과제 보기
+            </Button>
+            <Link to={`/mentor/mentees/${menteeId}/feedback/${item.assignmentId}`}>
+              <Button size="sm" variant="outline">전체 피드백 보기</Button>
+            </Link>
+          </>
         )}
       </div>
     </div>
@@ -737,6 +860,7 @@ function IncompleteAssignmentCard({
   assignment,
   onComplete,
   onDelete,
+  onViewAssignment,
   showDeleteConfirm,
   onConfirmDelete,
   onCancelDelete,
@@ -744,6 +868,7 @@ function IncompleteAssignmentCard({
   assignment: IncompleteAssignment;
   onComplete: () => void;
   onDelete: () => void;
+  onViewAssignment: () => void;
   showDeleteConfirm: boolean;
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
@@ -751,11 +876,25 @@ function IncompleteAssignmentCard({
   const isCompleted = assignment.status === 'completed';
 
   return (
-    <div className="rounded-lg border border-slate-200 p-3">
+    <div
+      role="button"
+      tabIndex={0}
+      className="cursor-pointer rounded-lg border border-slate-200 p-3 transition-colors hover:border-slate-300 hover:bg-slate-50/50"
+      onClick={onViewAssignment}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onViewAssignment();
+        }
+      }}
+    >
       <div className="flex items-start gap-2">
         <button
           type="button"
-          onClick={isCompleted ? undefined : onComplete}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isCompleted) onComplete();
+          }}
           className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
             isCompleted ? 'border-slate-600 bg-slate-600 text-white' : 'border-slate-300 hover:border-slate-500'
           }`}
@@ -782,17 +921,20 @@ function IncompleteAssignmentCard({
             </button>
             {showDeleteConfirm ? (
               <div className="absolute right-0 top-8 z-10 flex gap-1 rounded border border-slate-200 bg-white p-2 shadow-lg">
-                <Button size="sm" variant="destructive" onClick={onConfirmDelete}>
+                <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); onConfirmDelete(); }}>
                   삭제
                 </Button>
-                <Button size="sm" variant="outline" onClick={onCancelDelete}>
+                <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onCancelDelete(); }}>
                   취소
                 </Button>
               </div>
             ) : (
               <button
                 type="button"
-                onClick={onDelete}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
                 className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-600"
                 title="삭제"
               >
