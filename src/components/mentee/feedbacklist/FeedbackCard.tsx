@@ -1,6 +1,4 @@
-import React from "react";
-
-export type Subject = "국어" | "영어" | "수학";
+export type Subject = "KOREAN" | "ENGLISH" | "MATH" | "ETC";
 
 export type FeedbackItem = {
   id: string;
@@ -20,14 +18,10 @@ type Props = {
 
 function subjectIcon(subject: Subject) {
   switch (subject) {
-    case "국어":
-      return "✍️"; 
-    case "영어":
-      return "🗣️";
-    case "수학":
-      return "📐";
-    default:
-      return "📘";
+    case "KOREAN": return "✍️"; 
+    case "ENGLISH": return "🗣️";
+    case "MATH": return "📐";
+    default: return "📘";
   }
 }
 

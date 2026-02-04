@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { TodayFeedbackCard } from "@/components/mentee/feedbacklist/TodayFeedbackSection";
 import { FeedbackSummarySection } from "@/components/mentee/feedbacklist/FeedbackSummarySection";
 import { SubjectFilter } from "@/components/mentee/feedbacklist/SubjectFilter";
-import { FeedbackCard, type FeedbackItem } from "@/components/mentee/feedbacklist/FeedbackCard";
+import { FeedbackCard } from "@/components/mentee/feedbacklist/FeedbackCard";
 
-type Subject = "ALL" | "KOREAN" | "ENGLISH" | "MATH" | "ETC";
+type Subject = "ALL" | "KOREAN" | "ENGLISH" | "MATH";
 
 export function FeedbackListPage() {
   const navigate = useNavigate();
@@ -17,28 +17,15 @@ export function FeedbackListPage() {
     id: "1",
     mentorName: "김민준",
     timeAgoText: "4시간 전",
-    subject: "영어" as const,
+    subject: "ENGLISH" as const, 
     message: "영어 독해에서 주제로 찾기가 아직 어려워 보이네요. 내일 추가 자료를 드릴게요.",
-  };
-
-  const item: FeedbackItem = {
-    id: "fb-1",
-    subject: "ENGLISH",
-    unitTitle: "독해",
-    content: "영어 독해에서 주제문 찾기가 아직 어려워 보여요. 내일 추가 자료를 드릴게요.",
-    mentorName: "김민준",
-    createdAtText: "14:30",
-    assignmentCount: 3,
-    assignmentId: "a-1",
   };
 
   return (
     <div className="px-4 py-6">
       <TodayFeedbackCard
         item={dummyFeedback}
-        onClick={(it) => {
-          console.log("clicked feedback:", it.id);
-        }}
+        onClick={(it) => console.log("clicked feedback:", it.id)}
       />
 
       <FeedbackSummarySection
@@ -47,20 +34,18 @@ export function FeedbackListPage() {
             id: "1",
             mentorName: "김민준",
             timeAgoText: "2시간 전",
-            message: "오늘 수학 문제 풀이 속도가 많이 개선되었습니다! 특히 미적분 파트에서 실수가 줄었어요. 👍",
-            subject: "수학",
+            message: "오늘 수학 문제 풀이 속도가 많이 개선되었습니다!",
+            subject: "MATH" as any, 
           },
           {
             id: "2",
             mentorName: "김민준",
             timeAgoText: "4시간 전",
-            message: "영어 독해에서 주제문 찾기가 아직 어려워 보여요. 내일 추가 자료를 드릴게요.",
-            subject: "영어",
+            message: "영어 독해에서 주제문 찾기가 아직 어려워 보여요.",
+            subject: "ENGLISH" as any,
           },
         ]}
-        onClickItem={(it) => {
-          console.log("open assignment for:", it.id);
-        }}
+        onClickItem={(it) => console.log("open assignment for:", it.id)}
       />
 
       <SubjectFilter value={subject} onChange={setSubject} />
@@ -69,7 +54,7 @@ export function FeedbackListPage() {
         <FeedbackCard
           item={{
             id: "1",
-            subject: "영어",
+            subject: "ENGLISH", 
             mentorName: "김민준",
             content: "영어 독해에서 주제문 찾기가 아직 어려워 보여요.",
             timeText: "4시간 전",

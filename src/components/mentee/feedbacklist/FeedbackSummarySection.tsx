@@ -1,5 +1,3 @@
-import React from "react";
-
 export type FeedbackSummaryItem = {
   id: string;
   mentorName: string;

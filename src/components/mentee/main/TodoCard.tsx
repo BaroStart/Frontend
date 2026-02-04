@@ -163,8 +163,11 @@ export function TodoCard({ item, onToggleDone, onUpdateTitle, onDelete }: Props)
           ) : (
             <form onSubmit={submitEdit} className="relative">
               <input
-                ref={inputRef}
                 {...form.register("title")}
+                ref={(e) => {
+                  form.register("title").ref(e);
+                  inputRef.current = e;  
+                }}
                 className={[
                   "w-full rounded-xl border px-3 py-2 text-[15px] font-extrabold outline-none",
                   "border-gray-200 focus:border-gray-400",
