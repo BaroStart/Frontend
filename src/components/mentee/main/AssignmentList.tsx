@@ -4,10 +4,9 @@ import { AssignmentCard, type AssignmentItem } from "./AssignmentCard";
 type Props = {
   items: AssignmentItem[];
   onOpen: (assignmentId: string) => void;
-  dateLabel: string; 
 };
 
-export function AssignmentList({ items, onOpen, dateLabel }: Props) {
+export function AssignmentList({ items, onOpen }: Props) {
   const sorted = useMemo(() => {
     const copy = [...items];
     copy.sort((a, b) => {
