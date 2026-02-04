@@ -88,7 +88,7 @@ function buildMonthCells(monthRef: Date): Cell[] {
   return cells;
 }
 
-// 과제랑 할일 있을 때 각각 점 1개로 표시함
+// 과제랑 할일 있을 때 각각 점 1개로 표시했음
 function DotIndicator({ a, t }: { a: number; t: number }) {
   const hasA = a > 0;
   const hasT = t > 0;
