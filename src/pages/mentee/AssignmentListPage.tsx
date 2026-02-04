@@ -102,7 +102,7 @@ export function AssignmentListPage() {
             </button>
           </div>
         </div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">오늘의 과제</h1>
+        <h1 className="mb-1 text-2xl font-bold text-gray-900">오늘의 과제</h1>
       </header>
 
       {/* 과목 필터링 */}
