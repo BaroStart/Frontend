@@ -107,13 +107,13 @@ export function AssignmentListPage() {
 
       {/* 과목 필터링 */}
       <div className="px-4 mb-2 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-2">
+        <div className="flex gap-2 py-3">
           {TABS.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={twMerge(
-                'px-5 py-2.5 rounded-2xl text-sm font-bold whitespace-nowrap transition-all duration-200 shadow-sm, hover:shadow-md hover:text-gray-600',
+                'px-5 py-2.5 rounded-2xl text-sm font-bold whitespace-nowrap transition-all duration-200 shadow-sm, hover:shadow-md hover:text-gray-600 h-10',
                 activeTab === tab
                   ? 'bg-[#0E9ABE] text-white shadow-[#0E9ABE]/30'
                   : 'bg-white text-gray-400 border border-gray-100 hover:bg-gray-50 ',

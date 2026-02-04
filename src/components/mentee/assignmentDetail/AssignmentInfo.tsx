@@ -6,7 +6,6 @@ import {
   FileText,
   Image as ImageIcon,
   Info,
-  Lightbulb,
   PenTool,
   X,
 } from 'lucide-react';
@@ -105,26 +104,7 @@ export default function AssignmentInfo() {
           </div>
         </section>
 
-        {/* 3. 설스터디 칼럼 */}
-        <section>
-          <div className="flex items-start gap-3 p-5 transition-shadow bg-white border shadow-sm cursor-pointer rounded-xl border-slate-200 hover:shadow-md">
-            <Lightbulb className="w-5 h-5 text-[#0E9ABE] flex-shrink-0 mt-0.5" />
-            <div>
-              <h4 className="mb-2 text-sm font-bold text-slate-900">
-                설스터디 칼럼: 비문학 독해 팁
-              </h4>
-              <p className="mb-3 text-xs leading-relaxed text-slate-600">
-                과학 지문을 읽을 때는 인과관계를 파악하는 것이 핵심입니다. '원인 → 결과' 구조를
-                머릿속에 그리면서 읽어보세요.
-              </p>
-              <button className="text-xs font-bold underline text-slate-900 underline-offset-2">
-                전체 읽기
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* 4. 공부 인증 */}
+        {/* 공부 인증 */}
         <section>
           <div className="flex items-center gap-2 mb-3">
             <Camera className="w-4 h-4 text-slate-900" />
@@ -200,7 +180,7 @@ export default function AssignmentInfo() {
             </div>
           </div>
 
-          {/* Submission Status Message */}
+          {/* 제출 상태 메시지 */}
           <div className="flex items-center gap-2 p-3 mb-8 border bg-slate-50 border-slate-100 rounded-xl">
             <CheckCircle2 className="w-4 h-4 text-slate-900" />
             <span className="text-xs font-medium text-slate-700">
@@ -208,7 +188,7 @@ export default function AssignmentInfo() {
             </span>
           </div>
 
-          {/* Memo Section */}
+          {/* 메모 */}
           <div className="mb-4">
             <h4 className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-900">
               <PenTool className="w-3.5 h-3.5" />
