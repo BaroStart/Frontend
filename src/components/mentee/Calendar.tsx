@@ -120,8 +120,7 @@ function DayCell({
   const base =
     "relative flex min-h-[82px] flex-col items-center justify-start rounded-2xl p-2 transition";
 
-  // ✅ 공통: 날짜가 들어가는 자리(원형)의 크기/정렬을 항상 동일하게
-  const DateCircle = ({
+    const DateCircle = ({
     children,
     circleClassName = "",
   }: {
@@ -141,7 +140,6 @@ function DayCell({
   );
 
   if (!inMonth) {
-    // ✅ 회색 날짜도 동일한 원형 자리 안에 넣어서 위치 완벽히 정렬
     return (
       <button
         type="button"
@@ -154,7 +152,6 @@ function DayCell({
           </span>
         </DateCircle>
 
-        {/* ✅ 회색 날짜에는 점 안 보이게 하려면 아래는 비워두기(높이는 유지) */}
         <div className="mt-2 h-3" />
       </button>
     );
@@ -170,7 +167,6 @@ function DayCell({
         "focus:outline-none",
       ].join(" ")}
     >
-      {/* ✅ 선택/호버 동일 크기 원형 하이라이트 */}
       <div className="group mt-2 flex h-14 w-14 items-center justify-center rounded-3xl">
         <div
           className={[
@@ -189,8 +185,6 @@ function DayCell({
           </span>
         </div>
       </div>
-
-      {/* ✅ selected여도 점은 항상 보임 */}
       <DotIndicator a={a} t={t} />
     </button>
   );
