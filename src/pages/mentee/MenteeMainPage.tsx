@@ -128,7 +128,6 @@ export function MenteeMainPage() {
       <h1 className="my-8 font-bold">오늘의 학습 목록</h1>
 
       <AssignmentList
-        dateLabel={dateLabel(selectedDate)}
         items={assignments}
         onOpen={(id) => navigate(`/mentee/assignments/${id}`)}
       />
