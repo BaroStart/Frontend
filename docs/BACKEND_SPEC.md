@@ -285,6 +285,90 @@ interface DailyStudyPattern {
 }
 ```
 
+**참고**: 통계 분석 리포트 생성 시 다음 API들의 데이터를 조합하여 사용합니다:
+- `/mentor/mentees/:id/learning/subject-times` - 과목별 학습 시간
+- `/mentor/mentees/:id/learning/weekly-patterns` - 주간 학습 패턴
+- `/mentor/mentees/:id/feedback` - 피드백 목록 (과목별 세부 분석용)
+- `/mentor/mentees/:id/kpi` - KPI 지표
+
+---
+
+### 7. 플래너 (Planner)
+
+학생이 기록한 일일 학습 플래너를 멘토가 확인하고 피드백을 작성합니다. 피드백은 멘티에게 전달됩니다.
+
+| 메서드 | 경로 | 설명 | Query |
+|--------|------|------|-------|
+| GET | `/mentor/mentees/:id/planner/records` | 멘티의 플래너 기록 조회 | `date` (YYYY-MM-DD) |
+| GET | `/mentor/mentees/:id/planner/feedback` | 플래너 피드백 조회 | `date` (YYYY-MM-DD) |
+| POST | `/mentor/mentees/:id/planner/feedback` | 플래너 피드백 저장/수정 | - |
+| GET | `/mentee/planner/feedback` | 멘티: 내 플래너 피드백 조회 | `date` (YYYY-MM-DD) |
+
+**PlannerRecord[] (학생이 기록한 학습 데이터)**
+
+```ts
+interface PlannerRecord {
+  id: string;
+  menteeId: string;
+  date: string;           // "2025-02-04"
+  subject: string;        // "수학", "영어", "국어" 등
+  durationMinutes: number;
+  startHour?: number;     // 타임라인용 (0-23)
+}
+```
+
+**POST 플래너 피드백 요청: PlannerFeedbackPayload**
+
+```ts
+interface PlannerFeedbackPayload {
+  date: string;           // "2025-02-04"
+  feedbackText: string;
+}
+```
+
+**플래너 피드백 응답: PlannerFeedback**
+
+```ts
+interface PlannerFeedback {
+  id: string;
+  menteeId: string;
+  date: string;
+  feedbackText: string;
+  createdAt: string;      // ISO 8601
+  mentorId?: string;      // 작성자(멘토) ID
+}
+```
+
+**플로우:**
+1. 멘티가 일일 학습 기록(과목별 시간)을 앱에 저장 → `PlannerRecord` 생성
+2. 멘토가 `/mentor/mentees/:id/planner/records?date=...` 로 기록 조회
+3. 멘토가 피드백 작성 후 `POST /mentor/mentees/:id/planner/feedback` 호출
+4. 멘티가 `/mentee/planner/feedback?date=...` 로 피드백 조회
+
+---
+
+### 8. 통계 분석 리포트
+
+통계 분석 리포트는 프론트엔드에서 위의 API들을 조합하여 생성합니다. 별도의 API 엔드포인트는 필요하지 않습니다. 별도의 API 엔드포인트는 필요하지 않습니다.
+
+**리포트 생성에 필요한 데이터:**
+- 과목별 학습 시간 (`/mentor/mentees/:id/learning/subject-times`)
+- 주간 학습 패턴 (`/mentor/mentees/:id/learning/weekly-patterns`)
+- 피드백 목록 (`/mentor/mentees/:id/feedback`) - 과목별 세부 분석을 위해 사용
+- KPI 지표 (`/mentor/mentees/:id/kpi`)
+
+**리포트 내용:**
+- 전반적인 학습 태도 및 공부 스타일 종합
+- 생활패턴 분석 (주간 학습 패턴, 과목별 학습 시간)
+- 과목별 상세 분석 (국어/영어/수학)
+  - 학습 스타일
+  - 취약한 부분
+  - 실수 유형
+  - 지도 방향
+- 종합 평가 및 상담 마무리 멘트
+
+**PDF 다운로드**: 프론트엔드에서 브라우저 인쇄 기능을 활용하여 처리합니다.
+
 ---
 
 ## 인증
@@ -311,3 +395,4 @@ interface DailyStudyPattern {
 - `src/data/mockMentees.ts` - 멘티, 제출 과제
 - `src/data/menteeDetailMock.ts` - 피드백, 미완료 과제, 학습 일정, KPI 등
 - `src/data/assignmentRegisterMock.ts` - 보완점, 학습 자료, 칼럼 템플릿
+- `src/data/plannerMock.ts` - 플래너 기록 (PlannerRecord)

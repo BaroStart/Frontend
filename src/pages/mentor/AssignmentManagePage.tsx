@@ -1,17 +1,24 @@
 import {
-  AlertCircle,
   BarChart3,
   Calendar,
-  CheckCircle2,
   Download,
+  Edit,
+  File,
+  FileText,
   FolderOpen,
+  Image,
   Layers,
   Plus,
-  Target,
-  TrendingDown,
-  TrendingUp,
+  Save,
+  Search,
+  Trash2,
+  Upload,
+  X,
 } from 'lucide-react';
-import { useMemo, useState, useEffect } from 'react';
+import html2pdf from 'html2pdf.js';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { saveAs } from 'file-saver';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/Button';
@@ -23,13 +30,100 @@ import {
 } from '@/hooks/useMenteeDetail';
 import { useSubjectStudyTimes, useWeeklyPatterns } from '@/hooks/useLearningAnalysis';
 import { useMentees } from '@/hooks/useMentees';
+import {
+  MOCK_LEARNING_MATERIALS,
+  SUBJECT_SUBCATEGORIES,
+} from '@/data/assignmentRegisterMock';
+import {
+  getPlannerRecordsByMenteeAndDate,
+  formatPlannerDuration,
+  type PlannerRecord,
+} from '@/data/plannerMock';
+import { getPlannerFeedback, savePlannerFeedback } from '@/lib/plannerFeedbackStorage';
+import {
+  deleteMaterial,
+  getMaterialsMeta,
+  saveMaterial,
+  type MaterialMeta,
+} from '@/lib/materialStorage';
 
 type TabType = 'templates' | 'materials' | 'planner' | 'analytics';
+
+interface MaterialItem extends MaterialMeta {}
 
 export function AssignmentManagePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>('templates');
   const [selectedMenteeId, setSelectedMenteeId] = useState<string>('');
+  
+  // 학습 자료 관리 상태
+  const [materials, setMaterials] = useState<MaterialItem[]>(() => {
+    const stored = getMaterialsMeta();
+    if (stored.length > 0) {
+      return stored.map((m) => ({
+        ...m,
+        subCategory: m.subCategory || '기타',
+      }));
+    }
+    // 초기 Mock 데이터
+    return MOCK_LEARNING_MATERIALS.map((mat, idx) => {
+      const subject = mat.subject || '기타';
+      let subCategory = '기타';
+      if (subject === '국어') {
+        if (mat.title.includes('비문학')) subCategory = '비문학';
+        else if (mat.title.includes('문학')) subCategory = '문학';
+        else subCategory = '문법';
+      } else if (subject === '영어') subCategory = '독해/듣기/어휘';
+      else if (subject === '수학') subCategory = mat.title.includes('기하') ? '기하' : '미적분';
+      return {
+        id: mat.id,
+        title: mat.title,
+        fileName: mat.title,
+        fileSize: mat.fileSize || '0 MB',
+        fileType: (mat.title.toLowerCase().endsWith('.pdf') ? 'pdf' : 
+                  /\.(jpg|jpeg|png|gif)$/i.test(mat.title) ? 'image' :
+                  /\.(doc|docx|xls|xlsx)$/i.test(mat.title) ? 'document' : 'other') as MaterialItem['fileType'],
+        subject,
+        subCategory,
+        uploadedAt: new Date(Date.now() - idx * 86400000).toISOString().split('T')[0],
+      };
+    });
+  });
+  const [materialSubjectFilter, setMaterialSubjectFilter] = useState<string>('전체');
+  const [materialSubCategoryFilter, setMaterialSubCategoryFilter] = useState<string>('전체');
+  const [materialSearchQuery, setMaterialSearchQuery] = useState<string>('');
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; meta: Partial<MaterialMeta> }[]>([]);
+  const materialFileInputRef = useRef<HTMLInputElement>(null);
+
+  // 플래너 관리 상태
+  const [plannerMenteeId, setPlannerMenteeId] = useState<string>('');
+  const [plannerDate, setPlannerDate] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+  const [plannerFeedbackText, setPlannerFeedbackText] = useState<string>('');
+  
+  // 편집 상태 관리
+  const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [editedAnalysis, setEditedAnalysis] = useState<{
+    overallAnalysis?: {
+      summary: string[];
+      strengths: string[];
+      weaknesses: string[];
+      guidancePoints: string[];
+    };
+    subjectDetailedAnalysis?: Record<
+      string,
+      {
+        studyStyle: string[];
+        weakAreas: string[];
+        mistakeTypes: string[];
+        guidanceDirection: string[];
+      }
+    >;
+    overallGuidance?: string[];
+  } | null>(null);
 
   // URL 쿼리 파라미터에서 탭과 멘티 ID 읽기
   useEffect(() => {
@@ -55,7 +149,7 @@ export function AssignmentManagePage() {
   const { data: subjectStudyTimes = [] } = useSubjectStudyTimes(selectedMenteeId || undefined);
   const { data: weeklyPatterns = [] } = useWeeklyPatterns(selectedMenteeId || undefined);
 
-  const analysis = useMemo(() => {
+  const computedAnalysis = useMemo(() => {
     if (!selectedMenteeId || !kpi) return null;
 
     // 과제 제목에서 세부 카테고리 추출
@@ -461,6 +555,58 @@ export function AssignmentManagePage() {
     };
   }, [selectedMenteeId, kpi, feedbackItems, incompleteAssignments, subjectStudyTimes, weeklyPatterns]);
 
+  // 분석 데이터를 상태로 관리 (편집 가능하도록)
+  type AnalysisType = {
+    strengths: string[];
+    weaknesses: string[];
+    studyStyle: string[];
+    improvements: string[];
+    subjectStats: Record<string, { total: number; completed: number; urgent: number }>;
+    overallAnalysis: {
+      summary: string[];
+      strengths: string[];
+      weaknesses: string[];
+      guidancePoints: string[];
+    };
+    subjectDetailedAnalysis: Record<
+      string,
+      {
+        studyStyle: string[];
+        weakAreas: string[];
+        mistakeTypes: string[];
+        guidanceDirection: string[];
+      }
+    >;
+    overallGuidance: string[];
+  };
+  const [analysis, setAnalysis] = useState<AnalysisType | null>(null);
+  
+  useEffect(() => {
+    if (computedAnalysis) {
+      setAnalysis(computedAnalysis as AnalysisType);
+      setEditedAnalysis(null);
+      setEditingSection(null);
+    } else {
+      setAnalysis(null);
+    }
+  }, [computedAnalysis]);
+
+  // 플래너 피드백 로드
+  useEffect(() => {
+    if (plannerMenteeId && plannerDate) {
+      const saved = getPlannerFeedback(plannerMenteeId, plannerDate);
+      setPlannerFeedbackText(saved?.feedbackText ?? '');
+    } else {
+      setPlannerFeedbackText('');
+    }
+  }, [plannerMenteeId, plannerDate]);
+
+  // 편집된 분석 데이터 사용 (편집 중이면 편집된 데이터, 아니면 원본)
+  const displayAnalysis = editedAnalysis && editingSection ? {
+    ...analysis!,
+    ...editedAnalysis,
+  } : analysis;
+
   const tabs = [
     { id: 'templates' as TabType, label: '과제 템플릿', icon: Layers },
     { id: 'materials' as TabType, label: '학습 자료', icon: FolderOpen },
@@ -521,20 +667,329 @@ export function AssignmentManagePage() {
 
       {/* 학습 자료 탭 */}
       {activeTab === 'materials' && (
-        <PlaceholderSection
-          title="학습 자료"
-          description="PDF, 이미지 등 학습 자료를 관리하고 과제에 첨부할 수 있습니다."
-          icon={<FolderOpen className="h-8 w-8" />}
-        />
+        <div className="space-y-6">
+          {/* 상단: 필터 및 검색 */}
+          <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4">
+            {/* 과목 필터 */}
+            <div className="flex flex-wrap gap-2">
+              {['전체', '국어', '영어', '수학', '과학', '사회'].map((subject) => (
+                <button
+                  key={subject}
+                  type="button"
+                  onClick={() => {
+                    setMaterialSubjectFilter(subject);
+                    setMaterialSubCategoryFilter('전체');
+                  }}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    materialSubjectFilter === subject
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {subject}
+                </button>
+              ))}
+            </div>
+            {/* 세부 카테고리 필터 (과목 선택 시) */}
+            {materialSubjectFilter !== '전체' && SUBJECT_SUBCATEGORIES[materialSubjectFilter] && (
+              <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                <span className="text-xs font-medium text-slate-500">세부 분류:</span>
+                {['전체', ...SUBJECT_SUBCATEGORIES[materialSubjectFilter]].map((sub) => (
+                  <button
+                    key={sub}
+                    type="button"
+                    onClick={() => setMaterialSubCategoryFilter(sub)}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                      materialSubCategoryFilter === sub
+                        ? 'bg-slate-700 text-white'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {sub}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* 검색 및 업로드 */}
+            <div className="flex gap-2 border-t border-slate-100 pt-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="자료 검색..."
+                  value={materialSearchQuery}
+                  onChange={(e) => setMaterialSearchQuery(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+                />
+              </div>
+              <input
+                ref={materialFileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  if (files.length === 0) return;
+                  setPendingFiles(files.map((file) => ({
+                    file,
+                    meta: {
+                      title: file.name,
+                      fileName: file.name,
+                      fileSize: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+                      fileType: (file.type.includes('pdf') ? 'pdf' :
+                                file.type.startsWith('image/') ? 'image' :
+                                file.type.includes('document') || file.type.includes('word') || file.type.includes('excel') ? 'document' : 'other') as MaterialMeta['fileType'],
+                      subject: '국어',
+                      subCategory: '비문학',
+                      uploadedAt: new Date().toISOString().split('T')[0],
+                    },
+                  })));
+                  setUploadModalOpen(true);
+                  e.target.value = '';
+                }}
+              />
+              <Button
+                type="button"
+                className="whitespace-nowrap"
+                onClick={() => materialFileInputRef.current?.click()}
+              >
+                <Upload className="h-4 w-4" />
+                파일 업로드
+              </Button>
+            </div>
+          </div>
+
+          {/* 업로드 모달 */}
+          {uploadModalOpen && (
+            <MaterialUploadModal
+              pendingFiles={pendingFiles}
+              onClose={() => {
+                setUploadModalOpen(false);
+                setPendingFiles([]);
+              }}
+              onConfirm={async (itemsToSave) => {
+                for (const { file, meta } of itemsToSave) {
+                  const fullMeta: MaterialMeta = {
+                    ...meta,
+                    id: `mat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  };
+                  await saveMaterial(fullMeta, file);
+                  setMaterials((prev) => [fullMeta, ...prev]);
+                }
+                setUploadModalOpen(false);
+                setPendingFiles([]);
+              }}
+            />
+          )}
+
+          {/* 자료 목록 */}
+          {(() => {
+            const filteredMaterials = materials.filter((mat) => {
+              const matchesSubject = materialSubjectFilter === '전체' || mat.subject === materialSubjectFilter;
+              const matchesSubCategory = materialSubCategoryFilter === '전체' || mat.subCategory === materialSubCategoryFilter;
+              const matchesSearch = materialSearchQuery === '' || 
+                mat.title.toLowerCase().includes(materialSearchQuery.toLowerCase()) ||
+                mat.fileName.toLowerCase().includes(materialSearchQuery.toLowerCase());
+              return matchesSubject && matchesSubCategory && matchesSearch;
+            });
+
+            if (filteredMaterials.length === 0) {
+              return (
+                <div className="flex min-h-[400px] flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12">
+                  <FolderOpen className="h-12 w-12 text-slate-300" />
+                  <p className="mt-4 text-sm text-slate-500">
+                    {materialSearchQuery || materialSubjectFilter !== '전체' || materialSubCategoryFilter !== '전체'
+                      ? '검색 결과가 없습니다.'
+                      : '등록된 학습 자료가 없습니다.'}
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredMaterials.map((material) => {
+                  const FileIcon = material.fileType === 'pdf' ? FileText :
+                                 material.fileType === 'image' ? Image :
+                                 material.fileType === 'document' ? File : File;
+                  
+                  return (
+                    <div
+                      key={material.id}
+                      className="group relative rounded-xl border border-slate-200 bg-white p-4 transition-shadow hover:shadow-md"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                          <FileIcon className="h-6 w-6" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate font-semibold text-slate-900">{material.title}</h3>
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5">{material.subject}</span>
+                            {material.subCategory && material.subCategory !== '기타' && (
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5">{material.subCategory}</span>
+                            )}
+                            <span>{material.fileSize}</span>
+                            <span>•</span>
+                            <span>{material.uploadedAt}</span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (window.confirm(`"${material.title}" 자료를 삭제하시겠습니까?`)) {
+                              await deleteMaterial(material.id);
+                              setMaterials((prev) => prev.filter((m) => m.id !== material.id));
+                            }
+                          }}
+                          className="shrink-0 rounded p-1 text-slate-400 opacity-0 transition-opacity hover:text-red-600 group-hover:opacity-100"
+                          title="삭제"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
       )}
 
       {/* 플래너 관리 탭 */}
       {activeTab === 'planner' && (
-        <PlaceholderSection
-          title="플래너 관리"
-          description="멘티별 학습 플래너를 생성하고 관리할 수 있습니다. 주간/월간 학습 계획을 수립하고 추적하세요."
-          icon={<Calendar className="h-8 w-8" />}
-        />
+        <div className="space-y-6">
+          {/* 멘티 및 날짜 선택 */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
+              <div className="flex-1">
+                <label className="mb-1 block text-sm font-medium text-slate-700">멘티 선택</label>
+                <select
+                  value={plannerMenteeId}
+                  onChange={(e) => setPlannerMenteeId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400"
+                >
+                  <option value="">멘티를 선택하세요</option>
+                  {mentees.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.grade} · {m.track})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="mb-1 block text-sm font-medium text-slate-700">날짜 선택</label>
+                <input
+                  type="date"
+                  value={plannerDate}
+                  onChange={(e) => setPlannerDate(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400"
+                />
+              </div>
+            </div>
+          </div>
+
+          {plannerMenteeId ? (
+            <>
+              {/* 학생 기록 (과제/학습 시간) */}
+              {(() => {
+                const records = getPlannerRecordsByMenteeAndDate(plannerMenteeId, plannerDate);
+                const totalMinutes = records.reduce((sum, r) => sum + r.durationMinutes, 0);
+                const totalHours = (totalMinutes / 60).toFixed(1);
+                const selectedMenteeName = mentees.find((m) => m.id === plannerMenteeId)?.name ?? '';
+
+                return (
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    {/* 좌측: 과제 목록 + 피드백 */}
+                    <div className="space-y-6">
+                      <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <h3 className="mb-3 text-base font-semibold text-slate-900">과제 (학습 기록)</h3>
+                        {records.length === 0 ? (
+                          <p className="py-6 text-center text-sm text-slate-500">
+                            해당 날짜에 기록된 학습이 없습니다.
+                          </p>
+                        ) : (
+                          <>
+                            <div className="mb-3 flex items-center justify-between text-sm text-slate-600">
+                              <span>총 학습 시간: {totalHours}시간</span>
+                            </div>
+                            <div className="space-y-2">
+                              {records
+                                .sort((a, b) => b.durationMinutes - a.durationMinutes)
+                                .map((r) => (
+                                  <div
+                                    key={r.id}
+                                    className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2"
+                                  >
+                                    <span className="font-medium text-slate-900">{r.subject}</span>
+                                    <span className="font-mono text-sm text-slate-600">
+                                      {formatPlannerDuration(r.durationMinutes)}
+                                    </span>
+                                  </div>
+                                ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* 피드백 작성 */}
+                      <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <h3 className="mb-3 text-base font-semibold text-slate-900">플래너 피드백</h3>
+                        <p className="mb-3 text-sm text-slate-500">
+                          {selectedMenteeName}님의 학습 기록을 확인하고 피드백을 작성해주세요.
+                        </p>
+                        <textarea
+                          value={plannerFeedbackText}
+                          onChange={(e) => setPlannerFeedbackText(e.target.value)}
+                          placeholder="예: 오늘 수학 학습 시간이 가장 많았네요. 내일은 영어 독해 비중을 늘려보면 좋겠습니다. 휴식 시간도 충분히 갖는 것이 중요해요."
+                          rows={5}
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400"
+                        />
+                        <div className="mt-3 flex justify-end">
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              if (!plannerMenteeId || !plannerDate) return;
+                              savePlannerFeedback({
+                                id: `pf-${plannerMenteeId}-${plannerDate}`,
+                                menteeId: plannerMenteeId,
+                                date: plannerDate,
+                                feedbackText: plannerFeedbackText,
+                                createdAt: new Date().toISOString(),
+                              });
+                              alert('피드백이 저장되었습니다.');
+                            }}
+                          >
+                            피드백 저장
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 우측: 타임라인 */}
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <h3 className="mb-3 text-base font-semibold text-slate-900">타임라인</h3>
+                      {records.length === 0 ? (
+                        <p className="py-12 text-center text-sm text-slate-500">
+                          타임라인을 표시할 학습 기록이 없습니다.
+                        </p>
+                      ) : (
+                        <PlannerTimeline records={records} />
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </>
+          ) : (
+            <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12">
+              <Calendar className="h-12 w-12 text-slate-300" />
+              <p className="mt-4 text-sm text-slate-500">멘티를 선택하면 플래너를 확인하고 피드백을 작성할 수 있습니다.</p>
+            </div>
+          )}
+        </div>
       )}
 
       {/* 통계 분석 탭 */}
@@ -559,69 +1014,355 @@ export function AssignmentManagePage() {
             </select>
           </div>
 
-          {selectedMenteeId && analysis ? (
+          {selectedMenteeId && analysis && displayAnalysis ? (
             <>
-              {/* PDF 다운로드 버튼 */}
-              <div className="flex justify-end">
+              {/* 다운로드 버튼 */}
+              <div className="flex justify-end gap-2">
                 <Button
-                  onClick={() => {
-                    const printWindow = window.open('', '_blank');
-                    if (!printWindow) return;
+                  onClick={async () => {
+                    // 편집 모드일 때는 경고
+                    if (editingSection) {
+                      alert('편집 모드를 종료한 후 PDF를 다운로드해주세요.');
+                      return;
+                    }
+
                     const reportContent = document.getElementById('analysis-report');
                     if (!reportContent) return;
-                    printWindow.document.write(`
-                      <!DOCTYPE html>
-                      <html>
-                        <head>
-                          <title>학생 분석 리포트 - ${selectedMentee?.name || ''}</title>
-                          <style>
-                            @page { size: A4; margin: 1cm; }
-                            body { font-family: 'Malgun Gothic', sans-serif; font-size: 11pt; line-height: 1.6; color: #1e293b; }
-                            .header { border-bottom: 3px solid #1e293b; padding-bottom: 15px; margin-bottom: 20px; }
-                            .header h1 { margin: 0; font-size: 24pt; font-weight: bold; }
-                            .header .meta { margin-top: 8px; font-size: 10pt; color: #64748b; }
-                            .section { margin-bottom: 20px; page-break-inside: avoid; }
-                            .section-title { font-size: 14pt; font-weight: bold; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #e2e8f0; }
-                            .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
-                            .kpi-item { text-align: center; padding: 10px; background: #f8fafc; border-radius: 8px; }
-                            .kpi-label { font-size: 9pt; color: #64748b; margin-bottom: 5px; }
-                            .kpi-value { font-size: 18pt; font-weight: bold; color: #1e293b; }
-                            .kpi-change { font-size: 9pt; margin-top: 3px; }
-                            .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-                            .content-box { background: #f8fafc; padding: 12px; border-radius: 6px; margin-bottom: 10px; }
-                            .content-box h4 { font-size: 10pt; font-weight: bold; margin-bottom: 8px; color: #475569; }
-                            .content-box ul { margin: 0; padding-left: 20px; }
-                            .content-box li { margin-bottom: 5px; font-size: 10pt; }
-                            .subject-analysis { margin-bottom: 15px; padding: 15px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; page-break-inside: avoid; }
-                            .subject-title { font-size: 13pt; font-weight: bold; margin-bottom: 12px; }
-                            .subject-section { margin-bottom: 15px; }
-                            .subject-section-title { font-size: 9pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; color: #475569; }
-                            .subject-content { background: #f8fafc; padding: 12px; border-radius: 6px; }
-                            .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 9pt; margin-right: 5px; margin-bottom: 5px; }
-                            .pattern-chart { display: flex; justify-content: space-between; margin: 10px 0; }
-                            .pattern-day { text-align: center; flex: 1; }
-                            .pattern-bar { height: 60px; background: #475569; margin: 5px 0; border-radius: 4px; }
-                            .page-break { page-break-after: always; }
-                            @media print {
-                              .no-print { display: none; }
-                              .page-break { page-break-after: always; }
-                            }
-                          </style>
-                        </head>
-                        <body>
-                          ${reportContent.innerHTML}
-                        </body>
-                      </html>
-                    `);
-                    printWindow.document.close();
-                    setTimeout(() => {
-                      printWindow.print();
-                    }, 250);
+
+                    // 리포트 내용 복제
+                    const clonedContent = reportContent.cloneNode(true) as HTMLElement;
+                    
+                    // 모든 버튼 제거
+                    const allButtons = clonedContent.querySelectorAll('button');
+                    allButtons.forEach((btn) => {
+                      btn.remove();
+                    });
+
+                    // 모든 SVG 아이콘 제거
+                    const allSvgs = clonedContent.querySelectorAll('svg');
+                    allSvgs.forEach((svg) => {
+                      svg.remove();
+                    });
+
+                    // textarea를 일반 텍스트로 변환
+                    const allTextareas = clonedContent.querySelectorAll('textarea');
+                    allTextareas.forEach((textarea) => {
+                      const text = textarea.value || textarea.textContent || '';
+                      const lines = text.split('\n').filter((line) => line.trim());
+                      const parent = textarea.parentElement;
+                      if (parent) {
+                        const textDiv = document.createElement('div');
+                        textDiv.className = 'text-sm leading-relaxed text-slate-700';
+                        lines.forEach((line) => {
+                          const p = document.createElement('p');
+                          p.textContent = line;
+                          p.style.marginBottom = '0.5rem';
+                          textDiv.appendChild(p);
+                        });
+                        parent.replaceChild(textDiv, textarea);
+                      }
+                    });
+
+                    // 편집 버튼이 있는 헤더 div 정리
+                    const headerDivs = clonedContent.querySelectorAll('div.flex.items-center.justify-between');
+                    headerDivs.forEach((div) => {
+                      const title = div.querySelector('h2');
+                      if (title && div.parentElement) {
+                        const newDiv = document.createElement('div');
+                        newDiv.className = 'mb-3 border-b-2 border-slate-200 pb-2';
+                        newDiv.appendChild(title.cloneNode(true));
+                        div.parentElement.replaceChild(newDiv, div);
+                      }
+                    });
+
+                    // 모든 입력 필드 제거
+                    const allInputs = clonedContent.querySelectorAll('input, textarea, select');
+                    allInputs.forEach((input) => {
+                      input.remove();
+                    });
+
+                    // 텍스트 영역의 높이 제한 제거 및 자동 높이 설정
+                    const textContainers = clonedContent.querySelectorAll('div.space-y-3, div.space-y-2, p, li');
+                    textContainers.forEach((container) => {
+                      const el = container as HTMLElement;
+                      el.style.height = 'auto';
+                      el.style.minHeight = 'auto';
+                      el.style.maxHeight = 'none';
+                      el.style.overflow = 'visible';
+                      el.style.whiteSpace = 'normal';
+                      el.style.wordWrap = 'break-word';
+                    });
+
+                    // 페이지 나누기 스타일 추가
+                    const sections = clonedContent.querySelectorAll('div.mb-6, div.rounded-lg, div.border-2, div.border');
+                    sections.forEach((section) => {
+                      const el = section as HTMLElement;
+                      el.style.pageBreakInside = 'avoid';
+                      el.style.breakInside = 'avoid';
+                      el.style.overflow = 'visible';
+                      el.style.height = 'auto';
+                      el.style.minHeight = 'auto';
+                    });
+
+                    // 단락이 중간에 잘리지 않도록
+                    const paragraphs = clonedContent.querySelectorAll('p, li, div');
+                    paragraphs.forEach((p) => {
+                      const el = p as HTMLElement;
+                      el.style.pageBreakInside = 'avoid';
+                      el.style.breakInside = 'avoid';
+                      el.style.overflow = 'visible';
+                      el.style.height = 'auto';
+                    });
+
+                    // 임시 컨테이너에 추가
+                    const tempContainer = document.createElement('div');
+                    tempContainer.style.position = 'absolute';
+                    tempContainer.style.left = '-9999px';
+                    tempContainer.style.top = '0';
+                    tempContainer.style.width = clonedContent.scrollWidth + 'px';
+                    tempContainer.appendChild(clonedContent);
+                    document.body.appendChild(tempContainer);
+
+                    // 스타일 적용을 위한 대기
+                    await new Promise((resolve) => setTimeout(resolve, 100));
+
+                    const opt = {
+                      margin: [10, 10, 10, 10] as [number, number, number, number],
+                      filename: `학생분석리포트_${selectedMentee?.name || '학생'}_${new Date().toISOString().slice(0, 10)}.pdf`,
+                      image: { type: 'jpeg' as const, quality: 0.98 },
+                      html2canvas: { 
+                        scale: 2, 
+                        useCORS: true, 
+                        logging: false,
+                        windowWidth: clonedContent.scrollWidth,
+                        windowHeight: clonedContent.scrollHeight,
+                        allowTaint: true,
+                      },
+                      jsPDF: { 
+                        unit: 'mm' as const, 
+                        format: 'a4' as const, 
+                        orientation: 'portrait' as const,
+                      },
+                      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+                    };
+
+                    try {
+                      await html2pdf().set(opt).from(clonedContent).save();
+                    } catch (error) {
+                      console.error('PDF 생성 실패:', error);
+                      alert('PDF 다운로드 중 오류가 발생했습니다.');
+                    } finally {
+                      // 임시 컨테이너 제거
+                      if (document.body.contains(tempContainer)) {
+                        document.body.removeChild(tempContainer);
+                      }
+                    }
                   }}
                   className="no-print"
                 >
                   <Download className="h-4 w-4" />
                   PDF 다운로드
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!selectedMentee || !displayAnalysis || !kpi) return;
+
+                    const children: Paragraph[] = [];
+
+                    // 헤더
+                    children.push(
+                      new Paragraph({
+                        text: '학생 학습 분석 리포트',
+                        heading: HeadingLevel.TITLE,
+                        alignment: AlignmentType.LEFT,
+                        spacing: { after: 200 },
+                      })
+                    );
+
+                    children.push(
+                      new Paragraph({
+                        children: [
+                          new TextRun({ text: `학생명: ${selectedMentee.name}`, bold: true }),
+                          new TextRun({ text: ` | 학년: ${selectedMentee.grade} | 과정: ${selectedMentee.track}` }),
+                        ],
+                        spacing: { after: 100 },
+                      })
+                    );
+
+                    children.push(
+                      new Paragraph({
+                        text: `작성일: ${new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}`,
+                        spacing: { after: 400 },
+                      })
+                    );
+
+                    // KPI 요약
+                    if (kpi) {
+                      children.push(
+                        new Paragraph({
+                          text: 'KPI 요약',
+                          heading: HeadingLevel.HEADING_1,
+                          spacing: { before: 200, after: 200 },
+                        })
+                      );
+
+                      const kpiText = `총 학습 시간: ${kpi.totalStudyHours}시간 | 과제 완료율: ${kpi.assignmentCompletionRate}% | 평균 점수: ${kpi.averageScore}점 | 출석률: ${kpi.attendanceRate}%`;
+                      children.push(new Paragraph({ text: kpiText, spacing: { after: 300 } }));
+                    }
+
+                    // 생활패턴 분석
+                    if (weeklyPatterns.length > 0) {
+                      children.push(
+                        new Paragraph({
+                          text: '생활패턴 분석',
+                          heading: HeadingLevel.HEADING_1,
+                          spacing: { before: 200, after: 200 },
+                        })
+                      );
+
+                      const weeklyText = weeklyPatterns.map((p) => `${p.day}: ${p.hours || 0}시간`).join(' | ');
+                      children.push(new Paragraph({ text: weeklyText, spacing: { after: 300 } }));
+                    }
+
+                    // 과목별 학습 시간
+                    if (subjectStudyTimes.length > 0) {
+                      children.push(
+                        new Paragraph({
+                          text: '과목별 학습 시간',
+                          heading: HeadingLevel.HEADING_1,
+                          spacing: { before: 200, after: 200 },
+                        })
+                      );
+
+                      subjectStudyTimes
+                        .sort((a, b) => b.hours - a.hours)
+                        .forEach((item) => {
+                          children.push(new Paragraph({ text: `${item.subject}: ${item.hours}시간`, spacing: { after: 100 } }));
+                        });
+                    }
+
+                    // 전반적인 학습 태도 및 공부 스타일
+                    if (displayAnalysis.overallAnalysis && displayAnalysis.overallAnalysis.summary.length > 0) {
+                      children.push(
+                        new Paragraph({
+                          text: '전반적인 학습 태도 및 공부 스타일',
+                          heading: HeadingLevel.HEADING_1,
+                          spacing: { before: 200, after: 200 },
+                        })
+                      );
+
+                      displayAnalysis.overallAnalysis.summary.forEach((text: string) => {
+                        children.push(new Paragraph({ text, spacing: { after: 150 } }));
+                      });
+                    }
+
+                    // 과목별 상세 분석
+                    if (displayAnalysis.subjectDetailedAnalysis && Object.keys(displayAnalysis.subjectDetailedAnalysis).length > 0) {
+                      Object.entries(displayAnalysis.subjectDetailedAnalysis).forEach(([subject, details]) => {
+                        const subjectDetails = details as {
+                          studyStyle: string[];
+                          weakAreas: string[];
+                          mistakeTypes: string[];
+                          guidanceDirection: string[];
+                        };
+                        children.push(
+                          new Paragraph({
+                            text: `${subject} 과목 분석`,
+                            heading: HeadingLevel.HEADING_1,
+                            spacing: { before: 200, after: 200 },
+                          })
+                        );
+
+                        if (subjectDetails.studyStyle.length > 0) {
+                          children.push(
+                            new Paragraph({
+                              text: '학습 스타일',
+                              heading: HeadingLevel.HEADING_2,
+                              spacing: { before: 100, after: 100 },
+                            })
+                          );
+                          subjectDetails.studyStyle.forEach((style: string) => {
+                            children.push(new Paragraph({ text: style, spacing: { after: 100 } }));
+                          });
+                        }
+
+                        if (subjectDetails.weakAreas.length > 0) {
+                          children.push(
+                            new Paragraph({
+                              text: '취약한 부분',
+                              heading: HeadingLevel.HEADING_2,
+                              spacing: { before: 100, after: 100 },
+                            })
+                          );
+                          subjectDetails.weakAreas.forEach((area: string) => {
+                            children.push(new Paragraph({ text: `• ${area}`, spacing: { after: 100 } }));
+                          });
+                        }
+
+                        if (subjectDetails.mistakeTypes.length > 0) {
+                          children.push(
+                            new Paragraph({
+                              text: '실수 유형',
+                              heading: HeadingLevel.HEADING_2,
+                              spacing: { before: 100, after: 100 },
+                            })
+                          );
+                          subjectDetails.mistakeTypes.forEach((mistake: string) => {
+                            children.push(new Paragraph({ text: mistake, spacing: { after: 100 } }));
+                          });
+                        }
+
+                        if (subjectDetails.guidanceDirection.length > 0) {
+                          children.push(
+                            new Paragraph({
+                              text: '지도 방향',
+                              heading: HeadingLevel.HEADING_2,
+                              spacing: { before: 100, after: 100 },
+                            })
+                          );
+                          subjectDetails.guidanceDirection.forEach((direction: string) => {
+                            children.push(new Paragraph({ text: direction, spacing: { after: 100 } }));
+                          });
+                        }
+                      });
+                    }
+
+                    // 종합 평가 및 상담 마무리 멘트
+                    if (displayAnalysis.overallGuidance && displayAnalysis.overallGuidance.length > 0) {
+                      children.push(
+                        new Paragraph({
+                          text: '종합 평가 및 상담 마무리 멘트',
+                          heading: HeadingLevel.HEADING_1,
+                          spacing: { before: 200, after: 200 },
+                        })
+                      );
+
+                      displayAnalysis.overallGuidance.forEach((guidance: string) => {
+                        children.push(new Paragraph({ text: guidance, spacing: { after: 150 } }));
+                      });
+                    }
+
+                    const doc = new Document({
+                      sections: [
+                        {
+                          children: children as any,
+                        },
+                      ],
+                    });
+
+                    try {
+                      const blob = await Packer.toBlob(doc);
+                      saveAs(blob, `학생분석리포트_${selectedMentee.name}_${new Date().toISOString().slice(0, 10)}.docx`);
+                    } catch (error) {
+                      console.error('Word 문서 생성 실패:', error);
+                      alert('Word 다운로드 중 오류가 발생했습니다.');
+                    }
+                  }}
+                  variant="outline"
+                  className="no-print"
+                >
+                  <FileText className="h-4 w-4" />
+                  Word 다운로드
                 </Button>
               </div>
 
@@ -767,129 +1508,460 @@ export function AssignmentManagePage() {
                 )}
 
                 {/* 전반적인 학습 태도 및 공부 스타일 */}
-                {analysis.overallAnalysis && analysis.overallAnalysis.summary.length > 0 && (
-                  <div className="mb-6">
-                    <h2 className="mb-3 border-b-2 border-slate-200 pb-2 text-base font-bold text-slate-900">
-                      전반적인 학습 태도 및 공부 스타일
-                    </h2>
-                    <div className="space-y-3 text-sm leading-relaxed text-slate-700">
-                      {analysis.overallAnalysis.summary.map((text, idx) => (
-                        <p key={idx}>{text}</p>
-                      ))}
-                    </div>
-                    <div className="mt-4 grid grid-cols-2 gap-4">
-                      {analysis.overallAnalysis.strengths.length > 0 && (
-                        <div className="rounded-lg bg-slate-50 p-3">
-                          <p className="mb-2 text-xs font-semibold text-slate-700">장점</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {analysis.overallAnalysis.strengths.map((strength, idx) => (
-                              <span
-                                key={idx}
-                                className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700"
-                              >
-                                {strength}
-                              </span>
-                            ))}
-                          </div>
+                {displayAnalysis.overallAnalysis && displayAnalysis.overallAnalysis.summary.length > 0 && (
+                  <div className="mb-6" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                    <div className="mb-3 flex items-center justify-between border-b-2 border-slate-200 pb-2">
+                      <h2 className="text-base font-bold text-slate-900">
+                        전반적인 학습 태도 및 공부 스타일
+                      </h2>
+                      {editingSection !== 'overall' ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingSection('overall');
+                            setEditedAnalysis({
+                              overallAnalysis: { ...displayAnalysis.overallAnalysis },
+                              subjectDetailedAnalysis: displayAnalysis.subjectDetailedAnalysis,
+                              overallGuidance: displayAnalysis.overallGuidance,
+                            });
+                          }}
+                          className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                        >
+                          <Edit className="h-3 w-3" />
+                          편집
+                        </button>
+                      ) : (
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (editedAnalysis?.overallAnalysis && analysis) {
+                                setAnalysis({
+                                  ...analysis,
+                                  overallAnalysis: editedAnalysis.overallAnalysis,
+                                });
+                              }
+                              setEditingSection(null);
+                            }}
+                            className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                          >
+                            <Save className="h-3 w-3" />
+                            저장
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingSection(null);
+                              setEditedAnalysis(null);
+                            }}
+                            className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                          >
+                            <X className="h-3 w-3" />
+                            취소
+                          </button>
                         </div>
                       )}
-                      {analysis.overallAnalysis.weaknesses.length > 0 && (
-                        <div className="rounded-lg bg-slate-50 p-3">
-                          <p className="mb-2 text-xs font-semibold text-slate-700">약점</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {analysis.overallAnalysis.weaknesses.map((weakness, idx) => (
-                              <span
-                                key={idx}
-                                className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700"
-                              >
-                                {weakness}
-                              </span>
-                            ))}
+                    </div>
+                    {editingSection === 'overall' && editedAnalysis?.overallAnalysis ? (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold text-slate-700">요약</label>
+                          <textarea
+                            value={editedAnalysis.overallAnalysis.summary.join('\n')}
+                            onChange={(e) =>
+                              setEditedAnalysis({
+                                ...editedAnalysis,
+                                overallAnalysis: {
+                                  ...editedAnalysis.overallAnalysis!,
+                                  summary: e.target.value.split('\n').filter((t) => t.trim()),
+                                },
+                              })
+                            }
+                            rows={4}
+                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-700">장점 (쉼표로 구분)</label>
+                            <textarea
+                              value={editedAnalysis.overallAnalysis.strengths.join(', ')}
+                              onChange={(e) =>
+                                setEditedAnalysis({
+                                  ...editedAnalysis,
+                                  overallAnalysis: {
+                                    ...editedAnalysis.overallAnalysis!,
+                                    strengths: e.target.value.split(',').map((s) => s.trim()).filter((s) => s),
+                                  },
+                                })
+                              }
+                              rows={2}
+                              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-700">약점 (쉼표로 구분)</label>
+                            <textarea
+                              value={editedAnalysis.overallAnalysis.weaknesses.join(', ')}
+                              onChange={(e) =>
+                                setEditedAnalysis({
+                                  ...editedAnalysis,
+                                  overallAnalysis: {
+                                    ...editedAnalysis.overallAnalysis!,
+                                    weaknesses: e.target.value.split(',').map((s) => s.trim()).filter((s) => s),
+                                  },
+                                })
+                              }
+                              rows={2}
+                              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                            />
                           </div>
                         </div>
-                      )}
-                    </div>
-                    {analysis.overallAnalysis.guidancePoints.length > 0 && (
-                      <div className="mt-4 rounded-lg bg-slate-50 p-3">
-                        <p className="mb-1 text-xs font-semibold text-slate-700">지도 포인트</p>
-                        <p className="text-sm text-slate-800">
-                          {analysis.overallAnalysis.guidancePoints.join(', ')}
-                        </p>
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold text-slate-700">지도 포인트 (쉼표로 구분)</label>
+                          <textarea
+                            value={editedAnalysis.overallAnalysis.guidancePoints.join(', ')}
+                            onChange={(e) =>
+                              setEditedAnalysis({
+                                ...editedAnalysis,
+                                overallAnalysis: {
+                                  ...editedAnalysis.overallAnalysis!,
+                                  guidancePoints: e.target.value.split(',').map((s) => s.trim()).filter((s) => s),
+                                },
+                              })
+                            }
+                            rows={2}
+                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                          />
+                        </div>
                       </div>
+                    ) : (
+                      <>
+                        <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+                          {displayAnalysis.overallAnalysis.summary.map((text: string, idx: number) => (
+                            <p key={idx}>{text}</p>
+                          ))}
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-4">
+                          {displayAnalysis.overallAnalysis.strengths.length > 0 && (
+                            <div className="rounded-lg bg-slate-50 p-3">
+                              <p className="mb-2 text-xs font-semibold text-slate-700">장점</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {displayAnalysis.overallAnalysis.strengths.map((strength: string, idx: number) => (
+                                  <span
+                                    key={idx}
+                                    className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700"
+                                  >
+                                    {strength}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {displayAnalysis.overallAnalysis.weaknesses.length > 0 && (
+                            <div className="rounded-lg bg-slate-50 p-3">
+                              <p className="mb-2 text-xs font-semibold text-slate-700">약점</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {displayAnalysis.overallAnalysis.weaknesses.map((weakness: string, idx: number) => (
+                                  <span
+                                    key={idx}
+                                    className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700"
+                                  >
+                                    {weakness}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {displayAnalysis.overallAnalysis.guidancePoints.length > 0 && (
+                          <div className="mt-4 rounded-lg bg-slate-50 p-3">
+                            <p className="mb-1 text-xs font-semibold text-slate-700">지도 포인트</p>
+                            <p className="text-sm text-slate-800">
+                              {displayAnalysis.overallAnalysis.guidancePoints.join(', ')}
+                            </p>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
 
                 {/* 과목별 상세 분석 */}
-                {analysis.subjectDetailedAnalysis &&
-                  Object.keys(analysis.subjectDetailedAnalysis).length > 0 && (
-                    <div className="mb-6">
-                      <h2 className="mb-3 border-b-2 border-slate-200 pb-2 text-base font-bold text-slate-900">
-                        과목별 상세 분석
-                      </h2>
+                {displayAnalysis?.subjectDetailedAnalysis &&
+                  Object.keys(displayAnalysis.subjectDetailedAnalysis).length > 0 && (
+                    <div className="mb-6" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                      <div className="mb-3 flex items-center justify-between border-b-2 border-slate-200 pb-2">
+                        <h2 className="text-base font-bold text-slate-900">과목별 상세 분석</h2>
+                        {editingSection !== 'subject' ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingSection('subject');
+                              setEditedAnalysis({
+                                overallAnalysis: displayAnalysis.overallAnalysis,
+                                subjectDetailedAnalysis: { ...displayAnalysis.subjectDetailedAnalysis },
+                                overallGuidance: displayAnalysis.overallGuidance,
+                              });
+                            }}
+                            className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                          >
+                            <Edit className="h-3 w-3" />
+                            편집
+                          </button>
+                        ) : (
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                            onClick={() => {
+                              if (editedAnalysis?.subjectDetailedAnalysis && analysis) {
+                                setAnalysis({
+                                  ...analysis,
+                                  subjectDetailedAnalysis: editedAnalysis.subjectDetailedAnalysis,
+                                });
+                              }
+                              setEditingSection(null);
+                            }}
+                              className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                            >
+                              <Save className="h-3 w-3" />
+                              저장
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingSection(null);
+                                setEditedAnalysis(null);
+                              }}
+                              className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                            >
+                              <X className="h-3 w-3" />
+                              취소
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       <div className="grid grid-cols-2 gap-4">
-                        {Object.entries(analysis.subjectDetailedAnalysis).map(([subject, details]) => (
-                          <div key={subject} className="rounded-lg border border-slate-200 bg-white p-4">
+                        {Object.entries(displayAnalysis.subjectDetailedAnalysis).map(([subject, details]) => {
+                          const subjectDetails = details as {
+                            studyStyle: string[];
+                            weakAreas: string[];
+                            mistakeTypes: string[];
+                            guidanceDirection: string[];
+                          };
+                          return (
+                          <div key={subject} className="rounded-lg border border-slate-200 bg-white p-4" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                             <h3 className="mb-3 text-sm font-bold text-slate-900">
                               {subject} 과목 분석 {subject === '국어' ? '(내신·수능 연계)' : subject === '영어' ? '(내신·수능 공통)' : '(내신·수능 공통)'}
                             </h3>
-                            {details.studyStyle.length > 0 && (
-                              <div className="mb-3">
-                                <p className="mb-1 text-xs font-semibold text-slate-600">학습 스타일</p>
-                                {details.studyStyle.map((style, idx) => (
-                                  <p key={idx} className="text-xs leading-relaxed text-slate-700">
-                                    {style}
-                                  </p>
-                                ))}
+                            {editingSection === 'subject' && editedAnalysis?.subjectDetailedAnalysis ? (
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="mb-1 block text-xs font-semibold text-slate-600">학습 스타일 (줄바꿈으로 구분)</label>
+                                  <textarea
+                                    value={editedAnalysis.subjectDetailedAnalysis[subject]?.studyStyle.join('\n') || ''}
+                                    onChange={(e) =>
+                                      setEditedAnalysis({
+                                        ...editedAnalysis,
+                                        subjectDetailedAnalysis: {
+                                          ...editedAnalysis.subjectDetailedAnalysis!,
+                                          [subject]: {
+                                            ...editedAnalysis.subjectDetailedAnalysis![subject],
+                                            studyStyle: e.target.value.split('\n').filter((t) => t.trim()),
+                                          },
+                                        },
+                                      })
+                                    }
+                                    rows={2}
+                                    className="w-full rounded-lg border border-slate-300 px-2 py-1 text-xs"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="mb-1 block text-xs font-semibold text-slate-600">취약한 부분 (줄바꿈으로 구분)</label>
+                                  <textarea
+                                    value={editedAnalysis.subjectDetailedAnalysis[subject]?.weakAreas.join('\n') || ''}
+                                    onChange={(e) =>
+                                      setEditedAnalysis({
+                                        ...editedAnalysis,
+                                        subjectDetailedAnalysis: {
+                                          ...editedAnalysis.subjectDetailedAnalysis!,
+                                          [subject]: {
+                                            ...editedAnalysis.subjectDetailedAnalysis![subject],
+                                            weakAreas: e.target.value.split('\n').filter((t) => t.trim()),
+                                          },
+                                        },
+                                      })
+                                    }
+                                    rows={2}
+                                    className="w-full rounded-lg border border-slate-300 px-2 py-1 text-xs"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="mb-1 block text-xs font-semibold text-slate-600">실수 유형 (줄바꿈으로 구분)</label>
+                                  <textarea
+                                    value={editedAnalysis.subjectDetailedAnalysis[subject]?.mistakeTypes.join('\n') || ''}
+                                    onChange={(e) =>
+                                      setEditedAnalysis({
+                                        ...editedAnalysis,
+                                        subjectDetailedAnalysis: {
+                                          ...editedAnalysis.subjectDetailedAnalysis!,
+                                          [subject]: {
+                                            ...editedAnalysis.subjectDetailedAnalysis![subject],
+                                            mistakeTypes: e.target.value.split('\n').filter((t) => t.trim()),
+                                          },
+                                        },
+                                      })
+                                    }
+                                    rows={2}
+                                    className="w-full rounded-lg border border-slate-300 px-2 py-1 text-xs"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="mb-1 block text-xs font-semibold text-slate-600">지도 방향 (줄바꿈으로 구분)</label>
+                                  <textarea
+                                    value={editedAnalysis.subjectDetailedAnalysis[subject]?.guidanceDirection.join('\n') || ''}
+                                    onChange={(e) =>
+                                      setEditedAnalysis({
+                                        ...editedAnalysis,
+                                        subjectDetailedAnalysis: {
+                                          ...editedAnalysis.subjectDetailedAnalysis!,
+                                          [subject]: {
+                                            ...editedAnalysis.subjectDetailedAnalysis![subject],
+                                            guidanceDirection: e.target.value.split('\n').filter((t) => t.trim()),
+                                          },
+                                        },
+                                      })
+                                    }
+                                    rows={2}
+                                    className="w-full rounded-lg border border-slate-300 px-2 py-1 text-xs"
+                                  />
+                                </div>
                               </div>
-                            )}
-                            {details.weakAreas.length > 0 && (
-                              <div className="mb-3">
-                                <p className="mb-1 text-xs font-semibold text-slate-600">취약한 부분</p>
-                                <ul className="space-y-0.5">
-                                  {details.weakAreas.map((area, idx) => (
-                                    <li key={idx} className="text-xs text-slate-700">• {area}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            {details.mistakeTypes.length > 0 && (
-                              <div className="mb-3">
-                                <p className="mb-1 text-xs font-semibold text-slate-600">실수 유형</p>
-                                {details.mistakeTypes.map((mistake, idx) => (
-                                  <p key={idx} className="text-xs leading-relaxed text-slate-700">
-                                    {mistake}
-                                  </p>
-                                ))}
-                              </div>
-                            )}
-                            {details.guidanceDirection.length > 0 && (
-                              <div>
-                                <p className="mb-1 text-xs font-semibold text-slate-600">지도 방향</p>
-                                {details.guidanceDirection.map((direction, idx) => (
-                                  <p key={idx} className="text-xs leading-relaxed text-slate-700">
-                                    {direction}
-                                  </p>
-                                ))}
-                              </div>
+                            ) : (
+                              <>
+                                {subjectDetails.studyStyle.length > 0 && (
+                                  <div className="mb-3">
+                                    <p className="mb-1 text-xs font-semibold text-slate-600">학습 스타일</p>
+                                    {subjectDetails.studyStyle.map((style: string, idx: number) => (
+                                      <p key={idx} className="text-xs leading-relaxed text-slate-700">
+                                        {style}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+                                {subjectDetails.weakAreas.length > 0 && (
+                                  <div className="mb-3">
+                                    <p className="mb-1 text-xs font-semibold text-slate-600">취약한 부분</p>
+                                    <ul className="space-y-0.5">
+                                      {subjectDetails.weakAreas.map((area: string, idx: number) => (
+                                        <li key={idx} className="text-xs text-slate-700">• {area}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {subjectDetails.mistakeTypes.length > 0 && (
+                                  <div className="mb-3">
+                                    <p className="mb-1 text-xs font-semibold text-slate-600">실수 유형</p>
+                                    {subjectDetails.mistakeTypes.map((mistake: string, idx: number) => (
+                                      <p key={idx} className="text-xs leading-relaxed text-slate-700">
+                                        {mistake}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+                                {subjectDetails.guidanceDirection.length > 0 && (
+                                  <div>
+                                    <p className="mb-1 text-xs font-semibold text-slate-600">지도 방향</p>
+                                    {subjectDetails.guidanceDirection.map((direction: string, idx: number) => (
+                                      <p key={idx} className="text-xs leading-relaxed text-slate-700">
+                                        {direction}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
-                        ))}
+                        );
+                        })}
                       </div>
                     </div>
                   )}
 
                 {/* 종합 평가 및 상담 마무리 멘트 */}
-                {analysis.overallGuidance && analysis.overallGuidance.length > 0 && (
+                {displayAnalysis?.overallGuidance && displayAnalysis.overallGuidance.length > 0 && (
                   <div className="rounded-lg border-2 border-slate-300 bg-slate-50 p-4">
-                    <h2 className="mb-3 text-base font-bold text-slate-900">
-                      종합 평가 및 상담 마무리 멘트
-                    </h2>
-                    <div className="space-y-2 text-sm leading-relaxed text-slate-700">
-                      {analysis.overallGuidance.map((guidance, idx) => (
-                        <p key={idx}>{guidance}</p>
-                      ))}
+                    <div className="mb-3 flex items-center justify-between">
+                      <h2 className="text-base font-bold text-slate-900">
+                        종합 평가 및 상담 마무리 멘트
+                      </h2>
+                      {editingSection !== 'guidance' ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingSection('guidance');
+                            setEditedAnalysis({
+                              overallAnalysis: displayAnalysis.overallAnalysis,
+                              subjectDetailedAnalysis: displayAnalysis.subjectDetailedAnalysis,
+                              overallGuidance: [...displayAnalysis.overallGuidance],
+                            });
+                          }}
+                          className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                        >
+                          <Edit className="h-3 w-3" />
+                          편집
+                        </button>
+                      ) : (
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (editedAnalysis?.overallGuidance && analysis) {
+                                setAnalysis({
+                                  ...analysis,
+                                  overallGuidance: editedAnalysis.overallGuidance,
+                                });
+                              }
+                              setEditingSection(null);
+                            }}
+                            className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                          >
+                            <Save className="h-3 w-3" />
+                            저장
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingSection(null);
+                              setEditedAnalysis(null);
+                            }}
+                            className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                          >
+                            <X className="h-3 w-3" />
+                            취소
+                          </button>
+                        </div>
+                      )}
                     </div>
+                    {editingSection === 'guidance' && editedAnalysis?.overallGuidance ? (
+                      <textarea
+                        value={editedAnalysis.overallGuidance.join('\n')}
+                        onChange={(e) =>
+                          setEditedAnalysis({
+                            ...editedAnalysis,
+                            overallGuidance: e.target.value.split('\n').filter((t) => t.trim()),
+                          })
+                        }
+                        rows={6}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      />
+                    ) : (
+                      <div className="space-y-2 text-sm leading-relaxed text-slate-700">
+                        {displayAnalysis.overallGuidance.map((guidance: string, idx: number) => (
+                          <p key={idx}>{guidance}</p>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -909,6 +1981,163 @@ export function AssignmentManagePage() {
         </div>
       )}
 
+    </div>
+  );
+}
+
+function PlannerTimeline({ records }: { records: PlannerRecord[] }) {
+  const SUBJECT_COLORS: Record<string, string> = {
+    수학: 'bg-rose-200',
+    영어: 'bg-violet-200',
+    국어: 'bg-amber-200',
+    문학: 'bg-amber-100',
+    사탐: 'bg-emerald-200',
+    한국사: 'bg-emerald-100',
+    과탐: 'bg-sky-200',
+    과학: 'bg-sky-200',
+  };
+  const hours = Array.from({ length: 15 }, (_, i) => i + 6); // 6시~20시
+  const sortedRecords = [...records].sort((a, b) => (a.startHour ?? 0) - (b.startHour ?? 0));
+
+  return (
+    <div className="space-y-1">
+      {hours.map((hour) => {
+        const blocks = sortedRecords.filter((r) => {
+          const start = r.startHour ?? 0;
+          const end = start + Math.ceil(r.durationMinutes / 60);
+          return hour >= start && hour < end;
+        });
+        return (
+          <div key={hour} className="flex items-center gap-2">
+            <span className="w-8 shrink-0 text-xs text-slate-500">{hour}시</span>
+            <div className="flex flex-1 gap-1">
+              {blocks.map((r) => (
+                <div
+                  key={r.id}
+                  className={`h-6 flex-1 rounded ${SUBJECT_COLORS[r.subject] ?? 'bg-slate-200'}`}
+                  title={`${r.subject} ${formatPlannerDuration(r.durationMinutes)}`}
+                />
+              ))}
+              {blocks.length === 0 && (
+                <div className="h-6 flex-1 rounded bg-slate-50" />
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MaterialUploadModal({
+  pendingFiles,
+  onClose,
+  onConfirm,
+}: {
+  pendingFiles: { file: File; meta: Partial<MaterialMeta> }[];
+  onClose: () => void;
+  onConfirm: (items: { file: File; meta: MaterialMeta }[]) => Promise<void>;
+}) {
+  const [items, setItems] = useState(pendingFiles);
+  const [saving, setSaving] = useState(false);
+
+  const updateItem = (index: number, updates: Partial<MaterialMeta>) => {
+    setItems((prev) =>
+      prev.map((p, i) =>
+        i === index ? { ...p, meta: { ...p.meta, ...updates } } : p
+      )
+    );
+  };
+
+  const handleConfirm = async () => {
+    setSaving(true);
+    try {
+      const validItems = items.map((p) => ({
+        file: p.file,
+        meta: {
+          ...p.meta,
+          subject: p.meta.subject || '국어',
+          subCategory: p.meta.subCategory || '비문학',
+          title: p.meta.title || p.file.name,
+          fileName: p.meta.fileName || p.file.name,
+          fileSize: p.meta.fileSize || `${(p.file.size / 1024 / 1024).toFixed(2)} MB`,
+          fileType: (p.meta.fileType || 'other') as MaterialMeta['fileType'],
+          uploadedAt: p.meta.uploadedAt || new Date().toISOString().split('T')[0],
+        } as MaterialMeta,
+      }));
+      await onConfirm(validItems);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const subjects = ['국어', '영어', '수학', '과학', '사회'];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
+      <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+        <div className="border-b border-slate-200 p-4">
+          <h2 className="text-lg font-semibold text-slate-900">학습 자료 업로드</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            각 파일의 과목과 세부 분류를 선택한 후 업로드하세요.
+          </p>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {items.map((item, index) => (
+            <div
+              key={index}
+              className="rounded-lg border border-slate-200 p-4"
+            >
+              <p className="mb-3 truncate text-sm font-medium text-slate-900">{item.file.name}</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">과목</label>
+                  <select
+                    value={item.meta.subject || '국어'}
+                    onChange={(e) => {
+                      const subject = e.target.value;
+                      updateItem(index, {
+                        subject,
+                        subCategory: SUBJECT_SUBCATEGORIES[subject]?.[0] ?? '기타',
+                      });
+                    }}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  >
+                    {subjects.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">세부 분류</label>
+                  <select
+                    value={item.meta.subCategory || '비문학'}
+                    onChange={(e) => updateItem(index, { subCategory: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  >
+                    {(SUBJECT_SUBCATEGORIES[item.meta.subject || '국어'] ?? ['기타']).map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-slate-200 p-4">
+          <Button type="button" variant="outline" onClick={onClose}>
+            취소
+          </Button>
+          <Button
+            type="button"
+            onClick={handleConfirm}
+            disabled={saving}
+          >
+            {saving ? '업로드 중...' : '업로드'}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

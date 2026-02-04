@@ -35,6 +35,22 @@ API 호출 실패 시 `useApiErrorStore`에 에러가 저장되며, 화면 상�
 | learningAnalysis | GET | `/mentor/mentees/:id/learning/subject-times` | 과목별 학습 시간 |
 | learningAnalysis | GET | `/mentor/mentees/:id/learning/weekly-patterns` | 주간 학습 패턴 |
 
+## 통계 분석 리포트
+
+통계 분석 리포트는 위의 API들을 조합하여 프론트엔드에서 생성합니다. 별도의 API 엔드포인트는 필요하지 않습니다.
+
+**리포트 생성에 사용되는 API:**
+- `/mentor/mentees/:id/learning/subject-times` - 과목별 학습 시간
+- `/mentor/mentees/:id/learning/weekly-patterns` - 주간 학습 패턴
+- `/mentor/mentees/:id/feedback` - 피드백 목록 (과목별 세부 분석용)
+- `/mentor/mentees/:id/kpi` - KPI 지표
+
+**리포트 기능:**
+- 전반적인 학습 태도 및 공부 스타일 종합 분석
+- 생활패턴 분석 (주간 학습 패턴, 과목별 학습 시간)
+- 과목별 상세 분석 (국어/영어/수학)
+- PDF 다운로드 (브라우저 인쇄 기능 활용)
+
 ## 인증
 
 `useAuthStore`의 `accessToken`이 있으면 `Authorization: Bearer {token}` 헤더로 자동 첨부됩니다.

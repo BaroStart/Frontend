@@ -236,10 +236,16 @@ function MenteeCard({
     <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
       {/* 프로필 헤더 */}
       <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 sm:h-14 sm:w-14">
+        <Link
+          to={`/mentor/mentees/${mentee.id}`}
+          className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 transition-opacity hover:opacity-80 sm:h-14 sm:w-14"
+        >
           <UserIcon className="h-7 w-7 text-slate-500" />
-        </div>
-        <div className="min-w-0 flex-1">
+        </Link>
+        <Link
+          to={`/mentor/mentees/${mentee.id}`}
+          className="min-w-0 flex-1 cursor-pointer transition-opacity hover:opacity-80"
+        >
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <span className="text-base font-bold text-slate-900 sm:text-lg">{mentee.name}</span>
             <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">
@@ -262,11 +268,14 @@ function MenteeCard({
               최근 활동: {mentee.lastActive}
             </span>
           </div>
-        </div>
+        </Link>
         <div className="relative">
           <button
             type="button"
-            onClick={() => setMenuOpen((prev) => !prev)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen((prev) => !prev);
+            }}
             className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
             title="더보기"
             aria-expanded={menuOpen}
