@@ -1,5 +1,6 @@
-import { BarChart3, Calendar, Download, Info } from 'lucide-react';
+import { BarChart3, Calendar, Download, Info, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui/Button';
 import { useSubjectStudyTimes } from '@/hooks/useLearningAnalysis';
@@ -20,6 +21,7 @@ export function LearningAnalysisModal({
   menteeName,
 }: LearningAnalysisModalProps) {
   const [period, setPeriod] = useState<'week' | 'month'>('week');
+  const navigate = useNavigate();
 
   const { data: subjectStudyTimes = [] } = useSubjectStudyTimes(menteeId);
   const { data: weeklyPatterns = [] } = useWeeklyPatterns(menteeId);
@@ -154,6 +156,21 @@ export function LearningAnalysisModal({
               </div>
             </div>
           </div>
+        </div>
+
+        {/* 하단 자세히 버튼 */}
+        <div className="border-t border-slate-200 p-4">
+          <Button
+            type="button"
+            onClick={() => {
+              onClose();
+              navigate(`/mentor/assignments?tab=analytics&menteeId=${menteeId}`);
+            }}
+            className="w-full"
+          >
+            자세히
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, FolderOpen, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import { AssignmentIcon, FeedbackIcon, UserIcon } from '@/components/icons';
@@ -20,11 +20,6 @@ const quickMenu: MenuItem[] = [
     label: '피드백 관리',
     path: '/mentor/feedback',
     icon: <FeedbackIcon className="h-[18px] w-[18px]" />,
-  },
-  {
-    label: '자료 관리',
-    path: '/mentor/materials',
-    icon: <FolderOpen className="h-[18px] w-[18px]" />,
   },
 ];
 

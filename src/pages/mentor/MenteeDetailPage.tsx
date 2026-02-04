@@ -107,9 +107,6 @@ export function MenteeDetailPage() {
   const { data: serverIncomplete = [] } = useIncompleteAssignments(menteeId);
   const { data: todayCommentData = null } = useTodayComment(menteeId);
 
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
   const [selectedDate, setSelectedDate] = useState(DEMO_REF_DATE);
   const [viewMode, setViewMode] = useState<'today' | 'week' | 'month'>('today');
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -239,7 +236,7 @@ export function MenteeDetailPage() {
 
   const handleViewMode = (mode: 'today' | 'week' | 'month') => {
     setViewMode(mode);
-    if (mode === 'today') setSelectedDate(todayStr);
+    if (mode === 'today') setSelectedDate(DEMO_REF_DATE);
   };
 
   const handleAssignmentComplete = (assignmentId: string) => {
@@ -495,7 +492,7 @@ export function MenteeDetailPage() {
       </div>
 
       {/* 과목 필터 (상단) */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 ml-6">
         {SUBJECTS.map((s) => (
           <button
             key={s}
@@ -508,18 +505,18 @@ export function MenteeDetailPage() {
         ))}
       </div>
 
-      {/* 2x2 그리드 - 이미지 배치: 좌상 피드백, 우상 미완료, 좌하 자율학습, 우하 한마디 */}
+      {/* 2x2 그리드 - 좌상 피드백, 우상 미완료, 좌하 자율학습, 우하 한마디 */}
       <div className="grid gap-4 sm:grid-cols-2">
         {/* 좌상: 피드백 대시보드 */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="flex min-h-[280px] flex-col rounded-xl border border-slate-200 bg-white p-4">
+          <div className="mb-3 flex shrink-0 items-center justify-between">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
               <Pencil className="h-4 w-4" />
               피드백 대시보드
             </h3>
             <span className="text-xs text-slate-500">{pendingFeedbackCount}개 작성 필요</span>
           </div>
-          <div className="max-h-[360px] space-y-2 overflow-y-auto">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
             {feedbackItems.map((item) => (
               <FeedbackCard
                 key={item.id}
@@ -539,8 +536,8 @@ export function MenteeDetailPage() {
         </div>
 
         {/* 우상: 미완료 과제 */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="flex min-h-[280px] flex-col rounded-xl border border-slate-200 bg-white p-4">
+          <div className="mb-3 flex shrink-0 items-center justify-between">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
               <FileText className="h-4 w-4" />
               미완료 과제
@@ -555,7 +552,7 @@ export function MenteeDetailPage() {
               </Link>
             </div>
           </div>
-          <div className="max-h-[360px] space-y-2 overflow-y-auto">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
             {filteredAndSortedAssignments.map((a) => (
               <IncompleteAssignmentCard
                 key={a.id}
@@ -578,8 +575,8 @@ export function MenteeDetailPage() {
         </div>
 
         {/* 좌하: 자율 학습 To-Do */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="flex min-h-[280px] flex-col rounded-xl border border-slate-200 bg-white p-4">
+          <div className="mb-3 flex shrink-0 items-center justify-between">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
               <ListChecks className="h-4 w-4" />
               자율 학습 To-Do
@@ -588,9 +585,11 @@ export function MenteeDetailPage() {
               완료: {dateTasks.filter((t) => t.completed).length}/{dateTasks.length}
             </span>
           </div>
-          <div className="max-h-[360px] space-y-2 overflow-y-auto">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
             {dateTasks.length === 0 ? (
-              <p className="py-8 text-center text-sm text-slate-500">해당 날짜에 할 일이 없습니다.</p>
+              <p className="flex flex-1 items-center justify-center py-8 text-center text-sm text-slate-500">
+                해당 날짜에 할 일이 없습니다.
+              </p>
             ) : (
               dateTasks.map((task) => <TaskItem key={task.id} task={task} />)
             )}
@@ -598,43 +597,49 @@ export function MenteeDetailPage() {
         </div>
 
         {/* 우하: 오늘의 한마디 & 질문 */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <MessageCircle className="h-4 w-4" />
-            오늘의 한마디 & 질문
-          </h3>
-          {todayComment ? (
-            <div className="space-y-3">
-              <div className="flex gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200">
-                  <UserIcon className="h-5 w-5 text-slate-500" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-slate-900">{todayComment.authorName}</span>
-                    <span className="text-xs text-slate-500">{todayComment.createdAt}</span>
+        <div className="flex min-h-[280px] flex-col rounded-xl border border-slate-200 bg-white p-4">
+          <div className="mb-3 flex shrink-0 items-center justify-between">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+              <MessageCircle className="h-4 w-4" />
+              오늘의 한마디 & 질문
+            </h3>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {todayComment ? (
+              <div className="space-y-3">
+                <div className="flex gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200">
+                    <UserIcon className="h-5 w-5 text-slate-500" />
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">{todayComment.content}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-slate-900">{todayComment.authorName}</span>
+                      <span className="shrink-0 text-xs text-slate-500">{todayComment.createdAt}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-600">{todayComment.content}</p>
+                  </div>
                 </div>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setChatContext(todayComment?.content ?? null);
+                    setChatModalOpen(true);
+                  }}
+                >
+                  답변하기
+                </Button>
               </div>
-              <Button
-                className="w-full"
-                onClick={() => {
-                  setChatContext(todayComment?.content ?? null);
-                  setChatModalOpen(true);
-                }}
-              >
-                답변하기
-              </Button>
-            </div>
-          ) : (
-            <p className="py-8 text-center text-sm text-slate-500">등록된 질문이 없습니다.</p>
-          )}
+            ) : (
+              <p className="flex flex-1 items-center justify-center py-8 text-center text-sm text-slate-500">
+                등록된 질문이 없습니다.
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
       {/* 학습 일정 캘린더 (하단) */}
-      <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
             <Calendar className="h-4 w-4" />

@@ -19,7 +19,6 @@ const pageTitles: Record<string, string> = {
   '/mentor': '멘토 대시보드',
   '/mentor/assignments': '과제 관리',
   '/mentor/feedback': '피드백 관리',
-  '/mentor/materials': '자료 관리',
   '/mentor/templates': '템플릿',
 };
 
