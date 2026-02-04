@@ -10,11 +10,13 @@ import {
   MessageCircle,
   Pencil,
   Plus,
+  RotateCcw,
   Trash2,
   User,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 
 import { AssignmentDetailModal } from '@/components/mentor/AssignmentDetailModal';
 import { ChatModal } from '@/components/mentor/ChatModal';
@@ -33,6 +35,7 @@ import {
   useMenteeTasks,
   useTodayComment,
 } from '@/hooks/useMenteeDetail';
+import { useAssignmentStore } from '@/stores/useAssignmentStore';
 import { SUBJECTS } from '@/data/menteeDetailMock';
 import type {
   AssignmentDetail,
@@ -99,6 +102,12 @@ function getAllScoresAverage(mentee: MenteeSummary): number | null {
 
 export function MenteeDetailPage() {
   const { menteeId } = useParams<{ menteeId: string }>();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const removeIncomplete = useAssignmentStore((s) => s.removeIncomplete);
+  const clearRegisteredIncomplete = useAssignmentStore((s) => s.clearRegisteredIncomplete);
+  const registeredDateFromState = (location.state as { registeredDate?: string } | null)?.registeredDate;
 
   const { data: mentee = null, isLoading: isMenteeLoading } = useMentee(menteeId);
   const { data: kpi = null } = useMenteeKpi(menteeId);
@@ -109,6 +118,13 @@ export function MenteeDetailPage() {
 
   const [selectedDate, setSelectedDate] = useState(DEMO_REF_DATE);
   const [viewMode, setViewMode] = useState<'today' | 'week' | 'month'>('today');
+
+  useEffect(() => {
+    if (registeredDateFromState) {
+      setSelectedDate(registeredDateFromState);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [registeredDateFromState, navigate, location.pathname]);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [chatModalOpen, setChatModalOpen] = useState(false);
   const [feedbackSubjectFilter, setFeedbackSubjectFilter] = useState<string>('전체');
@@ -239,12 +255,13 @@ export function MenteeDetailPage() {
     if (mode === 'today') setSelectedDate(DEMO_REF_DATE);
   };
 
-  const handleAssignmentComplete = (assignmentId: string) => {
+  const handleAssignmentComplete = async (assignmentId: string) => {
     const assignment = incompleteAssignments.find((a) => a.id === assignmentId);
     if (!assignment || menteeId == null) return;
 
     const completedDate = selectedDate;
-    setIncompleteAssignments((prev) => prev.filter((a) => a.id !== assignmentId));
+    removeIncomplete(assignmentId);
+    await queryClient.invalidateQueries({ queryKey: ['incompleteAssignments', menteeId] });
 
     const datePart = `${completedDate.replace(/-/g, '.')}`;
     const newFeedbackItem: FeedbackItem = {
@@ -259,9 +276,10 @@ export function MenteeDetailPage() {
     setFeedbackItemsState((prev) => [...prev, newFeedbackItem]);
   };
 
-  const handleAssignmentDelete = (id: string) => {
-    setIncompleteAssignments((prev) => prev.filter((a) => a.id !== id));
+  const handleAssignmentDelete = async (id: string) => {
+    removeIncomplete(id);
     setShowDeleteConfirm(null);
+    await queryClient.invalidateQueries({ queryKey: ['incompleteAssignments', menteeId] });
   };
 
   const [assignmentDetailOverrides, setAssignmentDetailOverrides] = useState<
@@ -544,6 +562,20 @@ export function MenteeDetailPage() {
             </h3>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500">총 {totalCount}개</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  if (window.confirm('등록한 과제를 모두 초기화할까요? 더미 데이터는 유지됩니다.')) {
+                    clearRegisteredIncomplete(menteeId ?? undefined);
+                    await queryClient.invalidateQueries({ queryKey: ['incompleteAssignments', menteeId] });
+                  }
+                }}
+                title="등록한 과제만 초기화 (더미 유지)"
+              >
+                <RotateCcw className="h-4 w-4" />
+                초기화
+              </Button>
               <Link to={`/mentor/mentees/${menteeId}/assignments/new`}>
                 <Button size="sm" variant="outline">
                   <Plus className="h-4 w-4" />

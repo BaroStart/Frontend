@@ -3,4 +3,5 @@ export const STORAGE_KEYS = {
   SAVED_ID: 'savedId',
   ASSIGNMENTS: 'assignments-storage',
   PLANNER_FEEDBACK: 'planner-feedback',
+  MENTOR_FEEDBACK: 'mentor-feedback',
 } as const;

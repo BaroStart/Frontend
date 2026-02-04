@@ -39,14 +39,14 @@ export function useFeedbackItems(
 export function useIncompleteAssignments(menteeId: string | undefined, params?: DateRange) {
   return useQuery({
     queryKey: ['incompleteAssignments', menteeId, params],
+    refetchOnMount: 'always', // 새로고침/페이지 진입 시 persist 복원 후 항상 최신 데이터 반영
     queryFn: async () => {
       if (!menteeId) return [];
       if (API_CONFIG.useMock) {
+        const { registeredIncomplete } = useAssignmentStore.getState();
         const mock = MOCK_INCOMPLETE_ASSIGNMENTS.filter((a) => a.menteeId === menteeId);
-        const registered = useAssignmentStore.getState().registeredIncomplete.filter(
-          (a) => a.menteeId === menteeId
-        );
-        return [...mock, ...registered];
+        const registered = registeredIncomplete.filter((a) => a.menteeId === menteeId);
+        return [...mock, ...registered]; // 더미 유지 + 등록한 과제 추가
       }
       return fetchIncompleteAssignments(menteeId, params);
     },

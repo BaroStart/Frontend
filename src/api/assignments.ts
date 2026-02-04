@@ -1,6 +1,5 @@
 import type {
   IncompleteAssignment,
-  MenteeTask,
   SubmittedAssignment,
 } from '@/types';
 
@@ -47,8 +46,7 @@ export async function registerAssignment(
   payload: RegisterAssignmentPayload
 ): Promise<RegisterAssignmentResult> {
   if (API_CONFIG.useMock) {
-    const { addTasks, addIncomplete } = useAssignmentStore.getState();
-    const tasks: MenteeTask[] = [];
+    const { addIncomplete } = useAssignmentStore.getState();
     const incomplete: IncompleteAssignment[] = [];
 
     const deadlineTime = payload.recurringEndTime ?? '23:59';
@@ -56,15 +54,6 @@ export async function registerAssignment(
 
     if (payload.dateMode === 'single' && payload.singleDate) {
       const taskId = generateId('t');
-      tasks.push({
-        id: taskId,
-        menteeId: payload.menteeId,
-        date: payload.singleDate,
-        title: payload.title,
-        subject: payload.subject,
-        completed: false,
-        estimatedMinutes: 30,
-      });
       incomplete.push({
         id: taskId,
         menteeId: payload.menteeId,
@@ -92,15 +81,6 @@ export async function registerAssignment(
         const dateStr = d.toISOString().split('T')[0];
         const taskId = generateId('t');
 
-        tasks.push({
-          id: taskId,
-          menteeId: payload.menteeId,
-          date: dateStr,
-          title: payload.title,
-          subject: payload.subject,
-          completed: false,
-          estimatedMinutes: 30,
-        });
         incomplete.push({
           id: taskId,
           menteeId: payload.menteeId,
@@ -114,12 +94,11 @@ export async function registerAssignment(
       }
     }
 
-    addTasks(tasks);
     addIncomplete(incomplete);
 
     return {
       success: true,
-      taskIds: tasks.map((t) => t.id),
+      taskIds: incomplete.map((a) => a.id),
     };
   }
 

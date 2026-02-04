@@ -71,11 +71,25 @@ export function AssignmentRegisterPage() {
   const [loadFromDateModalOpen, setLoadFromDateModalOpen] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [loadMessage, setLoadMessage] = useState<'success' | 'empty' | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [motivationalTemplateId, setMotivationalTemplateId] = useState('');
 
   useEffect(() => {
     if (urlMenteeId) setMenteeId(urlMenteeId);
   }, [urlMenteeId]);
+
+  useEffect(() => {
+    if (dateMode === 'recurring' && !recurringStartDate && !recurringEndDate) {
+      const today = new Date();
+      const nextWeek = new Date(today);
+      nextWeek.setDate(today.getDate() + 7);
+      const fmt = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      setRecurringStartDate(fmt(today));
+      setRecurringEndDate(fmt(nextWeek));
+    }
+  }, [dateMode]);
 
   useEffect(() => {
     if (editAssignment) {
@@ -204,27 +218,82 @@ export function AssignmentRegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!menteeId || !title.trim()) return;
+    setSubmitError(null);
+    setIsSubmitting(true);
 
-    const result = await registerAssignment({
-      menteeId,
-      dateMode,
-      singleDate: dateMode === 'single' ? singleDate : undefined,
-      recurringDays: dateMode === 'recurring' ? recurringDays : undefined,
-      recurringStartDate: dateMode === 'recurring' ? recurringStartDate : undefined,
-      recurringEndDate: dateMode === 'recurring' ? recurringEndDate : undefined,
-      recurringEndTime: dateMode === 'recurring' ? recurringEndTime : undefined,
-      title: title.trim(),
-      goal: goal.trim(),
-      subject,
-    });
+    if (!menteeId || !title.trim()) {
+      setSubmitError('대상 학생과 과제 제목을 입력해 주세요.');
+      setIsSubmitting(false);
+      return;
+    }
 
-    if (result.success) {
-      await queryClient.invalidateQueries({ queryKey: ['menteeTasks', menteeId] });
-      await queryClient.invalidateQueries({ queryKey: ['incompleteAssignments', menteeId] });
-      await queryClient.invalidateQueries({ queryKey: ['mentees'] });
-      await queryClient.invalidateQueries({ queryKey: ['submittedAssignments'] });
-      navigate(menteeId ? `/mentor/mentees/${menteeId}` : '/mentor');
+    if (dateMode === 'single') {
+      if (!singleDate) {
+        setSubmitError('과제 날짜를 선택해 주세요.');
+        setIsSubmitting(false);
+        return;
+      }
+    } else {
+      if (!recurringDays.length) {
+        setSubmitError('요일 반복 시 최소 1개 이상의 요일을 선택해 주세요.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!recurringStartDate) {
+        setSubmitError('시작일을 선택해 주세요.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (!recurringEndDate) {
+        setSubmitError('종료일을 선택해 주세요.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (recurringStartDate > recurringEndDate) {
+        setSubmitError('시작일이 종료일보다 늦을 수 없습니다.');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    try {
+      const result = await registerAssignment({
+        menteeId,
+        dateMode,
+        singleDate: dateMode === 'single' ? singleDate : undefined,
+        recurringDays: dateMode === 'recurring' ? recurringDays : undefined,
+        recurringStartDate: dateMode === 'recurring' ? recurringStartDate : undefined,
+        recurringEndDate: dateMode === 'recurring' ? recurringEndDate : undefined,
+        recurringEndTime: dateMode === 'recurring' ? recurringEndTime : undefined,
+        title: title.trim(),
+        goal: goal.trim(),
+        subject,
+      });
+
+      if (result.success) {
+        // 캐시 즉시 갱신 후 이동 (미완료 과제에 바로 반영)
+        queryClient.invalidateQueries({ queryKey: ['incompleteAssignments', menteeId] });
+        await queryClient.refetchQueries({ queryKey: ['incompleteAssignments', menteeId] });
+        queryClient.invalidateQueries({ queryKey: ['mentees'] });
+        queryClient.invalidateQueries({ queryKey: ['submittedAssignments'] });
+        const registeredDate = dateMode === 'single' ? singleDate : recurringStartDate;
+        navigate(menteeId ? `/mentor/mentees/${menteeId}` : '/mentor', {
+          state: { registeredDate },
+        });
+      } else {
+        setSubmitError(result.message ?? '과제 등록에 실패했습니다.');
+        setIsSubmitting(false);
+      }
+    } catch (err) {
+      let msg = '과제 등록 중 오류가 발생했습니다. 다시 시도해 주세요.';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const res = (err as { response?: { data?: { message?: string } } }).response;
+        if (res?.data?.message) msg = res.data.message;
+      } else if (err instanceof Error) {
+        msg = err.message;
+      }
+      setSubmitError(msg);
+      setIsSubmitting(false);
     }
   };
 
@@ -274,6 +343,12 @@ export function AssignmentRegisterPage() {
           {loadMessage === 'success'
             ? '해당 날짜의 계획을 불러왔습니다.'
             : '해당 날짜에 등록된 과제가 없습니다.'}
+        </div>
+      )}
+
+      {submitError && (
+        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">
+          {submitError}
         </div>
       )}
 
@@ -667,8 +742,8 @@ export function AssignmentRegisterPage() {
               취소
             </Button>
           </Link>
-          <Button type="submit" disabled={!menteeId || !title.trim()}>
-            과제 등록
+          <Button type="submit" disabled={!menteeId || !title.trim() || isSubmitting}>
+            {isSubmitting ? '등록 중...' : '과제 등록'}
           </Button>
         </div>
       </form>
