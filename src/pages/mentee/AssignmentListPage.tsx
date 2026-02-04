@@ -87,7 +87,7 @@ export function AssignmentListPage() {
     <div className="flex flex-col h-full gap-2 px-4 pt-4 bg-white">
       {/* 헤더 */}
       <header>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
             <CalendarDays className="w-4 h-4" />
             {/* TODO: 클릭시 달력 모달 열기 */}
@@ -102,7 +102,6 @@ export function AssignmentListPage() {
             </button>
           </div>
         </div>
-        <h1 className="mb-1 text-2xl font-bold text-gray-900">오늘의 과제</h1>
       </header>
 
       {/* 과목 필터링 */}
