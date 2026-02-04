@@ -52,7 +52,7 @@ type TabType = 'templates' | 'materials' | 'planner' | 'analytics';
 interface MaterialItem extends MaterialMeta {}
 
 export function AssignmentManagePage() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>('templates');
   const [selectedMenteeId, setSelectedMenteeId] = useState<string>('');
   
