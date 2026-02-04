@@ -43,12 +43,12 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 py-12">
-      <img src="/logo.svg" alt="설스터디" className="h-16" />
-      <h1 className="mt-3 text-2xl font-bold text-slate-800">설스터디</h1>
-      <p className="mt-2 mb-10 text-slate-500">오늘도 당신의 꿈을 응원합니다</p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-white px-4 py-8 sm:px-6 sm:py-12">
+      <img src="/logo.svg" alt="설스터디" className="h-14 sm:h-16" />
+      <h1 className="mt-3 text-xl font-bold text-slate-800 sm:text-2xl">설스터디</h1>
+      <p className="mt-2 mb-8 text-slate-500 sm:mb-10">오늘도 당신의 꿈을 응원합니다</p>
 
-      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <RoleTabs value={role} onChange={handleRoleChange} />
 
         <form onSubmit={handleSubmit} className="space-y-4">

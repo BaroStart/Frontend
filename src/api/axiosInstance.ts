@@ -1,28 +1,33 @@
-// NOTE: 추후 사용 예정
-// import axios from 'axios';
+import axios from 'axios';
 
-// import { useAuthStore } from '../stores/useAuthStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 
-// const axiosInstance = axios.create({
-//   baseURL: import.meta.env.VITE_API_URL,
-// });
+import { API_CONFIG } from './config';
 
-// axiosInstance.interceptors.request.use((config) => {
-//   const token = useAuthStore.getState().accessToken;
-//   if (token) {
-//     config.headers.Authorization = `Bearer ${token}`;
-//   }
-//   return config;
-// });
+const axiosInstance = axios.create({
+  baseURL: API_CONFIG.baseURL || '/api',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-// axiosInstance.interceptors.response.use(
-//   (response) => response,
-//   (error) => {
-//     if (error.response?.status === 401) {
-//       useAuthStore.getState().logout();
-//     }
-//     return Promise.reject(error);
-//   },
-// );
+axiosInstance.interceptors.request.use((config) => {
+  const token = useAuthStore.getState().accessToken;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-// export default axiosInstance;
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      useAuthStore.getState().logout();
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default axiosInstance;

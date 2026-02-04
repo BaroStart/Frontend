@@ -18,6 +18,7 @@ import {
   AssignmentRegisterPage,
   FeedbackManagePage,
   FeedbackWritePage,
+  MaterialManagePage,
   MenteeDetailPage,
   MentorMainPage,
   TemplatesPage,
@@ -36,6 +37,7 @@ export function AppRoutes() {
           <Route element={<MentorLayout />}>
             <Route path="/mentor" element={<MentorMainPage />} />
             <Route path="/mentor/mentees/:menteeId" element={<MenteeDetailPage />} />
+            <Route path="/mentor/assignments/new" element={<AssignmentRegisterPage />} />
             <Route
               path="/mentor/mentees/:menteeId/assignments/new"
               element={<AssignmentRegisterPage />}
@@ -46,6 +48,7 @@ export function AppRoutes() {
             />
             <Route path="/mentor/assignments" element={<AssignmentManagePage />} />
             <Route path="/mentor/feedback" element={<FeedbackManagePage />} />
+            <Route path="/mentor/materials" element={<MaterialManagePage />} />
             <Route path="/mentor/templates" element={<TemplatesPage />} />
           </Route>
         </Route>

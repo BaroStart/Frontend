@@ -14,7 +14,7 @@ export function ErrorPage({
   const navigate = useNavigate();
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 sm:px-6">
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
         <span className="text-2xl">!</span>
       </div>

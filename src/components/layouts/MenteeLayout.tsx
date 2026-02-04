@@ -4,7 +4,7 @@ import { TabBar } from '@/components/mentee/TabBar';
 
 export function MenteeLayout() {
   return (
-    <div className="mx-auto min-h-screen max-w-md bg-white shadow-sm md:shadow-lg">
+    <div className="mx-auto min-h-screen w-full max-w-md bg-white shadow-sm sm:max-w-lg md:shadow-lg">
       <header className="sticky top-0 z-10 border-b border-gray-100 bg-white">
         <div className="flex h-14 items-center justify-between px-4">
           <NavLink to="/mentee" className="flex items-center gap-2">
