@@ -8,10 +8,6 @@ import { TodoList } from "@/components/mentee/main/TodoList";
 import { useTodoStore } from "@/stores/useTodoStore";
 import { TimeTable, type TimelineItem } from "@/components/mentee/main/TimeTable";
 
-function dateLabel(d: Date) {
-  return `${d.getMonth() + 1}/${d.getDate()}`;
-}
-
 function ChatIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
