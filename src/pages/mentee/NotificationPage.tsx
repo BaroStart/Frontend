@@ -82,7 +82,7 @@ const NOTIFICATIONS: NotificationItem[] = [
   },
 ];
 
-export default function NotificationPage() {
+export function NotificationPage() {
   const getIcon = (type: NotificationType) => {
     switch (type) {
       case 'feedback':
