@@ -25,8 +25,8 @@ const tabs: TabItem[] = [
 
 export function TabBar() {
   return (
-    <nav className="fixed bottom-0 left-1/2 w-full max-w-md -translate-x-1/2 border-t border-gray-100 bg-white">
-      <div className="flex h-16 items-center justify-around px-2">
+    <nav className="fixed bottom-0 w-full max-w-md -translate-x-1/2 bg-white border-t border-gray-100 left-1/2 sm:max-w-lg">
+      <div className="flex items-center justify-around h-16 px-2">
         {tabs.map((tab) => (
           <NavLink
             key={tab.path}
