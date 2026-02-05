@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/Button';
 import { useMentees } from '@/hooks/useMentees';
 import { useSubmittedAssignments } from '@/hooks/useSubmittedAssignments';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { getDeadlineStatus } from '@/lib/feedbackDeadline';
 import type { MenteeSummary, SubmittedAssignment } from '@/types';
 
 const FILTER_TABS = [
@@ -41,6 +42,10 @@ export function MentorMainPage() {
   const { data: submittedAssignments = [] } = useSubmittedAssignments();
 
   const totalPendingFeedback = mentees.reduce((sum, m) => sum + m.pendingFeedbackCount, 0);
+  const pendingWithoutFeedback = submittedAssignments.filter((a) => !a.feedbackDone);
+  const overdueFeedbackCount = pendingWithoutFeedback.filter(
+    (a) => getDeadlineStatus(a.submittedAt) === 'overdue'
+  ).length;
   const weeklyCompleted = 8;
 
   const filteredMentees = mentees
@@ -73,7 +78,19 @@ export function MentorMainPage() {
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-4">
           <SummaryCard label="담당 멘티" value={`${mentees.length}명`} />
-          <SummaryCard label="대기 중인 피드백" value={`${totalPendingFeedback}개`} />
+          <Link to="/mentor/feedback">
+            <SummaryCard
+              label="대기 중인 피드백"
+              value={`${totalPendingFeedback}개`}
+              badge={
+                overdueFeedbackCount > 0 ? (
+                  <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-xs font-medium text-white">
+                    마감 초과 {overdueFeedbackCount}
+                  </span>
+                ) : undefined
+              }
+            />
+          </Link>
           <SummaryCard label="이번 주 완료 과제" value={`${weeklyCompleted}개`} />
         </div>
       </section>
@@ -144,10 +161,21 @@ export function MentorMainPage() {
   );
 }
 
-function SummaryCard({ label, value }: { label: string; value: string }) {
+function SummaryCard({
+  label,
+  value,
+  badge,
+}: {
+  label: string;
+  value: string;
+  badge?: React.ReactNode;
+}) {
   return (
     <div className="rounded-lg bg-slate-700/80 px-3 py-2 sm:px-4 sm:py-3">
-      <p className="text-xs font-medium text-slate-400">{label}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-slate-400">{label}</p>
+        {badge}
+      </div>
       <p className="mt-0.5 text-lg font-bold text-white sm:mt-1 sm:text-xl">{value}</p>
     </div>
   );

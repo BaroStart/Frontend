@@ -25,6 +25,11 @@ import {
   getMentorFeedback,
   saveMentorFeedback,
 } from '@/lib/mentorFeedbackStorage';
+import {
+  getDeadlineStatus,
+  formatRemainingTime,
+  getRemainingMs,
+} from '@/lib/feedbackDeadline';
 import { cn } from '@/lib/utils';
 
 function parseDateFromSubmittedAt(submittedAt: string): string {
@@ -48,6 +53,7 @@ export function FeedbackWritePage() {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [assignmentDropdownOpen, setAssignmentDropdownOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [remainingTime, setRemainingTime] = useState<string>('');
 
   const { data: assignmentDetail } = useAssignmentDetail(menteeId, assignmentId);
   const { data: mentee } = useMentee(menteeId);
@@ -55,6 +61,19 @@ export function FeedbackWritePage() {
   const assignmentFromList = submittedAssignments.find(
     (a) => a.menteeId === menteeId && a.id === assignmentId
   );
+
+  // 피드백 마감(다음날 11시) 남은 시간 갱신
+  useEffect(() => {
+    if (!assignmentFromList?.submittedAt) {
+      setRemainingTime('');
+      return;
+    }
+    const update = () =>
+      setRemainingTime(formatRemainingTime(getRemainingMs(assignmentFromList.submittedAt)));
+    update();
+    const id = setInterval(update, 60000); // 1분마다 갱신
+    return () => clearInterval(id);
+  }, [assignmentFromList?.submittedAt]);
 
   const title = assignmentDetail?.title ?? assignmentFromList?.title ?? '과제';
   const subject =
@@ -231,7 +250,25 @@ export function FeedbackWritePage() {
             <ArrowLeft className="h-4 w-4" />
             돌아가기
           </Link>
-          <h1 className="text-lg font-bold text-slate-900">피드백 작성</h1>
+          <div className="flex items-center gap-3">
+            {assignmentFromList?.submittedAt && remainingTime && (
+              <span
+                className={cn(
+                  'rounded-full px-2.5 py-1 text-xs font-medium',
+                  getDeadlineStatus(assignmentFromList.submittedAt) === 'overdue'
+                    ? 'bg-red-100 text-red-700'
+                    : getDeadlineStatus(assignmentFromList.submittedAt) === 'urgent'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-slate-100 text-slate-600'
+                )}
+              >
+                {getDeadlineStatus(assignmentFromList.submittedAt) === 'overdue'
+                  ? '마감 초과'
+                  : `오전 11시까지 ${remainingTime} 남음`}
+              </span>
+            )}
+            <h1 className="text-lg font-bold text-slate-900">피드백 작성</h1>
+          </div>
         </div>
         {/* 과제 내용, 날짜 선택, 과제 선택 */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">

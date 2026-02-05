@@ -6,13 +6,16 @@ import {
   ChevronRight,
   Edit3,
   FileText,
+  GripVertical,
   ListChecks,
   MessageCircle,
   Pencil,
   Plus,
   RotateCcw,
+  Search,
   Trash2,
   User,
+  X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -23,9 +26,15 @@ import { ChatModal } from '@/components/mentor/ChatModal';
 import { DatePickerModal } from '@/components/mentor/DatePickerModal';
 import { LearningAnalysisModal } from '@/components/mentor/LearningAnalysisModal';
 import { ProfileEditModal } from '@/components/mentor/ProfileEditModal';
-import { ScheduleAddModal } from '@/components/mentor/ScheduleAddModal';
+import {
+  ScheduleAddModal,
+  type PersonalScheduleData,
+  type LearningTaskData,
+} from '@/components/mentor/ScheduleAddModal';
 import { ScheduleCalendar, type ScheduleItem } from '@/components/mentor/ScheduleCalendar';
+import { ScheduleItemContextMenu } from '@/components/mentor/ScheduleItemContextMenu';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { UserIcon } from '@/components/icons';
 import { useMentee } from '@/hooks/useMentee';
 import {
@@ -36,13 +45,22 @@ import {
   useTodayComment,
 } from '@/hooks/useMenteeDetail';
 import { useAssignmentStore } from '@/stores/useAssignmentStore';
+import {
+  getLearningTasks,
+  getLearningTaskOverrides,
+  saveLearningTasks,
+  saveLearningTaskOverrides,
+} from '@/lib/learningTaskStorage';
+import {
+  getPersonalSchedules,
+  savePersonalSchedules,
+} from '@/lib/personalScheduleStorage';
 import { SUBJECTS } from '@/data/menteeDetailMock';
 import type {
   AssignmentDetail,
   FeedbackItem,
   IncompleteAssignment,
   MenteeSummary,
-  MenteeTask,
 } from '@/types';
 
 /** "2026.02.02 오전 10:45" → "2026-02-02" */
@@ -156,42 +174,265 @@ export function MenteeDetailPage() {
   const [profileEditModalOpen, setProfileEditModalOpen] = useState(false);
   const [menteeOverride, setMenteeOverride] = useState<MenteeSummary | null>(null);
   const [chatContext, setChatContext] = useState<string | null>(null);
-  const [tasksState, setTasksState] = useState<MenteeTask[]>([]);
+  const [personalSchedules, setPersonalSchedules] = useState<
+    { id: string; title: string; eventType: string; date: string }[]
+  >([]);
+  const [learningTasks, setLearningTasks] = useState<
+    { id: string; title: string; subject: string; date: string; completed: boolean }[]
+  >([]);
+  const [learningOverrides, setLearningOverrides] = useState<{
+    dateOverrides: Record<string, string>;
+    deletedIds: string[];
+  }>({ dateOverrides: {}, deletedIds: [] });
+
+  useEffect(() => {
+    if (menteeId) {
+      setPersonalSchedules(getPersonalSchedules(menteeId));
+      setLearningTasks(getLearningTasks(menteeId));
+      setLearningOverrides(getLearningTaskOverrides(menteeId));
+    } else {
+      setPersonalSchedules([]);
+      setLearningTasks([]);
+      setLearningOverrides({ dateOverrides: {}, deletedIds: [] });
+    }
+  }, [menteeId]);
+
+  const persistPersonalSchedules = (schedules: { id: string; title: string; eventType: string; date: string }[]) => {
+    if (menteeId) {
+      savePersonalSchedules(menteeId, schedules.map((p) => ({ ...p, menteeId })));
+    }
+  };
+  const [scheduleSearchQuery, setScheduleSearchQuery] = useState('');
+  const [scheduleContextMenu, setScheduleContextMenu] = useState<{
+    item: ScheduleItem;
+    position: { x: number; y: number };
+  } | null>(null);
+  const [draggedCalendarItem, setDraggedCalendarItem] = useState<ScheduleItem | null>(null);
 
   const displayMentee = (menteeOverride ?? mentee)!;
 
-  const allTasks = useMemo(
-    () => [...serverTasks.filter((t) => t.menteeId === menteeId), ...tasksState.filter((t) => t.menteeId === menteeId)],
-    [menteeId, serverTasks, tasksState]
-  );
-
+  // 달력에 표시: 자율학습 To-Do + 개인일정 + 피드백대시보드 + 과제
   const scheduleItems: ScheduleItem[] = useMemo(() => {
-    return allTasks.map((t) => ({
-      id: t.id,
-      title: t.title,
-      subject: t.subject,
-      date: t.date,
-      status: t.completed ? ('completed' as const) : ('default' as const),
-    }));
-  }, [allTasks]);
+    const items: ScheduleItem[] = [];
+    // 1. 자율학습 To-Do (서버 + 로컬, 오버라이드 적용)
+    const serverLearningTasks = serverTasks
+      .filter((t) => t.menteeId === menteeId && !learningOverrides.deletedIds.includes(t.id))
+      .map((t) => ({
+        ...t,
+        date: learningOverrides.dateOverrides[t.id] ?? t.date,
+      }));
+    const allLearningTasks = [...serverLearningTasks, ...learningTasks];
+    allLearningTasks.forEach((t) => {
+      items.push({
+        id: t.id,
+        title: t.title,
+        subject: t.subject,
+        date: t.date,
+        type: 'learning',
+        status: t.completed ? ('completed' as const) : ('default' as const),
+      });
+    });
+    // 2. 개인 일정 (중간고사, 기말고사 등)
+    personalSchedules
+      .filter((p) => p.date)
+      .forEach((p) => {
+        items.push({
+          id: p.id,
+          title: p.title,
+          subject: p.eventType,
+          date: p.date,
+          type: 'personal',
+          status: 'default',
+        });
+      });
+    // 3. 피드백 대시보드 (제출일 기준)
+    const feedbackForMentee = serverFeedbackItems.filter((f) => f.menteeId === menteeId);
+    feedbackForMentee.forEach((f) => {
+      const dateStr = parseDateFromStr(f.submittedAt);
+      if (dateStr) {
+        items.push({
+          id: `fb-${f.assignmentId}`,
+          title: f.title,
+          subject: f.subject,
+          date: dateStr,
+          type: 'feedback',
+          sourceId: f.assignmentId,
+          status: f.status === 'urgent' ? 'urgent' : f.status === 'completed' ? 'completed' : 'default',
+        });
+      }
+    });
+    // 4. 과제 (마감일 기준)
+    incompleteAssignments.forEach((a) => {
+      const dateStr = a.deadlineDate ?? a.completedAtDate;
+      if (dateStr) {
+        items.push({
+          id: `asn-${a.id}`,
+          title: a.title,
+          subject: a.subject,
+          date: dateStr,
+          type: 'assignment',
+          sourceId: a.id,
+          status:
+            a.status === 'deadline_soon'
+              ? ('urgent' as const)
+              : a.status === 'completed'
+                ? ('completed' as const)
+                : ('default' as const),
+        });
+      }
+    });
+    return items;
+  }, [menteeId, personalSchedules, learningTasks, learningOverrides, serverTasks, serverFeedbackItems, incompleteAssignments]);
 
-  const dateTasks = useMemo(
-    () => allTasks.filter((t) => t.date === selectedDate),
-    [allTasks, selectedDate]
+  // To-Do 카드: 항상 오늘 날짜, 학생 입력(자율학습·개인일정)만 표시 (달력 연동 없음)
+  const todayTodoItems = useMemo(
+    () =>
+      scheduleItems.filter(
+        (s) =>
+          s.date === getTodayDateStr() &&
+          (s.type === 'learning' || s.type === 'personal')
+      ),
+    [scheduleItems]
   );
 
-  const handleAddSchedule = (data: { title: string; subject: string; date: string }) => {
+  const handleAddPersonalSchedule = (data: PersonalScheduleData) => {
     if (!menteeId) return;
-    const newTask: MenteeTask = {
-      id: `t-${Date.now()}`,
-      menteeId,
-      date: data.date,
-      title: data.title,
-      subject: data.subject,
-      completed: false,
-    };
-    setTasksState((prev) => [...prev, newTask]);
+    const next = [
+      ...personalSchedules,
+      {
+        id: `ps-${Date.now()}`,
+        title: data.title,
+        eventType: data.eventType,
+        date: data.date,
+      },
+    ];
+    setPersonalSchedules(next);
+    persistPersonalSchedules(next);
     setSelectedDate(data.date);
+  };
+
+  const handleAddLearningTask = (data: LearningTaskData) => {
+    if (!menteeId) return;
+    const next = [
+      ...learningTasks,
+      {
+        id: `t-${Date.now()}`,
+        title: data.title,
+        subject: data.subject,
+        date: data.date,
+        completed: false,
+      },
+    ];
+    setLearningTasks(next);
+    persistLearningTasks(next);
+    setSelectedDate(data.date);
+  };
+
+  const persistLearningTasks = (tasks: { id: string; title: string; subject: string; date: string; completed: boolean }[]) => {
+    if (menteeId) {
+      saveLearningTasks(menteeId, tasks.map((t) => ({ ...t, menteeId })));
+    }
+  };
+
+  const handleScheduleMove = (itemId: string, newDate: string, skipDateSelect?: boolean) => {
+    if (itemId.startsWith('ps-')) {
+      const next = personalSchedules.map((p) =>
+        p.id === itemId ? { ...p, date: newDate } : p
+      );
+      setPersonalSchedules(next);
+      persistPersonalSchedules(next);
+    } else {
+      // 자율학습: t- 로컬 추가분, t1/t2 등 서버 mock
+      const localTask = learningTasks.find((x) => x.id === itemId);
+      if (localTask) {
+        const next = learningTasks.map((t) =>
+          t.id === itemId ? { ...t, date: newDate } : t
+        );
+        setLearningTasks(next);
+        persistLearningTasks(next);
+      } else {
+        const nextOverrides = {
+          ...learningOverrides,
+          dateOverrides: { ...learningOverrides.dateOverrides, [itemId]: newDate },
+        };
+        setLearningOverrides(nextOverrides);
+        saveLearningTaskOverrides(menteeId ?? '', nextOverrides);
+      }
+    }
+    if (!skipDateSelect) setSelectedDate(newDate);
+  };
+
+  const handleScheduleCopy = (itemId: string, newDate: string, skipDateSelect?: boolean) => {
+    if (itemId.startsWith('ps-')) {
+      const p = personalSchedules.find((x) => x.id === itemId);
+      if (!p) return;
+      const next = [...personalSchedules, { ...p, id: `ps-${Date.now()}`, date: newDate }];
+      setPersonalSchedules(next);
+      persistPersonalSchedules(next);
+    } else {
+      const localTask = learningTasks.find((x) => x.id === itemId);
+      const serverTask = serverTasks.find((t) => t.menteeId === menteeId && t.id === itemId);
+      const src = localTask ?? serverTask;
+      if (!src) return;
+      const newTask = {
+        id: `t-${Date.now()}`,
+        title: src.title,
+        subject: src.subject,
+        date: newDate,
+        completed: false,
+      };
+      const next = [...learningTasks, newTask];
+      setLearningTasks(next);
+      persistLearningTasks(next);
+    }
+    if (!skipDateSelect) setSelectedDate(newDate);
+  };
+
+  const handleScheduleDelete = (itemId: string) => {
+    if (itemId.startsWith('ps-')) {
+      const next = personalSchedules.filter((p) => p.id !== itemId);
+      setPersonalSchedules(next);
+      persistPersonalSchedules(next);
+    } else {
+      const localTask = learningTasks.find((x) => x.id === itemId);
+      if (localTask) {
+        const next = learningTasks.filter((t) => t.id !== itemId);
+        setLearningTasks(next);
+        persistLearningTasks(next);
+      } else {
+        const nextOverrides = {
+          ...learningOverrides,
+          deletedIds: [...learningOverrides.deletedIds, itemId],
+        };
+        setLearningOverrides(nextOverrides);
+        saveLearningTaskOverrides(menteeId ?? '', nextOverrides);
+      }
+    }
+  };
+
+  const handleScheduleItemRightClick = (e: React.MouseEvent, item: ScheduleItem) => {
+    e.preventDefault();
+    if (item.type !== 'personal' && item.type !== 'learning') return;
+    setScheduleContextMenu({
+      item,
+      position: { x: e.clientX, y: e.clientY },
+    });
+  };
+
+  const handleScheduleItemClick = (item: ScheduleItem) => {
+    if (item.type === 'feedback' && item.sourceId && menteeId) {
+      navigate(`/mentor/mentees/${menteeId}/feedback/${item.sourceId}`);
+      return;
+    }
+    if (item.type === 'assignment' && item.sourceId && menteeId) {
+      const a = incompleteAssignments.find((x) => x.id === item.sourceId);
+      openAssignmentDetail(
+        item.sourceId,
+        a ? { title: a.title, goal: a.description, subject: a.subject } : undefined,
+        'incomplete'
+      );
+    }
+    // learning, personal: 클릭만으로는 동작 없음 (우클릭 메뉴 사용)
   };
 
   const dateRange = useMemo(() => {
@@ -239,8 +480,8 @@ export function MenteeDetailPage() {
   const totalCount = filteredAndSortedAssignments.length;
   const todayComment = todayCommentData;
   const highlightDates = useMemo(
-    () => [...new Set(allTasks.map((t) => t.date))],
-    [allTasks]
+    () => [...new Set(scheduleItems.map((s) => s.date))],
+    [scheduleItems]
   );
 
   const handlePrevDate = () => {
@@ -310,7 +551,7 @@ export function MenteeDetailPage() {
     source: 'feedback' | 'incomplete'
   ) => {
     setAssignmentDetailOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...data } }));
-    if (source === 'incomplete' && (data.title != null || data.goal != null)) {
+    if (source === 'incomplete' && (data.title != null || data.goal != null || data.content != null)) {
       setIncompleteAssignments((prev) =>
         prev.map((a) =>
           a.id === id
@@ -318,10 +559,24 @@ export function MenteeDetailPage() {
                 ...a,
                 ...(data.title != null && { title: data.title }),
                 ...(data.goal != null && { description: data.goal }),
+                ...(data.content != null && { content: data.content }),
               }
             : a
         )
       );
+      // registeredIncomplete도 업데이트
+      const { registeredIncomplete, addIncomplete } = useAssignmentStore.getState();
+      const registered = registeredIncomplete.find((a) => a.id === id);
+      if (registered) {
+        addIncomplete([
+          {
+            ...registered,
+            ...(data.title != null && { title: data.title }),
+            ...(data.goal != null && { description: data.goal }),
+            ...(data.content != null && { content: data.content }),
+          },
+        ]);
+      }
     }
   };
 
@@ -611,7 +866,7 @@ export function MenteeDetailPage() {
           </div>
         </div>
 
-        {/* 좌하: 자율 학습 To-Do */}
+        {/* 좌하: 자율 학습 To-Do (학생 입력만, 항상 오늘 날짜, 피드백/클릭 이동 없음) */}
         <div className="flex min-h-[280px] flex-col rounded-xl border border-slate-200 bg-white p-4">
           <div className="mb-3 flex shrink-0 items-center justify-between">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
@@ -619,16 +874,27 @@ export function MenteeDetailPage() {
               자율 학습 To-Do
             </h3>
             <span className="text-xs text-slate-500">
-              완료: {dateTasks.filter((t) => t.completed).length}/{dateTasks.length}
+              완료: {todayTodoItems.filter((i) => i.type === 'learning' && i.status === 'completed').length}/{todayTodoItems.filter((i) => i.type === 'learning').length}
             </span>
           </div>
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
-            {dateTasks.length === 0 ? (
+            {todayTodoItems.length === 0 ? (
               <p className="flex flex-1 items-center justify-center py-8 text-center text-sm text-slate-500">
-                해당 날짜에 할 일이 없습니다.
+                오늘 할 일이 없습니다.
               </p>
             ) : (
-              dateTasks.map((task) => <TaskItem key={task.id} task={task} />)
+              todayTodoItems.map((item) => (
+                <ScheduleItemCard
+                  key={item.id}
+                  item={item}
+                  onClick={() => {}}
+                  onContextMenu={(e) => handleScheduleItemRightClick(e, item)}
+                  onDelete={() => handleScheduleDelete(item.id)}
+                  onDragStart={undefined}
+                  onDragEnd={undefined}
+                  isDragging={false}
+                />
+              ))
             )}
           </div>
         </div>
@@ -677,33 +943,98 @@ export function MenteeDetailPage() {
 
       {/* 학습 일정 캘린더 (하단) */}
       <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
             <Calendar className="h-4 w-4" />
-            학습 일정 캘린더
+            일정 캘린더
           </h3>
-          <Button size="sm" variant="outline" onClick={() => setScheduleAddModalOpen(true)}>
-            <Plus className="h-4 w-4" />
-            일정 추가
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* 검색 */}
+            <div className="relative flex-1 sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                type="text"
+                placeholder="할일 검색..."
+                value={scheduleSearchQuery}
+                onChange={(e) => setScheduleSearchQuery(e.target.value)}
+                className="pl-9 pr-9"
+              />
+              {scheduleSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setScheduleSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setScheduleAddModalOpen(true)}>
+              <Plus className="h-4 w-4" />
+              일정 추가
+            </Button>
+          </div>
         </div>
-        <ScheduleCalendar
-          year={calYear}
-          month={calMonth}
-          selectedDate={selectedDate}
-          scheduleItems={scheduleItems}
-          onDateSelect={setSelectedDate}
-          onMonthChange={(y, m) => {
-            setSelectedDate(`${y}-${String(m).padStart(2, '0')}-01`);
-          }}
-        />
+        <div className="relative">
+          <ScheduleCalendar
+            year={calYear}
+            month={calMonth}
+            selectedDate={selectedDate}
+            scheduleItems={scheduleItems}
+            searchQuery={scheduleSearchQuery}
+            onDateSelect={setSelectedDate}
+            onMonthChange={(y, m) => {
+              setSelectedDate(`${y}-${String(m).padStart(2, '0')}-01`);
+            }}
+            onItemClick={handleScheduleItemClick}
+            onItemRightClick={handleScheduleItemRightClick}
+            onItemDelete={handleScheduleDelete}
+            onItemDragStart={(item) => setDraggedCalendarItem(item)}
+            onItemDragEnd={() => setDraggedCalendarItem(null)}
+            onDropOnDate={
+              draggedCalendarItem && (draggedCalendarItem.type === 'personal' || draggedCalendarItem.type === 'learning')
+                ? (dateStr, isCopy) => {
+                    if (isCopy) {
+                      handleScheduleCopy(draggedCalendarItem.id, dateStr, true);
+                    } else {
+                      handleScheduleMove(draggedCalendarItem.id, dateStr, true);
+                    }
+                    setDraggedCalendarItem(null);
+                  }
+                : undefined
+            }
+            draggedItemId={draggedCalendarItem?.id}
+          />
+        </div>
+        {draggedCalendarItem && (
+          <p className="mt-2 text-xs text-slate-500">
+            다른 날짜에 놓으면 이동 · <kbd className="rounded border border-slate-300 px-1">Ctrl</kbd>+드롭하면 복사
+          </p>
+        )}
+        {scheduleContextMenu && (
+          <ScheduleItemContextMenu
+            item={scheduleContextMenu.item}
+            position={scheduleContextMenu.position}
+            onClose={() => setScheduleContextMenu(null)}
+            onMove={handleScheduleMove}
+            onCopy={handleScheduleCopy}
+            onDelete={handleScheduleDelete}
+          />
+        )}
+        {scheduleSearchQuery && (
+          <div className="mt-3 text-sm text-slate-500">
+            검색 결과: {scheduleItems.filter((item) => item.title.toLowerCase().includes(scheduleSearchQuery.toLowerCase()) || item.subject.toLowerCase().includes(scheduleSearchQuery.toLowerCase())).length}개
+          </div>
+        )}
       </div>
 
       <ScheduleAddModal
         isOpen={scheduleAddModalOpen}
         onClose={() => setScheduleAddModalOpen(false)}
         defaultDate={selectedDate}
-        onSubmit={handleAddSchedule}
+        mode="learning"
+        onSubmitPersonal={handleAddPersonalSchedule}
+        onSubmitLearning={handleAddLearningTask}
       />
 
       <LearningAnalysisModal
@@ -793,28 +1124,93 @@ function KpiCard({
   );
 }
 
-function TaskItem({ task }: { task: MenteeTask }) {
+function ScheduleItemCard({
+  item,
+  onClick,
+  onContextMenu,
+  onDelete,
+  onDragStart,
+  onDragEnd,
+  isDragging,
+}: {
+  item: ScheduleItem;
+  onClick: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+  onDelete?: () => void;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+  isDragging?: boolean;
+}) {
+  const typeLabel =
+    item.type === 'learning'
+      ? '자율학습'
+      : item.type === 'personal'
+        ? '개인'
+        : item.type === 'feedback'
+          ? '피드백'
+          : item.type === 'assignment'
+            ? '과제'
+            : item.subject;
+  const typeBg =
+    item.type === 'learning'
+      ? 'bg-amber-100 text-amber-700'
+      : item.type === 'personal'
+        ? 'bg-violet-100 text-violet-700'
+        : item.type === 'feedback'
+          ? 'bg-amber-100 text-amber-700'
+          : 'bg-blue-100 text-blue-700';
+  const canMoveDelete = onDelete != null;
+
   return (
-    <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2">
-      <div className="flex items-center gap-2">
+    <div
+      draggable={canMoveDelete}
+      onContextMenu={onContextMenu}
+      onDragStart={(e) => {
+        if (canMoveDelete && onDragStart) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', item.id);
+          onDragStart();
+        }
+      }}
+      onDragEnd={() => onDragEnd?.()}
+      className={`flex w-full items-center gap-2 rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2 transition-colors hover:bg-slate-100 ${
+        isDragging ? 'opacity-50' : ''
+      } ${canMoveDelete ? 'cursor-grab active:cursor-grabbing' : ''}`}
+    >
+      {canMoveDelete && (
         <div
-          className={`flex h-5 w-5 items-center justify-center rounded border ${
-            task.completed ? 'border-slate-600 bg-slate-600 text-white' : 'border-slate-300'
-          }`}
+          className="flex shrink-0 cursor-grab touch-none text-slate-400 hover:text-slate-600 active:cursor-grabbing"
+          onPointerDown={(e) => e.stopPropagation()}
+          aria-hidden
         >
-          {task.completed && <Check className="h-3 w-3" />}
+          <GripVertical className="h-4 w-4" />
         </div>
-        <div>
-          <p className="text-sm font-medium text-slate-800">{task.title}</p>
-          {task.completed && task.completedAt && (
-            <p className="text-xs text-slate-500">{task.completedAt} 완료</p>
-          )}
-          {!task.completed && task.estimatedMinutes && (
-            <p className="text-xs text-slate-500">소요시간: {task.estimatedMinutes}분</p>
-          )}
-        </div>
-      </div>
-      <span className="rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-600">{task.subject}</span>
+      )}
+      <button
+        type="button"
+        onClick={onClick}
+        className="min-w-0 flex-1 text-left"
+      >
+        <p className="truncate text-sm font-medium text-slate-800">{item.title}</p>
+        <span className={`mt-0.5 inline-block rounded px-1.5 py-0.5 text-xs ${typeBg}`}>
+          {typeLabel}
+        </span>
+      </button>
+      {canMoveDelete && onDelete && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (window.confirm(`"${item.title}"을(를) 삭제하시겠습니까?`)) {
+              onDelete();
+            }
+          }}
+          className="shrink-0 rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+          title="삭제"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }
