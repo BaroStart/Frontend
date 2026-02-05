@@ -15,6 +15,7 @@ import {
   MOCK_MENTEE_TASKS,
   MOCK_TODAY_COMMENTS,
 } from '@/data/menteeDetailMock';
+import { getMentorFeedback } from '@/lib/mentorFeedbackStorage';
 import { useAssignmentStore } from '@/stores/useAssignmentStore';
 
 type DateRange = { startDate?: string; endDate?: string };
@@ -28,7 +29,19 @@ export function useFeedbackItems(
     queryFn: async () => {
       if (!menteeId) return [];
       if (API_CONFIG.useMock) {
-        return MOCK_FEEDBACK_ITEMS.filter((f) => f.menteeId === menteeId);
+        const base = MOCK_FEEDBACK_ITEMS.filter((f) => f.menteeId === menteeId);
+        return base.map((item) => {
+          const stored = getMentorFeedback(menteeId, item.assignmentId);
+          if (stored?.status === 'completed') {
+            return {
+              ...item,
+              status: 'completed' as const,
+              feedbackText: stored.feedbackText,
+              feedbackDate: stored.feedbackDate,
+            };
+          }
+          return item;
+        });
       }
       return fetchFeedbackItems(menteeId, params);
     },

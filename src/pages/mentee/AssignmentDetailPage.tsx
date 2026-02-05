@@ -11,7 +11,7 @@ const MOCK_ASSIGNMENT: Assignment = {
   subject: '국어',
   title: '비문학 독해 연습',
   description: '목표: 과학 지문 3개 풀이 및 오답 분석',
-  submissionDate: '2025.02.02 14:30',
+  submissionDate: '2026.02.02 14:30',
   status: '미완료',
 };
 

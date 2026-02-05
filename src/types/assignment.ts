@@ -18,6 +18,8 @@ export interface IncompleteAssignment {
   title: string;
   subject: string;
   description?: string;
+  /** 과제 상세 내용 (HTML) */
+  content?: string;
   deadline?: string;
   deadlineDate?: string;
   status: 'completed' | 'in_progress' | 'not_started' | 'deadline_soon';

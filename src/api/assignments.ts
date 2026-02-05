@@ -19,6 +19,8 @@ export interface RegisterAssignmentPayload {
   title: string;
   goal: string;
   subject: string;
+  /** 과제 상세 내용 (HTML) */
+  content?: string;
 }
 
 /** 등록 결과 */
@@ -60,6 +62,7 @@ export async function registerAssignment(
         title: payload.title,
         subject: payload.subject,
         description: payload.goal,
+        content: payload.content,
         deadline: deadlineStr,
         deadlineDate: payload.singleDate,
         status: 'not_started',
@@ -87,6 +90,7 @@ export async function registerAssignment(
           title: payload.title,
           subject: payload.subject,
           description: payload.goal,
+          content: payload.content,
           deadline: deadlineStr,
           deadlineDate: dateStr,
           status: 'not_started',

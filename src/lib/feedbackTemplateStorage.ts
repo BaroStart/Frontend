@@ -37,7 +37,7 @@ const MOCK_TEMPLATES: FeedbackTemplate[] = [
     subject: '수학',
     content:
       '오늘 학습한 문제들에 대한 분석입니다. 특히 [문제번호]에서 [개념]에 대한 이해가 부족해 보입니다. 다음 학습 시에는...',
-    createdAt: '2025.01.15',
+    createdAt: '2026.01.15',
     useCount: 42,
   },
   {
@@ -46,7 +46,7 @@ const MOCK_TEMPLATES: FeedbackTemplate[] = [
     subject: '국어',
     content:
       '이번 지문은 [주제]에 관한 내용이었습니다. 핵심 개념인 [키워드]를 정확히 파악했는지가 중요했는데, 문단별 요지를...',
-    createdAt: '2025.01.20',
+    createdAt: '2026.01.20',
     useCount: 38,
   },
   {
@@ -55,7 +55,7 @@ const MOCK_TEMPLATES: FeedbackTemplate[] = [
     subject: '영어',
     content:
       "Today's reading passage focused on [topic]. The main grammar points were [structures]. You showed good...",
-    createdAt: '2025.01.18',
+    createdAt: '2026.01.18',
     useCount: 31,
   },
   {
@@ -63,7 +63,7 @@ const MOCK_TEMPLATES: FeedbackTemplate[] = [
     name: '수학 개념 정리 피드백',
     subject: '수학',
     content: '[개념명]에 대한 이해가 잘 드러났습니다. 다만 [세부개념] 부분에서 보완이 필요해 보입니다. 다음에는...',
-    createdAt: '2025.01.22',
+    createdAt: '2026.01.22',
     useCount: 28,
   },
   {
@@ -71,7 +71,7 @@ const MOCK_TEMPLATES: FeedbackTemplate[] = [
     name: '국어 문학 감상 피드백',
     subject: '국어',
     content: '작품의 [주제]를 잘 파악했네요. 선지 분석 시 [기준]을 명확히 하는 연습을 추가로 해보면 좋겠습니다.',
-    createdAt: '2025.01.25',
+    createdAt: '2026.01.25',
     useCount: 24,
   },
   {
@@ -79,7 +79,7 @@ const MOCK_TEMPLATES: FeedbackTemplate[] = [
     name: '영어 문법 오답 노트',
     subject: '영어',
     content: '이번 문법 문제에서 [구조]를 놓쳤네요. 유사한 패턴을 정리해서 복습해보세요.',
-    createdAt: '2025.01.28',
+    createdAt: '2026.01.28',
     useCount: 19,
   },
   {
@@ -87,7 +87,7 @@ const MOCK_TEMPLATES: FeedbackTemplate[] = [
     name: '공통 격려 멘트',
     subject: '공통',
     content: '오늘도 꾸준히 학습한 모습이 인상적입니다. [강점]을 유지하면서 [보완점]에 집중해보세요.',
-    createdAt: '2025.02.01',
+    createdAt: '2026.02.01',
     useCount: 15,
   },
 ];

@@ -10,7 +10,7 @@ export default function AssignmentResources() {
         </div>
         <div className="space-y-3">
           {[
-            { title: '2025 수능특강 비문학.pdf', size: '2.4 MB' },
+            { title: '2026 수능특강 비문학.pdf', size: '2.4 MB' },
             { title: '과학지문 핵심개념.pdf', size: '1.8 MB' },
           ].map((file, i) => (
             <div

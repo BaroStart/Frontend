@@ -34,6 +34,13 @@ import {
   getFeedbackTemplates,
   saveFeedbackTemplate,
 } from '@/lib/feedbackTemplateStorage';
+import { getAllCompletedFeedback } from '@/lib/mentorFeedbackStorage';
+import {
+  getDeadlineStatus,
+  formatDeadline,
+  formatRemainingTime,
+  getRemainingMs,
+} from '@/lib/feedbackDeadline';
 
 type TabType = 'feedback' | 'templates' | 'analytics';
 
@@ -71,7 +78,19 @@ export function FeedbackManagePage() {
     setTemplates(getFeedbackTemplates());
   }, [templateModalOpen, editingTemplate, viewingTemplate]);
 
-  const pendingFeedback = submittedAssignments.filter((a) => !a.feedbackDone);
+  const pendingFeedback = submittedAssignments
+    .filter((a) => !a.feedbackDone)
+    .sort((a, b) => {
+      const statusA = getDeadlineStatus(a.submittedAt);
+      const statusB = getDeadlineStatus(b.submittedAt);
+      const order = { overdue: 0, urgent: 1, ok: 2 };
+      if (order[statusA] !== order[statusB]) return order[statusA] - order[statusB];
+      return getRemainingMs(a.submittedAt) - getRemainingMs(b.submittedAt);
+    });
+  const completedStoredFeedback = getAllCompletedFeedback();
+  const overdueCount = pendingFeedback.filter(
+    (a) => getDeadlineStatus(a.submittedAt) === 'overdue'
+  ).length;
 
   const tabs = [
     { id: 'feedback' as TabType, label: '피드백 작성 대기', icon: FileText },
@@ -152,28 +171,61 @@ export function FeedbackManagePage() {
       {/* 피드백 관리 탭 */}
       {activeTab === 'feedback' && (
         <div className="space-y-6">
+          {/* 작성 대기 */}
           <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <h3 className="mb-4 text-base font-semibold text-slate-900">피드백 작성 대기</h3>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-slate-900">피드백 작성 대기</h3>
+              {overdueCount > 0 && (
+                <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">
+                  마감 초과 {overdueCount}건
+                </span>
+              )}
+            </div>
             {pendingFeedback.length === 0 ? (
-              <div className="flex min-h-[200px] flex-col items-center justify-center py-12">
-                <FileText className="h-12 w-12 text-slate-300" />
-                <p className="mt-4 text-sm text-slate-500">작성 대기 중인 피드백이 없습니다.</p>
+              <div className="flex min-h-[120px] flex-col items-center justify-center py-8">
+                <FileText className="h-10 w-10 text-slate-300" />
+                <p className="mt-3 text-sm text-slate-500">작성 대기 중인 피드백이 없습니다.</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {pendingFeedback.map((assignment) => {
                   const mentee = mentees.find((m) => m.id === assignment.menteeId);
+                  const deadlineStatus = getDeadlineStatus(assignment.submittedAt);
+                  const remainingMs = getRemainingMs(assignment.submittedAt);
+                  const statusBadge =
+                    deadlineStatus === 'overdue' ? (
+                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                        마감 초과
+                      </span>
+                    ) : deadlineStatus === 'urgent' ? (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                        {formatRemainingTime(remainingMs)} 남음
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                        {formatDeadline(assignment.submittedAt)}까지
+                      </span>
+                    );
                   return (
                     <div
                       key={assignment.id}
-                      className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/50 px-4 py-3"
+                      className={`flex items-center justify-between rounded-lg border px-4 py-3 ${
+                        deadlineStatus === 'overdue'
+                          ? 'border-red-200 bg-red-50/50'
+                          : deadlineStatus === 'urgent'
+                            ? 'border-amber-200 bg-amber-50/30'
+                            : 'border-slate-100 bg-slate-50/50'
+                      }`}
                     >
                       <div className="flex items-center gap-3">
                         <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">
                           {assignment.subject}
                         </span>
                         <div>
-                          <p className="font-medium text-slate-900">{assignment.title}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-slate-900">{assignment.title}</p>
+                            {statusBadge}
+                          </div>
                           <p className="text-xs text-slate-500">
                             {mentee?.name ?? '-'} · {assignment.submittedAt}
                           </p>
@@ -181,6 +233,66 @@ export function FeedbackManagePage() {
                       </div>
                       <Link to={`/mentor/mentees/${assignment.menteeId}/feedback/${assignment.id}`}>
                         <Button size="sm">피드백 작성</Button>
+                      </Link>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* 작성 완료 - 내가 작성한 피드백 */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <h3 className="mb-4 text-base font-semibold text-slate-900">작성 완료</h3>
+            {completedStoredFeedback.length === 0 ? (
+              <div className="flex min-h-[120px] flex-col items-center justify-center py-8">
+                <FileText className="h-10 w-10 text-slate-300" />
+                <p className="mt-3 text-sm text-slate-500">작성 완료된 피드백이 없습니다.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {completedStoredFeedback.map((stored) => {
+                  const mentee = mentees.find((m) => m.id === stored.menteeId);
+                  return (
+                    <div
+                      key={`${stored.menteeId}-${stored.assignmentId}`}
+                      className="rounded-lg border border-slate-200 bg-slate-50/30 p-4"
+                    >
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                          완료
+                        </span>
+                        {stored.subject && (
+                          <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">
+                            {stored.subject}
+                          </span>
+                        )}
+                        <span className="text-xs text-slate-500">
+                          {mentee?.name ?? '-'} · {stored.submittedAt ?? stored.feedbackDate}
+                        </span>
+                      </div>
+                      <p className="mb-2 font-medium text-slate-900">
+                        {stored.assignmentTitle ?? '과제'}
+                      </p>
+                      {stored.feedbackText ? (
+                        <div className="rounded-lg border border-slate-200 bg-white p-3">
+                          <p className="whitespace-pre-wrap text-sm text-slate-700">
+                            {stored.feedbackText}
+                          </p>
+                          <p className="mt-2 text-xs text-slate-500">
+                            작성일: {stored.feedbackDate}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-500">피드백 내용 없음</p>
+                      )}
+                      <Link
+                        to={`/mentor/mentees/${stored.menteeId}/feedback/${stored.assignmentId}`}
+                        className="mt-3 inline-block"
+                      >
+                        <Button size="sm" variant="outline">
+                          피드백 보기/수정
+                        </Button>
                       </Link>
                     </div>
                   );

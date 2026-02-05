@@ -90,12 +90,10 @@ export function AssignmentRegisterPage() {
   useEffect(() => {
     if (dateMode === 'recurring' && !recurringStartDate && !recurringEndDate) {
       const today = new Date();
-      const nextWeek = new Date(today);
-      nextWeek.setDate(today.getDate() + 7);
       const fmt = (d: Date) =>
         `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       setRecurringStartDate(fmt(today));
-      setRecurringEndDate(fmt(nextWeek));
+      setRecurringEndDate(fmt(today));
     }
   }, [dateMode]);
 
@@ -277,6 +275,7 @@ export function AssignmentRegisterPage() {
         title: title.trim(),
         goal: goal.trim(),
         subject,
+        content: columnContent.trim() || undefined,
       });
 
       if (result.success) {

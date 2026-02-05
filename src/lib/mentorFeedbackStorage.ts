@@ -25,6 +25,12 @@ export interface StoredMentorFeedback {
   totalReview?: string;
   /** 임시저장 여부 */
   isDraft?: boolean;
+  /** 과제 제목 (표시용) */
+  assignmentTitle?: string;
+  /** 과목 (표시용) */
+  subject?: string;
+  /** 제출일시 (표시용) */
+  submittedAt?: string;
 }
 
 function getAll(): StoredMentorFeedback[] {
@@ -76,4 +82,9 @@ export function getCompletedAssignmentIds(): Set<string> {
       .filter((f) => f.status === 'completed')
       .map((f) => f.assignmentId)
   );
+}
+
+/** 완료된 피드백 전체 (임시저장 제외) - 피드백 관리 페이지용 */
+export function getAllCompletedFeedback(): StoredMentorFeedback[] {
+  return getAll().filter((f) => f.status === 'completed' && !f.isDraft);
 }
