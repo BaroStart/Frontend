@@ -5,6 +5,7 @@ export interface TodayComment {
   authorName: string;
   content: string;
   createdAt: string;
+  date: string;
 }
 
 /** 멘티 KPI 지표 */
