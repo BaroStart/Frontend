@@ -37,7 +37,6 @@ export const useAssignmentStore = create<AssignmentStoreState>()(
         })),
       addIncomplete: (assignments) =>
         set((s) => {
-          const existingIds = new Set(assignments.map((a) => a.id));
           const updated = s.registeredIncomplete.map((a) => {
             const replacement = assignments.find((na) => na.id === a.id);
             return replacement ?? a;

@@ -121,7 +121,7 @@ export function ScheduleAddModal({
               <select
                 id="schedule-subject"
                 value={subject}
-                onChange={(e) => setSubject(e.target.value)}
+                onChange={(e) => setSubject(e.target.value as (typeof SUBJECT_OPTIONS)[number])}
                 className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               >
                 {SUBJECT_OPTIONS.map((s) => (
