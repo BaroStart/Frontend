@@ -29,6 +29,9 @@ export function Header({ onMenuClick }: HeaderProps) {
     if (location.pathname.includes('/assignments/new')) {
       return { title: '과제 등록' };
     }
+    if (location.pathname.includes('/feedback/')) {
+      return { title: '피드백 등록' };
+    }
     if (location.pathname.startsWith('/mentor/mentees/')) {
       return { title: '멘티 상세' };
     }
