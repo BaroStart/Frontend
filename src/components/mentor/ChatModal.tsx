@@ -101,8 +101,7 @@ export function ChatModal({ isOpen, onClose, menteeName, initialContext }: ChatM
             onKeyDown={handleKeyDown}
             className="flex-1"
           />
-          <Button size="sm" onClick={handleSend} disabled={!message.trim()}>
-            <Send className="h-4 w-4" />
+          <Button size="sm" icon={Send} onClick={handleSend} disabled={!message.trim()}>
             전송
           </Button>
         </div>

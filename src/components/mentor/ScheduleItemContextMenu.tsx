@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
 import type { ScheduleItem } from '@/components/mentor/ScheduleCalendar';
 
 interface ScheduleItemContextMenuProps {
@@ -136,16 +135,13 @@ export function ScheduleItemContextMenu({
               <span className="font-medium">{item.title}</span>을(를) 이동할 날짜를 선택하세요.
             </p>
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="move-date">날짜</Label>
-                <Input
-                  id="move-date"
-                  type="date"
-                  value={moveDate}
-                  onChange={(e) => setMoveDate(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
+              <Input
+                id="move-date"
+                label="날짜"
+                type="date"
+                value={moveDate}
+                onChange={(e) => setMoveDate(e.target.value)}
+              />
               <div className="flex gap-2">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => setMoveModalOpen(false)}>
                   취소
@@ -181,16 +177,13 @@ export function ScheduleItemContextMenu({
               <span className="font-medium">{item.title}</span>을(를) 복사할 날짜를 선택하세요.
             </p>
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="copy-date">날짜</Label>
-                <Input
-                  id="copy-date"
-                  type="date"
-                  value={copyDate}
-                  onChange={(e) => setCopyDate(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
+              <Input
+                id="copy-date"
+                label="날짜"
+                type="date"
+                value={copyDate}
+                onChange={(e) => setCopyDate(e.target.value)}
+              />
               <div className="flex gap-2">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => setCopyModalOpen(false)}>
                   취소

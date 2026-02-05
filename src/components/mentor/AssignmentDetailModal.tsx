@@ -4,7 +4,6 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
 import { useAssignmentDetail } from '@/hooks/useAssignmentDetail';
 import type { AssignmentDetail } from '@/types';
 
@@ -212,24 +211,18 @@ export function AssignmentDetailModal({
             </div>
             {isEditing ? (
               <div className="space-y-3">
-                <div>
-                  <Label htmlFor="edit-title">제목</Label>
-                  <Input
-                    id="edit-title"
-                    value={editForm.title}
-                    onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-goal">목표</Label>
-                  <Input
-                    id="edit-goal"
-                    value={editForm.goal}
-                    onChange={(e) => setEditForm((p) => ({ ...p, goal: e.target.value }))}
-                    className="mt-1"
-                  />
-                </div>
+                <Input
+                  id="edit-title"
+                  label="제목"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
+                />
+                <Input
+                  id="edit-goal"
+                  label="목표"
+                  value={editForm.goal}
+                  onChange={(e) => setEditForm((p) => ({ ...p, goal: e.target.value }))}
+                />
               </div>
             ) : (
               <>

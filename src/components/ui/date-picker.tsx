@@ -64,13 +64,13 @@ export function DatePicker({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
+          icon={CalendarIcon}
           className={cn(
             'h-10 w-[200px] justify-start text-left font-normal',
             (!value || hideValue) && 'text-muted-foreground',
             className,
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
           {value && !hideValue ? formatDisplayDate(value) : placeholder}
         </Button>
       </PopoverTrigger>

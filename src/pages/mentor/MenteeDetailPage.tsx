@@ -48,6 +48,14 @@ import {
   useTodayComment,
 } from '@/hooks/useMenteeDetail';
 import {
+  formatDisplayDate,
+  getMonthRange,
+  getTodayDateStr,
+  getWeekRange,
+  isDateInRange,
+  parseDateFromStr,
+} from '@/lib/dateUtils';
+import {
   getLearningTaskOverrides,
   getLearningTasks,
   saveLearningTaskOverrides,
@@ -55,58 +63,20 @@ import {
 } from '@/lib/learningTaskStorage';
 import { getPersonalSchedules, savePersonalSchedules } from '@/lib/personalScheduleStorage';
 import { useAssignmentStore } from '@/stores/useAssignmentStore';
-import type { AssignmentDetail, FeedbackItem, IncompleteAssignment, MenteeSummary } from '@/types';
+import type {
+  AssignmentDetail,
+  AssignmentSelection,
+  FeedbackItem,
+  IncompleteAssignment,
+  LearningOverrides,
+  LearningTaskLocal,
+  MenteeSummary,
+  ModalType,
+  PersonalScheduleLocal,
+  ScheduleState,
+} from '@/types';
 
-/** "2026.02.02 오전 10:45" → "2026-02-02" */
-function parseDateFromStr(str: string): string | null {
-  const match = str.match(/(\d{4})\.(\d{1,2})\.(\d{1,2})/);
-  if (!match) return null;
-  const [, y, m, d] = match;
-  return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-}
-
-function getWeekRange(dateStr: string): { start: string; end: string } {
-  const d = new Date(dateStr);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day; // 월요일 시작
-  const mon = new Date(d);
-  mon.setDate(d.getDate() + diff);
-  const sun = new Date(mon);
-  sun.setDate(mon.getDate() + 6);
-  const fmt = (x: Date) => x.toISOString().split('T')[0];
-  return { start: fmt(mon), end: fmt(sun) };
-}
-
-function getMonthRange(dateStr: string): { start: string; end: string } {
-  const [y, m] = dateStr.split('-').map(Number);
-  const lastDay = new Date(y, m, 0).getDate();
-  return {
-    start: `${y}-${String(m).padStart(2, '0')}-01`,
-    end: `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
-  };
-}
-
-function isDateInRange(dateStr: string | null, start: string, end: string): boolean {
-  if (!dateStr) return false;
-  return dateStr >= start && dateStr <= end;
-}
-
-function formatDisplayDate(dateStr: string) {
-  const [y, m, d] = dateStr.split('-');
-  const date = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
-  const weekdays = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-  return `${y}년 ${parseInt(m, 10)}월 ${parseInt(d, 10)}일 ${weekdays[date.getDay()]}`;
-}
-
-function getTodayDateStr(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-function getAllScoresAverage(mentee: MenteeSummary): number | null {
+const getAllScoresAverage = (mentee: MenteeSummary): number | null => {
   const s = mentee.scores;
   if (!s) return null;
   const vals: number[] = [];
@@ -115,129 +85,126 @@ function getAllScoresAverage(mentee: MenteeSummary): number | null {
   });
   if (vals.length === 0) return null;
   return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
-}
+};
+
+/* -------------------- 메인 컴포넌트 -------------------- */
 
 export function MenteeDetailPage() {
   const { menteeId } = useParams<{ menteeId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const removeIncomplete = useAssignmentStore((s) => s.removeIncomplete);
-  const clearRegisteredIncomplete = useAssignmentStore((s) => s.clearRegisteredIncomplete);
-  const registeredDateFromState = (location.state as { registeredDate?: string } | null)
-    ?.registeredDate;
+  const { removeIncomplete, clearRegisteredIncomplete } = useAssignmentStore();
 
-  const { data: mentee = null, isLoading: isMenteeLoading } = useMentee(menteeId);
+  // 서버 데이터
+  const { data: mentee = null, isLoading } = useMentee(menteeId);
   const { data: kpi = null } = useMenteeKpi(menteeId);
   const { data: serverTasks = [] } = useMenteeTasks(menteeId);
   const { data: serverFeedbackItems = [] } = useFeedbackItems(menteeId);
   const { data: serverIncomplete = [] } = useIncompleteAssignments(menteeId);
-  const { data: todayCommentData = null } = useTodayComment(menteeId);
+  const { data: todayComment = null } = useTodayComment(menteeId);
 
-  const [selectedDate, setSelectedDate] = useState(() => getTodayDateStr());
+  // 날짜/뷰 상태
+  const [selectedDate, setSelectedDate] = useState(getTodayDateStr);
   const [viewMode, setViewMode] = useState<'today' | 'week' | 'month'>('today');
+  const [feedbackSubjectFilter, setFeedbackSubjectFilter] = useState('전체');
+
+  // 모달 상태 (한 번에 하나만 열림)
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [chatContext, setChatContext] = useState<string | null>(null);
+  const [feedbackInitialAssignmentId, setFeedbackInitialAssignmentId] = useState<
+    string | undefined
+  >();
+
+  // 과제 상세 선택 (모달에 전달할 데이터)
+  const [assignmentSelection, setAssignmentSelection] = useState<AssignmentSelection>({
+    id: null,
+    source: 'feedback',
+    feedbackStatus: null,
+    fallback: null,
+  });
+
+  // 일정 관련 상태
+  const [scheduleState, setScheduleState] = useState<ScheduleState>({
+    searchQuery: '',
+    contextMenu: null,
+    draggedItem: null,
+  });
+
+  // 로컬 데이터 상태
+  const [incompleteAssignments, setIncompleteAssignments] = useState<IncompleteAssignment[]>([]);
+  const [feedbackItemsLocal, setFeedbackItemsLocal] = useState<FeedbackItem[]>([]);
+  const [personalSchedules, setPersonalSchedules] = useState<PersonalScheduleLocal[]>([]);
+  const [learningTasks, setLearningTasks] = useState<LearningTaskLocal[]>([]);
+  const [learningOverrides, setLearningOverrides] = useState<LearningOverrides>({
+    dateOverrides: {},
+    deletedIds: [],
+  });
+
+  // 프로필
+  const [menteeOverride, setMenteeOverride] = useState<MenteeSummary | null>(null);
+  const displayMentee = menteeOverride ?? mentee;
+
+  // 과제 상세 로컬 수정
+  const [assignmentDetailOverrides, setAssignmentDetailOverrides] = useState<
+    Record<string, Partial<AssignmentDetail>>
+  >({});
+
+  // 삭제 확인
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (registeredDateFromState) {
-      setSelectedDate(registeredDateFromState);
+    const registeredDate = (location.state as { registeredDate?: string } | null)?.registeredDate;
+    if (registeredDate) {
+      setSelectedDate(registeredDate);
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [registeredDateFromState, navigate, location.pathname]);
-  const [chatModalOpen, setChatModalOpen] = useState(false);
-  const [feedbackSubjectFilter, setFeedbackSubjectFilter] = useState<string>('전체');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  }, [location.state, navigate, location.pathname]);
 
-  const [incompleteAssignments, setIncompleteAssignments] = useState<IncompleteAssignment[]>([]);
   useEffect(() => {
     setIncompleteAssignments(serverIncomplete);
   }, [serverIncomplete]);
-  const [feedbackItemsState, setFeedbackItemsState] = useState<FeedbackItem[]>([]);
-  const [scheduleAddModalOpen, setScheduleAddModalOpen] = useState(false);
-  const [assignmentDetailModalOpen, setAssignmentDetailModalOpen] = useState(false);
-  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
-  const [selectedAssignmentSource, setSelectedAssignmentSource] = useState<
-    'feedback' | 'incomplete'
-  >('feedback');
-  const [selectedFeedbackStatus, setSelectedFeedbackStatus] = useState<
-    'urgent' | 'pending' | 'partial' | 'completed' | null
-  >(null);
-  const [selectedAssignmentFallback, setSelectedAssignmentFallback] = useState<{
-    title: string;
-    goal?: string;
-    subject?: string;
-  } | null>(null);
-  const [learningAnalysisModalOpen, setLearningAnalysisModalOpen] = useState(false);
-  const [profileEditModalOpen, setProfileEditModalOpen] = useState(false);
-  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
-  const [feedbackModalInitialAssignmentId, setFeedbackModalInitialAssignmentId] = useState<
-    string | undefined
-  >(undefined);
-  const [menteeOverride, setMenteeOverride] = useState<MenteeSummary | null>(null);
-  const [chatContext, setChatContext] = useState<string | null>(null);
-  const [personalSchedules, setPersonalSchedules] = useState<
-    { id: string; title: string; eventType: string; date: string }[]
-  >([]);
-  const [learningTasks, setLearningTasks] = useState<
-    { id: string; title: string; subject: string; date: string; completed: boolean }[]
-  >([]);
-  const [learningOverrides, setLearningOverrides] = useState<{
-    dateOverrides: Record<string, string>;
-    deletedIds: string[];
-  }>({ dateOverrides: {}, deletedIds: [] });
 
   useEffect(() => {
-    if (menteeId) {
-      setPersonalSchedules(getPersonalSchedules(menteeId));
-      setLearningTasks(getLearningTasks(menteeId));
-      setLearningOverrides(getLearningTaskOverrides(menteeId));
-    } else {
+    if (!menteeId) {
       setPersonalSchedules([]);
       setLearningTasks([]);
       setLearningOverrides({ dateOverrides: {}, deletedIds: [] });
+      return;
     }
+    setPersonalSchedules(getPersonalSchedules(menteeId));
+    setLearningTasks(getLearningTasks(menteeId));
+    setLearningOverrides(getLearningTaskOverrides(menteeId));
   }, [menteeId]);
 
-  const persistPersonalSchedules = (
-    schedules: { id: string; title: string; eventType: string; date: string }[],
-  ) => {
-    if (menteeId) {
-      savePersonalSchedules(
-        menteeId,
-        schedules.map((p) => ({ ...p, menteeId })),
-      );
-    }
-  };
-  const [scheduleSearchQuery, setScheduleSearchQuery] = useState('');
-  const [scheduleContextMenu, setScheduleContextMenu] = useState<{
-    item: ScheduleItem;
-    position: { x: number; y: number };
-  } | null>(null);
-  const [draggedCalendarItem, setDraggedCalendarItem] = useState<ScheduleItem | null>(null);
+  // 날짜 범위 계산
+  const dateRange = useMemo(() => {
+    if (viewMode === 'today') return { start: selectedDate, end: selectedDate };
+    if (viewMode === 'week') return getWeekRange(selectedDate);
+    return getMonthRange(selectedDate);
+  }, [viewMode, selectedDate]);
 
-  const displayMentee = (menteeOverride ?? mentee)!;
-
-  // 달력에 표시: 자율학습 To-Do + 개인일정 + 피드백대시보드 + 과제
+  // 캘린더 아이템 생성
   const scheduleItems: ScheduleItem[] = useMemo(() => {
     const items: ScheduleItem[] = [];
-    // 1. 자율학습 To-Do (서버 + 로컬, 오버라이드 적용)
+
+    // 자율학습 To-Do
     const serverLearningTasks = serverTasks
       .filter((t) => t.menteeId === menteeId && !learningOverrides.deletedIds.includes(t.id))
-      .map((t) => ({
-        ...t,
-        date: learningOverrides.dateOverrides[t.id] ?? t.date,
-      }));
-    const allLearningTasks = [...serverLearningTasks, ...learningTasks];
-    allLearningTasks.forEach((t) => {
+      .map((t) => ({ ...t, date: learningOverrides.dateOverrides[t.id] ?? t.date }));
+
+    [...serverLearningTasks, ...learningTasks].forEach((t) => {
       items.push({
         id: t.id,
         title: t.title,
         subject: t.subject,
         date: t.date,
         type: 'learning',
-        status: t.completed ? ('completed' as const) : ('default' as const),
+        status: t.completed ? 'completed' : 'default',
       });
     });
-    // 2. 개인 일정 (중간고사, 기말고사 등)
+
+    // 개인 일정
     personalSchedules
       .filter((p) => p.date)
       .forEach((p) => {
@@ -250,24 +217,27 @@ export function MenteeDetailPage() {
           status: 'default',
         });
       });
-    // 3. 피드백 대시보드 (제출일 기준)
-    const feedbackForMentee = serverFeedbackItems.filter((f) => f.menteeId === menteeId);
-    feedbackForMentee.forEach((f) => {
-      const dateStr = parseDateFromStr(f.submittedAt);
-      if (dateStr) {
-        items.push({
-          id: `fb-${f.assignmentId}`,
-          title: f.title,
-          subject: f.subject,
-          date: dateStr,
-          type: 'feedback',
-          sourceId: f.assignmentId,
-          status:
-            f.status === 'urgent' ? 'urgent' : f.status === 'completed' ? 'completed' : 'default',
-        });
-      }
-    });
-    // 4. 과제 (마감일 기준)
+
+    // 피드백 대시보드
+    serverFeedbackItems
+      .filter((f) => f.menteeId === menteeId)
+      .forEach((f) => {
+        const dateStr = parseDateFromStr(f.submittedAt);
+        if (dateStr) {
+          items.push({
+            id: `fb-${f.assignmentId}`,
+            title: f.title,
+            subject: f.subject,
+            date: dateStr,
+            type: 'feedback',
+            sourceId: f.assignmentId,
+            status:
+              f.status === 'urgent' ? 'urgent' : f.status === 'completed' ? 'completed' : 'default',
+          });
+        }
+      });
+
+    // 과제
     incompleteAssignments.forEach((a) => {
       const dateStr = a.deadlineDate ?? a.completedAtDate;
       if (dateStr) {
@@ -280,13 +250,14 @@ export function MenteeDetailPage() {
           sourceId: a.id,
           status:
             a.status === 'deadline_soon'
-              ? ('urgent' as const)
+              ? 'urgent'
               : a.status === 'completed'
-                ? ('completed' as const)
-                : ('default' as const),
+                ? 'completed'
+                : 'default',
         });
       }
     });
+
     return items;
   }, [
     menteeId,
@@ -298,7 +269,7 @@ export function MenteeDetailPage() {
     incompleteAssignments,
   ]);
 
-  // To-Do 카드: 항상 오늘 날짜, 학생 입력(자율학습·개인일정)만 표시 (달력 연동 없음)
+  // 오늘 할 일 (자율학습 + 개인일정만)
   const todayTodoItems = useMemo(
     () =>
       scheduleItems.filter(
@@ -307,16 +278,110 @@ export function MenteeDetailPage() {
     [scheduleItems],
   );
 
+  // 피드백 아이템 (필터 + 날짜 범위)
+  const feedbackItems = useMemo(() => {
+    const serverItems = serverFeedbackItems.filter((f) => f.menteeId === menteeId);
+    const seen = new Set<string>();
+    const baseItems: FeedbackItem[] = [];
+
+    for (const f of [...feedbackItemsLocal, ...serverItems]) {
+      if (!seen.has(f.assignmentId)) {
+        seen.add(f.assignmentId);
+        baseItems.push(f);
+      }
+    }
+
+    return baseItems
+      .filter((f) => feedbackSubjectFilter === '전체' || f.subject === feedbackSubjectFilter)
+      .filter((f) => {
+        const dateStr =
+          f.status === 'completed' && f.feedbackDate
+            ? parseDateFromStr(f.feedbackDate)
+            : parseDateFromStr(f.submittedAt);
+        return !dateStr || isDateInRange(dateStr, dateRange.start, dateRange.end);
+      });
+  }, [menteeId, feedbackSubjectFilter, feedbackItemsLocal, serverFeedbackItems, dateRange]);
+
+  // 미완료 과제 (필터 + 정렬)
+  const filteredAssignments = useMemo(() => {
+    const incomplete = incompleteAssignments.filter((a) => a.status !== 'completed');
+    const filtered = incomplete.filter(
+      (a) => !a.deadlineDate || isDateInRange(a.deadlineDate, dateRange.start, dateRange.end),
+    );
+    const order = ['deadline_soon', 'not_started', 'in_progress'];
+    return [...filtered].sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+  }, [incompleteAssignments, dateRange]);
+
+  /* -------------------- 핸들러 -------------------- */
+
+  const openModal = (type: ModalType) => setActiveModal(type);
+  const closeModal = () => {
+    setActiveModal(null);
+    setChatContext(null);
+    setFeedbackInitialAssignmentId(undefined);
+    setAssignmentSelection({ id: null, source: 'feedback', feedbackStatus: null, fallback: null });
+  };
+
+  const openAssignmentDetail = (
+    id: string,
+    fallback?: { title: string; goal?: string; subject?: string },
+    source: 'feedback' | 'incomplete' = 'feedback',
+    feedbackStatus?: FeedbackItem['status'],
+  ) => {
+    setAssignmentSelection({
+      id,
+      source,
+      feedbackStatus: feedbackStatus ?? null,
+      fallback: fallback ?? null,
+    });
+    openModal('assignmentDetail');
+  };
+
+  const openFeedbackModal = (assignmentId?: string) => {
+    setFeedbackInitialAssignmentId(assignmentId);
+    openModal('feedback');
+  };
+
+  const openChatModal = (context?: string) => {
+    setChatContext(context ?? null);
+    openModal('chat');
+  };
+
+  // 날짜 네비게이션
+  const handleDateNav = (delta: number) => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + delta);
+    setSelectedDate(d.toISOString().split('T')[0]);
+  };
+
+  const handleViewMode = (mode: 'today' | 'week' | 'month') => {
+    setViewMode(mode);
+    if (mode === 'today') setSelectedDate(getTodayDateStr());
+  };
+
+  // 일정 저장 헬퍼
+  const persistPersonalSchedules = (schedules: typeof personalSchedules) => {
+    if (menteeId)
+      savePersonalSchedules(
+        menteeId,
+        schedules.map((p) => ({ ...p, menteeId })),
+      );
+  };
+
+  const persistLearningTasks = (tasks: typeof learningTasks) => {
+    if (menteeId)
+      saveLearningTasks(
+        menteeId,
+        tasks.map((t) => ({ ...t, menteeId })),
+      );
+  };
+
+  // 일정 추가
   const handleAddPersonalSchedule = (data: PersonalScheduleData) => {
     if (!menteeId) return;
     const next = [
       ...personalSchedules,
-      {
-        id: `ps-${Date.now()}`,
-        title: data.title,
-        eventType: data.eventType,
-        date: data.date,
-      },
+      { id: `ps-${Date.now()}`, title: data.title, eventType: data.eventType, date: data.date },
     ];
     setPersonalSchedules(next);
     persistPersonalSchedules(next);
@@ -340,24 +405,13 @@ export function MenteeDetailPage() {
     setSelectedDate(data.date);
   };
 
-  const persistLearningTasks = (
-    tasks: { id: string; title: string; subject: string; date: string; completed: boolean }[],
-  ) => {
-    if (menteeId) {
-      saveLearningTasks(
-        menteeId,
-        tasks.map((t) => ({ ...t, menteeId })),
-      );
-    }
-  };
-
+  // 일정 이동/복사/삭제
   const handleScheduleMove = (itemId: string, newDate: string, skipDateSelect?: boolean) => {
     if (itemId.startsWith('ps-')) {
       const next = personalSchedules.map((p) => (p.id === itemId ? { ...p, date: newDate } : p));
       setPersonalSchedules(next);
       persistPersonalSchedules(next);
     } else {
-      // 자율학습: t- 로컬 추가분, t1/t2 등 서버 mock
       const localTask = learningTasks.find((x) => x.id === itemId);
       if (localTask) {
         const next = learningTasks.map((t) => (t.id === itemId ? { ...t, date: newDate } : t));
@@ -378,25 +432,29 @@ export function MenteeDetailPage() {
   const handleScheduleCopy = (itemId: string, newDate: string, skipDateSelect?: boolean) => {
     if (itemId.startsWith('ps-')) {
       const p = personalSchedules.find((x) => x.id === itemId);
-      if (!p) return;
-      const next = [...personalSchedules, { ...p, id: `ps-${Date.now()}`, date: newDate }];
-      setPersonalSchedules(next);
-      persistPersonalSchedules(next);
+      if (p) {
+        const next = [...personalSchedules, { ...p, id: `ps-${Date.now()}`, date: newDate }];
+        setPersonalSchedules(next);
+        persistPersonalSchedules(next);
+      }
     } else {
-      const localTask = learningTasks.find((x) => x.id === itemId);
-      const serverTask = serverTasks.find((t) => t.menteeId === menteeId && t.id === itemId);
-      const src = localTask ?? serverTask;
-      if (!src) return;
-      const newTask = {
-        id: `t-${Date.now()}`,
-        title: src.title,
-        subject: src.subject,
-        date: newDate,
-        completed: false,
-      };
-      const next = [...learningTasks, newTask];
-      setLearningTasks(next);
-      persistLearningTasks(next);
+      const src =
+        learningTasks.find((x) => x.id === itemId) ??
+        serverTasks.find((t) => t.menteeId === menteeId && t.id === itemId);
+      if (src) {
+        const next = [
+          ...learningTasks,
+          {
+            id: `t-${Date.now()}`,
+            title: src.title,
+            subject: src.subject,
+            date: newDate,
+            completed: false,
+          },
+        ];
+        setLearningTasks(next);
+        persistLearningTasks(next);
+      }
     }
     if (!skipDateSelect) setSelectedDate(newDate);
   };
@@ -423,21 +481,11 @@ export function MenteeDetailPage() {
     }
   };
 
-  const handleScheduleItemRightClick = (e: React.MouseEvent, item: ScheduleItem) => {
-    e.preventDefault();
-    if (item.type !== 'personal' && item.type !== 'learning') return;
-    setScheduleContextMenu({
-      item,
-      position: { x: e.clientX, y: e.clientY },
-    });
-  };
-
+  // 캘린더 아이템 클릭
   const handleScheduleItemClick = (item: ScheduleItem) => {
     if (item.type === 'feedback' && item.sourceId && menteeId) {
       navigate(`/mentor/mentees/${menteeId}/feedback/${item.sourceId}`);
-      return;
-    }
-    if (item.type === 'assignment' && item.sourceId && menteeId) {
+    } else if (item.type === 'assignment' && item.sourceId) {
       const a = incompleteAssignments.find((x) => x.id === item.sourceId);
       openAssignmentDetail(
         item.sourceId,
@@ -445,134 +493,52 @@ export function MenteeDetailPage() {
         'incomplete',
       );
     }
-    // learning, personal: 클릭만으로는 동작 없음 (우클릭 메뉴 사용)
   };
 
-  const dateRange = useMemo(() => {
-    if (viewMode === 'today') return { start: selectedDate, end: selectedDate };
-    if (viewMode === 'week') return getWeekRange(selectedDate);
-    return getMonthRange(selectedDate);
-  }, [viewMode, selectedDate]);
-
-  const feedbackItems = useMemo(() => {
-    const serverItems = serverFeedbackItems.filter((f) => f.menteeId === menteeId);
-    const localItems = feedbackItemsState;
-    const seen = new Set<string>();
-    const baseItems: FeedbackItem[] = [];
-    for (const f of [...localItems, ...serverItems]) {
-      if (seen.has(f.assignmentId)) continue;
-      seen.add(f.assignmentId);
-      baseItems.push(f);
+  const handleScheduleItemRightClick = (e: React.MouseEvent, item: ScheduleItem) => {
+    e.preventDefault();
+    if (item.type === 'personal' || item.type === 'learning') {
+      setScheduleState((prev) => ({
+        ...prev,
+        contextMenu: { item, position: { x: e.clientX, y: e.clientY } },
+      }));
     }
-    const bySubject =
-      feedbackSubjectFilter === '전체'
-        ? baseItems
-        : baseItems.filter((f) => f.subject === feedbackSubjectFilter);
-    return bySubject.filter((f) => {
-      const dateStr =
-        f.status === 'completed' && f.feedbackDate
-          ? parseDateFromStr(f.feedbackDate)
-          : parseDateFromStr(f.submittedAt);
-      if (!dateStr) return true;
-      return isDateInRange(dateStr, dateRange.start, dateRange.end);
-    });
-  }, [menteeId, feedbackSubjectFilter, feedbackItemsState, serverFeedbackItems, dateRange]);
-
-  const filteredAndSortedAssignments = useMemo(() => {
-    const onlyIncomplete = incompleteAssignments.filter((a) => a.status !== 'completed');
-    const filtered = onlyIncomplete.filter((a) => {
-      const dateStr = a.deadlineDate;
-      if (!dateStr) return true;
-      return isDateInRange(dateStr, dateRange.start, dateRange.end);
-    });
-    const incompleteOrder = ['deadline_soon', 'not_started', 'in_progress'];
-    return [...filtered].sort((a, b) => {
-      const ai = incompleteOrder.indexOf(a.status);
-      const bi = incompleteOrder.indexOf(b.status);
-      return ai - bi;
-    });
-  }, [incompleteAssignments, dateRange]);
-
-  const pendingFeedbackCount = feedbackItems.filter((f) => f.status !== 'completed').length;
-  const totalCount = filteredAndSortedAssignments.length;
-  const todayComment = todayCommentData;
-
-  const handlePrevDate = () => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() - 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
   };
 
-  const handleNextDate = () => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
-  };
-
-  const handleViewMode = (mode: 'today' | 'week' | 'month') => {
-    setViewMode(mode);
-    if (mode === 'today') setSelectedDate(getTodayDateStr());
-  };
-
+  // 과제 완료/삭제
   const handleAssignmentComplete = async (assignmentId: string) => {
     const assignment = incompleteAssignments.find((a) => a.id === assignmentId);
-    if (!assignment || menteeId == null) return;
+    if (!assignment || !menteeId) return;
 
-    const completedDate = selectedDate;
     removeIncomplete(assignmentId);
     await queryClient.invalidateQueries({ queryKey: ['incompleteAssignments', menteeId] });
 
-    const datePart = `${completedDate.replace(/-/g, '.')}`;
-    const newFeedbackItem: FeedbackItem = {
-      id: `fb-${assignmentId}-${Date.now()}`,
-      assignmentId,
-      menteeId,
-      title: assignment.title,
-      subject: assignment.subject,
-      submittedAt: `${datePart} 방금`,
-      status: 'pending',
-    };
-    setFeedbackItemsState((prev) => [...prev, newFeedbackItem]);
+    const datePart = selectedDate.replace(/-/g, '.');
+    setFeedbackItemsLocal((prev) => [
+      ...prev,
+      {
+        id: `fb-${assignmentId}-${Date.now()}`,
+        assignmentId,
+        menteeId,
+        title: assignment.title,
+        subject: assignment.subject,
+        submittedAt: `${datePart} 방금`,
+        status: 'pending',
+      },
+    ]);
   };
 
   const handleAssignmentDelete = async (id: string) => {
     removeIncomplete(id);
-    setShowDeleteConfirm(null);
+    setDeleteConfirmId(null);
     await queryClient.invalidateQueries({ queryKey: ['incompleteAssignments', menteeId] });
   };
 
-  const [assignmentDetailOverrides, setAssignmentDetailOverrides] = useState<
-    Record<string, Partial<AssignmentDetail>>
-  >({});
-
-  const openAssignmentDetail = (
-    assignmentId: string,
-    fallback?: { title: string; goal?: string; subject?: string },
-    source: 'feedback' | 'incomplete' = 'feedback',
-    feedbackStatus?: 'urgent' | 'pending' | 'partial' | 'completed',
-  ) => {
-    setSelectedAssignmentId(assignmentId);
-    setSelectedAssignmentFallback(fallback ?? null);
-    setSelectedAssignmentSource(source);
-    setSelectedFeedbackStatus(feedbackStatus ?? null);
-    setAssignmentDetailModalOpen(true);
-  };
-
-  const openFeedbackModal = (assignmentId?: string) => {
-    setFeedbackModalInitialAssignmentId(assignmentId);
-    setFeedbackModalOpen(true);
-  };
-
-  const handleSaveAssignmentDetail = (
-    id: string,
-    data: Partial<AssignmentDetail>,
-    source: 'feedback' | 'incomplete',
-  ) => {
+  // 과제 상세 저장
+  const handleSaveAssignmentDetail = (id: string, data: Partial<AssignmentDetail>) => {
     setAssignmentDetailOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...data } }));
-    if (
-      source === 'incomplete' &&
-      (data.title != null || data.goal != null || data.content != null)
-    ) {
+
+    if (data.title != null || data.goal != null || data.content != null) {
       setIncompleteAssignments((prev) =>
         prev.map((a) =>
           a.id === id
@@ -585,7 +551,7 @@ export function MenteeDetailPage() {
             : a,
         ),
       );
-      // registeredIncomplete도 업데이트
+
       const { registeredIncomplete, addIncomplete } = useAssignmentStore.getState();
       const registered = registeredIncomplete.find((a) => a.id === id);
       if (registered) {
@@ -601,7 +567,7 @@ export function MenteeDetailPage() {
     }
   };
 
-  if (isMenteeLoading) {
+  if (isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <p className="text-slate-500">로딩 중...</p>
@@ -609,7 +575,7 @@ export function MenteeDetailPage() {
     );
   }
 
-  if (!mentee) {
+  if (!mentee || !displayMentee) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <p className="text-slate-500">멘티를 찾을 수 없습니다.</p>
@@ -618,175 +584,31 @@ export function MenteeDetailPage() {
   }
 
   const [calYear, calMonth] = selectedDate.split('-').map(Number);
+  const pendingFeedbackCount = feedbackItems.filter((f) => f.status !== 'completed').length;
 
   return (
     <div className="space-y-6">
       {/* 프로필 + KPI */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex gap-3 sm:gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 sm:h-14 sm:w-14">
-              <UserIcon className="h-7 w-7 text-slate-500" />
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <span className="text-base font-bold text-slate-900 sm:text-lg">
-                  {displayMentee.name}
-                </span>
-                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-600">
-                  {displayMentee.grade} · {displayMentee.track}
-                </span>
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                  활동 중
-                </span>
-              </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5" />
-                  멘토링 시작: {displayMentee.mentoringStart}
-                </span>
-                <span className="flex items-center gap-1">
-                  마지막 접속: {displayMentee.lastActive}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
-            <Button variant="outline" size="sm" onClick={() => setLearningAnalysisModalOpen(true)}>
-              <BarChart3 className="h-4 w-4" />
-              학습 분석
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setChatContext(null);
-                setChatModalOpen(true);
-              }}
-            >
-              <MessageCircle className="h-4 w-4" />
-              메시지 보내기
-            </Button>
-            <Button size="sm" onClick={() => setProfileEditModalOpen(true)}>
-              <User className="h-4 w-4" />
-              프로필 수정
-            </Button>
-          </div>
-        </div>
-
-        {(displayMentee.scores || kpi) && (
-          <div className="mt-6 space-y-4">
-            {displayMentee.scores && (
-              <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
-                <p className="mb-2 text-xs font-medium text-slate-600">성적</p>
-                <div className="flex flex-wrap gap-4">
-                  {displayMentee.scores.naesin && (
-                    <div>
-                      <span className="text-xs text-slate-500">내신</span>
-                      <p className="text-sm font-medium text-slate-800">
-                        국 {displayMentee.scores.naesin.korean ?? '-'} · 영{' '}
-                        {displayMentee.scores.naesin.english ?? '-'} · 수{' '}
-                        {displayMentee.scores.naesin.math ?? '-'}
-                      </p>
-                    </div>
-                  )}
-                  {displayMentee.scores.mockExam && (
-                    <div>
-                      <span className="text-xs text-slate-500">모의고사</span>
-                      <p className="text-sm font-medium text-slate-800">
-                        국 {displayMentee.scores.mockExam.korean ?? '-'} · 영{' '}
-                        {displayMentee.scores.mockExam.english ?? '-'} · 수{' '}
-                        {displayMentee.scores.mockExam.math ?? '-'}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-            {kpi && (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-                <KpiCard
-                  title="총 학습 시간"
-                  value={`${kpi.totalStudyHours}h`}
-                  change={kpi.studyHoursChange}
-                />
-                <KpiCard
-                  title="과제 완료율"
-                  value={`${kpi.assignmentCompletionRate}%`}
-                  change={kpi.completionRateChange}
-                />
-                <KpiCard
-                  title="평균 성적"
-                  value={String(getAllScoresAverage(displayMentee) ?? kpi.averageScore)}
-                  change={kpi.scoreChange}
-                  noChangeLabel="변동 없음"
-                />
-                <KpiCard
-                  title="출석률"
-                  value={`${kpi.attendanceRate}%`}
-                  change={kpi.attendanceChange}
-                />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      <ProfileSection
+        mentee={displayMentee}
+        kpi={kpi}
+        onOpenAnalysis={() => openModal('learningAnalysis')}
+        onOpenChat={() => openChatModal()}
+        onOpenProfile={() => openModal('profileEdit')}
+      />
 
       {/* 날짜 네비게이션 */}
-      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-4">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handlePrevDate}
-            className="rounded p-1.5 text-slate-500 hover:bg-slate-100"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <span className="min-w-0 flex-1 text-sm font-medium text-slate-900 sm:min-w-[200px] sm:flex-none">
-            {formatDisplayDate(selectedDate)}
-          </span>
-          <button
-            type="button"
-            onClick={handleNextDate}
-            className="rounded p-1.5 text-slate-500 hover:bg-slate-100"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-          <DatePicker
-            value={selectedDate}
-            onChange={setSelectedDate}
-            placeholder="날짜 선택"
-            className="ml-2"
-            hideValue
-          />
-        </div>
-        <div className="flex gap-2" role="group" aria-label="보기 모드">
-          <button
-            type="button"
-            onClick={() => handleViewMode('today')}
-            className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${viewMode === 'today' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-          >
-            오늘
-          </button>
-          <button
-            type="button"
-            onClick={() => handleViewMode('week')}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${viewMode === 'week' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-          >
-            주간 보기
-          </button>
-          <button
-            type="button"
-            onClick={() => handleViewMode('month')}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${viewMode === 'month' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-          >
-            월간 보기
-          </button>
-        </div>
-      </div>
+      <DateNavigation
+        selectedDate={selectedDate}
+        viewMode={viewMode}
+        onDateChange={setSelectedDate}
+        onPrev={() => handleDateNav(-1)}
+        onNext={() => handleDateNav(1)}
+        onViewModeChange={handleViewMode}
+      />
 
-      {/* 과목 필터 (상단) */}
-      <div className="flex flex-wrap gap-2 ml-6">
+      {/* 과목 필터 */}
+      <div className="ml-6 flex flex-wrap gap-2">
         {SUBJECTS.map((s) => (
           <button
             key={s}
@@ -799,275 +621,156 @@ export function MenteeDetailPage() {
         ))}
       </div>
 
-      {/* 2x2 그리드 - 좌상 피드백, 우상 미완료, 좌하 자율학습, 우하 한마디 */}
+      {/* 2x2 그리드 */}
       <div className="grid gap-4 sm:grid-cols-2">
-        {/* 좌상: 피드백 대시보드 */}
-        <div className="flex min-h-[280px] flex-col rounded-xl border border-slate-200 bg-white p-4">
-          <div className="mb-3 flex shrink-0 items-center justify-between">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-              <Pencil className="h-4 w-4" />
-              피드백 대시보드
-            </h3>
-            <span className="text-xs text-slate-500">{pendingFeedbackCount}개 작성 필요</span>
-          </div>
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
-            {feedbackItems.map((item) => (
-              <FeedbackCard
-                key={item.id}
-                item={item}
-                onViewAssignment={() =>
-                  openAssignmentDetail(
-                    item.assignmentId,
-                    { title: item.title, subject: item.subject },
-                    'feedback',
-                    item.status,
-                  )
-                }
-                onFeedbackClick={() => openFeedbackModal(item.assignmentId)}
-              />
-            ))}
-          </div>
-        </div>
+        {/* 피드백 대시보드 */}
+        <GridCard
+          title="피드백 대시보드"
+          icon={<Pencil className="h-4 w-4" />}
+          badge={`${pendingFeedbackCount}개 작성 필요`}
+        >
+          {feedbackItems.map((item) => (
+            <FeedbackCard
+              key={item.id}
+              item={item}
+              onViewAssignment={() =>
+                openAssignmentDetail(
+                  item.assignmentId,
+                  { title: item.title, subject: item.subject },
+                  'feedback',
+                  item.status,
+                )
+              }
+              onFeedbackClick={() => openFeedbackModal(item.assignmentId)}
+            />
+          ))}
+        </GridCard>
 
-        {/* 우상: 미완료 과제 */}
-        <div className="flex min-h-[280px] flex-col rounded-xl border border-slate-200 bg-white p-4">
-          <div className="mb-3 flex shrink-0 items-center justify-between">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-              <FileText className="h-4 w-4" />
-              미완료 과제
-            </h3>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">총 {totalCount}개</span>
+        {/* 미완료 과제 */}
+        <GridCard
+          title="미완료 과제"
+          icon={<FileText className="h-4 w-4" />}
+          badge={`총 ${filteredAssignments.length}개`}
+          actions={
+            <>
               <Button
                 size="sm"
                 variant="outline"
+                icon={RotateCcw}
                 onClick={async () => {
-                  if (
-                    window.confirm('등록한 과제를 모두 초기화할까요? 더미 데이터는 유지됩니다.')
-                  ) {
+                  if (window.confirm('등록한 과제를 모두 초기화할까요?')) {
                     clearRegisteredIncomplete(menteeId ?? undefined);
                     await queryClient.invalidateQueries({
                       queryKey: ['incompleteAssignments', menteeId],
                     });
                   }
                 }}
-                title="등록한 과제만 초기화 (더미 유지)"
+                title="초기화"
               >
-                <RotateCcw className="h-4 w-4" />
                 초기화
               </Button>
               <Link to={`/mentor/mentees/${menteeId}/assignments/new`}>
-                <Button size="sm" variant="outline">
-                  <Plus className="h-4 w-4" />
+                <Button size="sm" variant="outline" icon={Plus}>
                   과제 추가
                 </Button>
               </Link>
-            </div>
-          </div>
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
-            {filteredAndSortedAssignments.map((a) => (
-              <IncompleteAssignmentCard
-                key={a.id}
-                assignment={a}
-                onComplete={() => handleAssignmentComplete(a.id)}
-                onDelete={() => setShowDeleteConfirm(a.id)}
-                showDeleteConfirm={showDeleteConfirm === a.id}
-                onConfirmDelete={() => handleAssignmentDelete(a.id)}
-                onCancelDelete={() => setShowDeleteConfirm(null)}
-                onViewAssignment={() =>
-                  openAssignmentDetail(
-                    a.id,
-                    { title: a.title, goal: a.description, subject: a.subject },
-                    'incomplete',
-                  )
-                }
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* 좌하: 자율 학습 To-Do (학생 입력만, 항상 오늘 날짜, 피드백/클릭 이동 없음) */}
-        <div className="flex min-h-[280px] flex-col rounded-xl border border-slate-200 bg-white p-4">
-          <div className="mb-3 flex shrink-0 items-center justify-between">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-              <ListChecks className="h-4 w-4" />
-              자율 학습 To-Do
-            </h3>
-            <span className="text-xs text-slate-500">
-              완료:{' '}
-              {
-                todayTodoItems.filter((i) => i.type === 'learning' && i.status === 'completed')
-                  .length
+            </>
+          }
+        >
+          {filteredAssignments.map((a) => (
+            <IncompleteAssignmentCard
+              key={a.id}
+              assignment={a}
+              onComplete={() => handleAssignmentComplete(a.id)}
+              onDelete={() => setDeleteConfirmId(a.id)}
+              showDeleteConfirm={deleteConfirmId === a.id}
+              onConfirmDelete={() => handleAssignmentDelete(a.id)}
+              onCancelDelete={() => setDeleteConfirmId(null)}
+              onViewAssignment={() =>
+                openAssignmentDetail(
+                  a.id,
+                  { title: a.title, goal: a.description, subject: a.subject },
+                  'incomplete',
+                )
               }
-              /{todayTodoItems.filter((i) => i.type === 'learning').length}
-            </span>
-          </div>
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
-            {todayTodoItems.length === 0 ? (
-              <p className="flex flex-1 items-center justify-center py-8 text-center text-sm text-slate-500">
-                오늘 할 일이 없습니다.
-              </p>
-            ) : (
-              todayTodoItems.map((item) => (
-                <ScheduleItemCard
-                  key={item.id}
-                  item={item}
-                  onClick={() => {}}
-                  onContextMenu={(e) => handleScheduleItemRightClick(e, item)}
-                  onDelete={() => handleScheduleDelete(item.id)}
-                  onDragStart={undefined}
-                  onDragEnd={undefined}
-                  isDragging={false}
-                />
-              ))
-            )}
-          </div>
-        </div>
+            />
+          ))}
+        </GridCard>
 
-        {/* 우하: 오늘의 한마디 & 질문 */}
-        <div className="flex min-h-[280px] flex-col rounded-xl border border-slate-200 bg-white p-4">
-          <div className="mb-3 flex shrink-0 items-center justify-between">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-              <MessageCircle className="h-4 w-4" />
-              오늘의 한마디 & 질문
-            </h3>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            {todayComment ? (
-              <div className="space-y-3">
-                <div className="flex gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200">
-                    <UserIcon className="h-5 w-5 text-slate-500" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-slate-900">{todayComment.authorName}</span>
-                      <span className="shrink-0 text-xs text-slate-500">
-                        {todayComment.createdAt}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-slate-600">{todayComment.content}</p>
-                  </div>
-                </div>
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    setChatContext(todayComment?.content ?? null);
-                    setChatModalOpen(true);
-                  }}
-                >
-                  답변하기
-                </Button>
-              </div>
-            ) : (
-              <p className="flex flex-1 items-center justify-center py-8 text-center text-sm text-slate-500">
-                등록된 질문이 없습니다.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* 학습 일정 캘린더 (하단) */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <Calendar className="h-4 w-4" />
-            일정 캘린더
-          </h3>
-          <div className="flex items-center gap-2">
-            {/* 검색 */}
-            <div className="relative flex-1 sm:max-w-xs">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input
-                type="text"
-                placeholder="할일 검색..."
-                value={scheduleSearchQuery}
-                onChange={(e) => setScheduleSearchQuery(e.target.value)}
-                className="pl-9 pr-9"
+        {/* 자율 학습 To-Do */}
+        <GridCard
+          title="자율 학습 To-Do"
+          icon={<ListChecks className="h-4 w-4" />}
+          badge={`완료: ${todayTodoItems.filter((i) => i.type === 'learning' && i.status === 'completed').length}/${todayTodoItems.filter((i) => i.type === 'learning').length}`}
+        >
+          {todayTodoItems.length === 0 ? (
+            <p className="flex flex-1 items-center justify-center py-8 text-center text-sm text-slate-500">
+              오늘 할 일이 없습니다.
+            </p>
+          ) : (
+            todayTodoItems.map((item) => (
+              <ScheduleItemCard
+                key={item.id}
+                item={item}
+                onContextMenu={(e) => handleScheduleItemRightClick(e, item)}
+                onDelete={() => handleScheduleDelete(item.id)}
               />
-              {scheduleSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setScheduleSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
+            ))
+          )}
+        </GridCard>
+
+        {/* 오늘의 한마디 */}
+        <GridCard title="오늘의 한마디 & 질문" icon={<MessageCircle className="h-4 w-4" />}>
+          {todayComment ? (
+            <div className="space-y-3">
+              <div className="flex gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200">
+                  <UserIcon className="h-5 w-5 text-slate-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-slate-900">{todayComment.authorName}</span>
+                    <span className="shrink-0 text-xs text-slate-500">
+                      {todayComment.createdAt}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600">{todayComment.content}</p>
+                </div>
+              </div>
+              <Button className="w-full" onClick={() => openChatModal(todayComment.content)}>
+                답변하기
+              </Button>
             </div>
-            <Button variant="outline" onClick={() => setScheduleAddModalOpen(true)}>
-              <Plus className="h-4 w-4" />
-              일정 추가
-            </Button>
-          </div>
-        </div>
-        <div className="relative">
-          <ScheduleCalendar
-            year={calYear}
-            month={calMonth}
-            selectedDate={selectedDate}
-            scheduleItems={scheduleItems}
-            searchQuery={scheduleSearchQuery}
-            onDateSelect={setSelectedDate}
-            onMonthChange={(y, m) => {
-              setSelectedDate(`${y}-${String(m).padStart(2, '0')}-01`);
-            }}
-            onItemClick={handleScheduleItemClick}
-            onItemRightClick={handleScheduleItemRightClick}
-            onItemDelete={handleScheduleDelete}
-            onItemDragStart={(item) => setDraggedCalendarItem(item)}
-            onItemDragEnd={() => setDraggedCalendarItem(null)}
-            onDropOnDate={
-              draggedCalendarItem &&
-              (draggedCalendarItem.type === 'personal' || draggedCalendarItem.type === 'learning')
-                ? (dateStr, isCopy) => {
-                    if (isCopy) {
-                      handleScheduleCopy(draggedCalendarItem.id, dateStr, true);
-                    } else {
-                      handleScheduleMove(draggedCalendarItem.id, dateStr, true);
-                    }
-                    setDraggedCalendarItem(null);
-                  }
-                : undefined
-            }
-            draggedItemId={draggedCalendarItem?.id}
-          />
-        </div>
-        {draggedCalendarItem && (
-          <p className="mt-2 text-xs text-slate-500">
-            다른 날짜에 놓으면 이동 ·{' '}
-            <kbd className="rounded border border-slate-300 px-1">Ctrl</kbd>+드롭하면 복사
-          </p>
-        )}
-        {scheduleContextMenu && (
-          <ScheduleItemContextMenu
-            item={scheduleContextMenu.item}
-            position={scheduleContextMenu.position}
-            onClose={() => setScheduleContextMenu(null)}
-            onMove={handleScheduleMove}
-            onCopy={handleScheduleCopy}
-            onDelete={handleScheduleDelete}
-          />
-        )}
-        {scheduleSearchQuery && (
-          <div className="mt-3 text-sm text-slate-500">
-            검색 결과:{' '}
-            {
-              scheduleItems.filter(
-                (item) =>
-                  item.title.toLowerCase().includes(scheduleSearchQuery.toLowerCase()) ||
-                  item.subject.toLowerCase().includes(scheduleSearchQuery.toLowerCase()),
-              ).length
-            }
-            개
-          </div>
-        )}
+          ) : (
+            <p className="flex flex-1 items-center justify-center py-8 text-center text-sm text-slate-500">
+              등록된 질문이 없습니다.
+            </p>
+          )}
+        </GridCard>
       </div>
 
+      {/* 캘린더 */}
+      <CalendarSection
+        year={calYear}
+        month={calMonth}
+        selectedDate={selectedDate}
+        scheduleItems={scheduleItems}
+        scheduleState={scheduleState}
+        onDateSelect={setSelectedDate}
+        onMonthChange={(y, m) => setSelectedDate(`${y}-${String(m).padStart(2, '0')}-01`)}
+        onItemClick={handleScheduleItemClick}
+        onItemRightClick={handleScheduleItemRightClick}
+        onItemDelete={handleScheduleDelete}
+        onScheduleStateChange={setScheduleState}
+        onScheduleMove={handleScheduleMove}
+        onScheduleCopy={handleScheduleCopy}
+        onAddClick={() => openModal('scheduleAdd')}
+      />
+
+      {/* 모달들 */}
       <ScheduleAddModal
-        isOpen={scheduleAddModalOpen}
-        onClose={() => setScheduleAddModalOpen(false)}
+        isOpen={activeModal === 'scheduleAdd'}
+        onClose={closeModal}
         defaultDate={selectedDate}
         mode="learning"
         onSubmitPersonal={handleAddPersonalSchedule}
@@ -1075,60 +778,52 @@ export function MenteeDetailPage() {
       />
 
       <LearningAnalysisModal
-        isOpen={learningAnalysisModalOpen}
-        onClose={() => setLearningAnalysisModalOpen(false)}
+        isOpen={activeModal === 'learningAnalysis'}
+        onClose={closeModal}
         menteeId={menteeId ?? ''}
-        menteeName={mentee?.name ?? ''}
+        menteeName={mentee.name}
       />
 
       <ChatModal
-        isOpen={chatModalOpen}
-        onClose={() => setChatModalOpen(false)}
+        isOpen={activeModal === 'chat'}
+        onClose={closeModal}
         menteeName={displayMentee.name}
         initialContext={chatContext ?? undefined}
       />
 
       <ProfileEditModal
-        isOpen={profileEditModalOpen}
-        onClose={() => setProfileEditModalOpen(false)}
+        isOpen={activeModal === 'profileEdit'}
+        onClose={closeModal}
         mentee={displayMentee}
         onSave={(data) =>
-          setMenteeOverride((prev) =>
-            prev ? { ...prev, ...data } : displayMentee ? { ...displayMentee, ...data } : null,
-          )
+          setMenteeOverride((prev) => (prev ? { ...prev, ...data } : { ...displayMentee, ...data }))
         }
       />
 
       <FeedbackWriteModal
-        isOpen={feedbackModalOpen}
-        onClose={() => setFeedbackModalOpen(false)}
+        isOpen={activeModal === 'feedback'}
+        onClose={closeModal}
         initialMenteeId={menteeId}
-        initialAssignmentId={feedbackModalInitialAssignmentId}
+        initialAssignmentId={feedbackInitialAssignmentId}
       />
 
       <AssignmentDetailModal
-        isOpen={assignmentDetailModalOpen}
-        onClose={() => {
-          setAssignmentDetailModalOpen(false);
-          setSelectedAssignmentId(null);
-          setSelectedAssignmentFallback(null);
-          setSelectedFeedbackStatus(null);
-        }}
-        assignmentId={selectedAssignmentId ?? ''}
-        source={selectedAssignmentSource}
-        feedbackStatus={selectedFeedbackStatus}
+        isOpen={activeModal === 'assignmentDetail'}
+        onClose={closeModal}
+        assignmentId={assignmentSelection.id ?? ''}
+        source={assignmentSelection.source}
+        feedbackStatus={assignmentSelection.feedbackStatus}
         menteeId={menteeId ?? undefined}
-        fallback={selectedAssignmentFallback ?? undefined}
+        fallback={assignmentSelection.fallback ?? undefined}
         overrides={
-          selectedAssignmentSource === 'incomplete'
-            ? assignmentDetailOverrides[selectedAssignmentId ?? '']
+          assignmentSelection.source === 'incomplete'
+            ? assignmentDetailOverrides[assignmentSelection.id ?? '']
             : undefined
         }
         onSave={
-          selectedAssignmentSource === 'incomplete'
-            ? (data: Partial<AssignmentDetail>) =>
-                selectedAssignmentId &&
-                handleSaveAssignmentDetail(selectedAssignmentId, data, 'incomplete')
+          assignmentSelection.source === 'incomplete'
+            ? (data) =>
+                assignmentSelection.id && handleSaveAssignmentDetail(assignmentSelection.id, data)
             : undefined
         }
       />
@@ -1136,17 +831,345 @@ export function MenteeDetailPage() {
   );
 }
 
-function KpiCard({
+/* -------------------- 서브 컴포넌트 -------------------- */
+
+function ProfileSection({
+  mentee,
+  kpi,
+  onOpenAnalysis,
+  onOpenChat,
+  onOpenProfile,
+}: {
+  mentee: MenteeSummary;
+  kpi: {
+    totalStudyHours: number;
+    studyHoursChange: number;
+    assignmentCompletionRate: number;
+    completionRateChange: number;
+    averageScore: number;
+    scoreChange: number;
+    attendanceRate: number;
+    attendanceChange: number;
+  } | null;
+  onOpenAnalysis: () => void;
+  onOpenChat: () => void;
+  onOpenProfile: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex gap-3 sm:gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 sm:h-14 sm:w-14">
+            <UserIcon className="h-7 w-7 text-slate-500" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <span className="text-base font-bold text-slate-900 sm:text-lg">{mentee.name}</span>
+              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-600">
+                {mentee.grade} · {mentee.track}
+              </span>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                활동 중
+              </span>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                멘토링 시작: {mentee.mentoringStart}
+              </span>
+              <span className="flex items-center gap-1">마지막 접속: {mentee.lastActive}</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          <Button variant="outline" size="sm" icon={BarChart3} onClick={onOpenAnalysis}>
+            학습 분석
+          </Button>
+          <Button variant="outline" size="sm" icon={MessageCircle} onClick={onOpenChat}>
+            메시지 보내기
+          </Button>
+          <Button size="sm" icon={User} onClick={onOpenProfile}>
+            프로필 수정
+          </Button>
+        </div>
+      </div>
+
+      {(mentee.scores || kpi) && (
+        <div className="mt-6 space-y-4">
+          {mentee.scores && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+              <p className="mb-2 text-xs font-medium text-slate-600">성적</p>
+              <div className="flex flex-wrap gap-4">
+                {mentee.scores.naesin && (
+                  <div>
+                    <span className="text-xs text-slate-500">내신</span>
+                    <p className="text-sm font-medium text-slate-800">
+                      국 {mentee.scores.naesin.korean ?? '-'} · 영{' '}
+                      {mentee.scores.naesin.english ?? '-'} · 수 {mentee.scores.naesin.math ?? '-'}
+                    </p>
+                  </div>
+                )}
+                {mentee.scores.mockExam && (
+                  <div>
+                    <span className="text-xs text-slate-500">모의고사</span>
+                    <p className="text-sm font-medium text-slate-800">
+                      국 {mentee.scores.mockExam.korean ?? '-'} · 영{' '}
+                      {mentee.scores.mockExam.english ?? '-'} · 수{' '}
+                      {mentee.scores.mockExam.math ?? '-'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {kpi && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+              <KpiCard
+                title="총 학습 시간"
+                value={`${kpi.totalStudyHours}h`}
+                change={kpi.studyHoursChange}
+              />
+              <KpiCard
+                title="과제 완료율"
+                value={`${kpi.assignmentCompletionRate}%`}
+                change={kpi.completionRateChange}
+              />
+              <KpiCard
+                title="평균 성적"
+                value={String(getAllScoresAverage(mentee) ?? kpi.averageScore)}
+                change={kpi.scoreChange}
+              />
+              <KpiCard
+                title="출석률"
+                value={`${kpi.attendanceRate}%`}
+                change={kpi.attendanceChange}
+              />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DateNavigation({
+  selectedDate,
+  viewMode,
+  onDateChange,
+  onPrev,
+  onNext,
+  onViewModeChange,
+}: {
+  selectedDate: string;
+  viewMode: 'today' | 'week' | 'month';
+  onDateChange: (date: string) => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onViewModeChange: (mode: 'today' | 'week' | 'month') => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-4">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onPrev}
+          className="rounded p-1.5 text-slate-500 hover:bg-slate-100"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <span className="min-w-0 flex-1 text-sm font-medium text-slate-900 sm:min-w-[200px] sm:flex-none">
+          {formatDisplayDate(selectedDate)}
+        </span>
+        <button
+          type="button"
+          onClick={onNext}
+          className="rounded p-1.5 text-slate-500 hover:bg-slate-100"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+        <DatePicker
+          value={selectedDate}
+          onChange={onDateChange}
+          placeholder="날짜 선택"
+          className="ml-2"
+          hideValue
+        />
+      </div>
+      <div className="flex gap-2">
+        {(['today', 'week', 'month'] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => onViewModeChange(mode)}
+            className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${viewMode === mode ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+          >
+            {mode === 'today' ? '오늘' : mode === 'week' ? '주간 보기' : '월간 보기'}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GridCard({
   title,
-  value,
-  change,
-  noChangeLabel,
+  icon,
+  badge,
+  actions,
+  children,
 }: {
   title: string;
-  value: string;
-  change: number;
-  noChangeLabel?: string;
+  icon: React.ReactNode;
+  badge?: string;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
 }) {
+  return (
+    <div className="flex min-h-[280px] flex-col rounded-xl border border-slate-200 bg-white p-4">
+      <div className="mb-3 flex shrink-0 items-center justify-between">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+          {icon}
+          {title}
+        </h3>
+        <div className="flex items-center gap-2">
+          {badge && <span className="text-xs text-slate-500">{badge}</span>}
+          {actions}
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">{children}</div>
+    </div>
+  );
+}
+
+function CalendarSection({
+  year,
+  month,
+  selectedDate,
+  scheduleItems,
+  scheduleState,
+  onDateSelect,
+  onMonthChange,
+  onItemClick,
+  onItemRightClick,
+  onItemDelete,
+  onScheduleStateChange,
+  onScheduleMove,
+  onScheduleCopy,
+  onAddClick,
+}: {
+  year: number;
+  month: number;
+  selectedDate: string;
+  scheduleItems: ScheduleItem[];
+  scheduleState: ScheduleState;
+  onDateSelect: (date: string) => void;
+  onMonthChange: (y: number, m: number) => void;
+  onItemClick: (item: ScheduleItem) => void;
+  onItemRightClick: (e: React.MouseEvent, item: ScheduleItem) => void;
+  onItemDelete: (id: string) => void;
+  onScheduleStateChange: (state: ScheduleState) => void;
+  onScheduleMove: (id: string, date: string, skip?: boolean) => void;
+  onScheduleCopy: (id: string, date: string, skip?: boolean) => void;
+  onAddClick: () => void;
+}) {
+  const { searchQuery, contextMenu, draggedItem } = scheduleState;
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+          <Calendar className="h-4 w-4" />
+          일정 캘린더
+        </h3>
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              type="text"
+              placeholder="할일 검색..."
+              value={searchQuery}
+              onChange={(e) =>
+                onScheduleStateChange({ ...scheduleState, searchQuery: e.target.value })
+              }
+              className="pl-9 pr-9"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => onScheduleStateChange({ ...scheduleState, searchQuery: '' })}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Button variant="outline" icon={Plus} onClick={onAddClick}>
+            일정 추가
+          </Button>
+        </div>
+      </div>
+
+      <ScheduleCalendar
+        year={year}
+        month={month}
+        selectedDate={selectedDate}
+        scheduleItems={scheduleItems}
+        searchQuery={searchQuery}
+        onDateSelect={onDateSelect}
+        onMonthChange={onMonthChange}
+        onItemClick={onItemClick}
+        onItemRightClick={onItemRightClick}
+        onItemDelete={onItemDelete}
+        onItemDragStart={(item) => onScheduleStateChange({ ...scheduleState, draggedItem: item })}
+        onItemDragEnd={() => onScheduleStateChange({ ...scheduleState, draggedItem: null })}
+        onDropOnDate={
+          draggedItem && (draggedItem.type === 'personal' || draggedItem.type === 'learning')
+            ? (dateStr, isCopy) => {
+                if (isCopy) onScheduleCopy(draggedItem.id, dateStr, true);
+                else onScheduleMove(draggedItem.id, dateStr, true);
+                onScheduleStateChange({ ...scheduleState, draggedItem: null });
+              }
+            : undefined
+        }
+        draggedItemId={draggedItem?.id}
+      />
+
+      {draggedItem && (
+        <p className="mt-2 text-xs text-slate-500">
+          다른 날짜에 놓으면 이동 · <kbd className="rounded border border-slate-300 px-1">Ctrl</kbd>
+          +드롭하면 복사
+        </p>
+      )}
+
+      {contextMenu && (
+        <ScheduleItemContextMenu
+          item={contextMenu.item}
+          position={contextMenu.position}
+          onClose={() => onScheduleStateChange({ ...scheduleState, contextMenu: null })}
+          onMove={onScheduleMove}
+          onCopy={onScheduleCopy}
+          onDelete={onItemDelete}
+        />
+      )}
+
+      {searchQuery && (
+        <div className="mt-3 text-sm text-slate-500">
+          검색 결과:{' '}
+          {
+            scheduleItems.filter(
+              (item) =>
+                item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                item.subject.toLowerCase().includes(searchQuery.toLowerCase()),
+            ).length
+          }
+          개
+        </div>
+      )}
+    </div>
+  );
+}
+
+function KpiCard({ title, value, change }: { title: string; value: string; change: number }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
       <p className="text-xs text-slate-500">{title}</p>
@@ -1154,7 +1177,7 @@ function KpiCard({
       <p className="mt-0.5 text-xs text-slate-500">
         {change > 0 && `↑ ${change}% 증가`}
         {change < 0 && `↓ ${Math.abs(change)}% 감소`}
-        {change === 0 && (noChangeLabel ?? '변동 없음')}
+        {change === 0 && '변동 없음'}
       </p>
     </div>
   );
@@ -1162,87 +1185,47 @@ function KpiCard({
 
 function ScheduleItemCard({
   item,
-  onClick,
   onContextMenu,
   onDelete,
-  onDragStart,
-  onDragEnd,
-  isDragging,
 }: {
   item: ScheduleItem;
-  onClick: () => void;
-  onContextMenu?: (e: React.MouseEvent) => void;
-  onDelete?: () => void;
-  onDragStart?: () => void;
-  onDragEnd?: () => void;
-  isDragging?: boolean;
+  onContextMenu: (e: React.MouseEvent) => void;
+  onDelete: () => void;
 }) {
   const typeLabel =
-    item.type === 'learning'
-      ? '자율학습'
-      : item.type === 'personal'
-        ? '개인'
-        : item.type === 'feedback'
-          ? '피드백'
-          : item.type === 'assignment'
-            ? '과제'
-            : item.subject;
+    item.type === 'learning' ? '자율학습' : item.type === 'personal' ? '개인' : item.subject;
   const typeBg =
     item.type === 'learning'
       ? 'bg-amber-100 text-amber-700'
       : item.type === 'personal'
         ? 'bg-violet-100 text-violet-700'
-        : item.type === 'feedback'
-          ? 'bg-amber-100 text-amber-700'
-          : 'bg-blue-100 text-blue-700';
-  const canMoveDelete = onDelete != null;
+        : 'bg-blue-100 text-blue-700';
 
   return (
     <div
-      draggable={canMoveDelete}
       onContextMenu={onContextMenu}
-      onDragStart={(e) => {
-        if (canMoveDelete && onDragStart) {
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', item.id);
-          onDragStart();
-        }
-      }}
-      onDragEnd={() => onDragEnd?.()}
-      className={`flex w-full items-center gap-2 rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2 transition-colors hover:bg-slate-100 ${
-        isDragging ? 'opacity-50' : ''
-      } ${canMoveDelete ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      className="flex w-full items-center gap-2 rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2 transition-colors hover:bg-slate-100"
     >
-      {canMoveDelete && (
-        <div
-          className="flex shrink-0 cursor-grab touch-none text-slate-400 hover:text-slate-600 active:cursor-grabbing"
-          onPointerDown={(e) => e.stopPropagation()}
-          aria-hidden
-        >
-          <GripVertical className="h-4 w-4" />
-        </div>
-      )}
-      <button type="button" onClick={onClick} className="min-w-0 flex-1 text-left">
+      <div className="flex shrink-0 cursor-grab touch-none text-slate-400 hover:text-slate-600">
+        <GripVertical className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-slate-800">{item.title}</p>
         <span className={`mt-0.5 inline-block rounded px-1.5 py-0.5 text-xs ${typeBg}`}>
           {typeLabel}
         </span>
+      </div>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (window.confirm(`"${item.title}"을(를) 삭제하시겠습니까?`)) onDelete();
+        }}
+        className="shrink-0 rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+        title="삭제"
+      >
+        <Trash2 className="h-4 w-4" />
       </button>
-      {canMoveDelete && onDelete && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (window.confirm(`"${item.title}"을(를) 삭제하시겠습니까?`)) {
-              onDelete();
-            }
-          }}
-          className="shrink-0 rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
-          title="삭제"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      )}
     </div>
   );
 }
@@ -1281,28 +1264,19 @@ function FeedbackCard({
           <div className="flex items-center gap-2">
             <span className="font-medium text-slate-900">{item.title}</span>
             <span
-              className={`rounded px-1.5 py-0.5 text-xs ${
-                item.status === 'urgent' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600'
-              }`}
+              className={`rounded px-1.5 py-0.5 text-xs ${item.status === 'urgent' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600'}`}
             >
               {statusLabels[item.status]}
             </span>
-            {item.status === 'partial' && <span className="text-xs text-slate-500">검토 필요</span>}
           </div>
           <p className="mt-0.5 text-xs text-slate-500">
             {item.status === 'completed' && item.feedbackDate
               ? `피드백 작성일: ${item.feedbackDate}`
-              : `제출일시: ${item.submittedAt}`}
-            {' · '}
-            {item.subject}
+              : `제출일시: ${item.submittedAt}`}{' '}
+            · {item.subject}
           </p>
-          {item.status === 'partial' && item.progress != null && (
-            <p className="text-xs text-slate-500">
-              진행률: {item.progress}% · 마지막 업데이트: {item.lastUpdate}
-            </p>
-          )}
           {item.status === 'completed' && item.feedbackText && (
-            <p className="mt-1 text-xs text-slate-600 line-clamp-2">{item.feedbackText}</p>
+            <p className="mt-1 line-clamp-2 text-xs text-slate-600">{item.feedbackText}</p>
           )}
         </div>
       </div>
@@ -1370,11 +1344,7 @@ function IncompleteAssignmentCard({
             e.stopPropagation();
             if (!isCompleted) onComplete();
           }}
-          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
-            isCompleted
-              ? 'border-slate-600 bg-slate-600 text-white'
-              : 'border-slate-300 hover:border-slate-500'
-          }`}
+          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${isCompleted ? 'border-slate-600 bg-slate-600 text-white' : 'border-slate-300 hover:border-slate-500'}`}
         >
           {isCompleted && <Check className="h-3 w-3" />}
         </button>

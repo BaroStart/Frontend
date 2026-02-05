@@ -56,13 +56,13 @@ export function TimePicker({ value, onChange, placeholder = '시간 선택', cla
       <PopoverTrigger asChild>
         <Button
           variant="outline"
+          icon={Clock}
           className={cn(
             'h-10 w-[160px] justify-start text-left font-normal',
             !value && 'text-muted-foreground',
             className,
           )}
         >
-          <Clock className="mr-2 h-4 w-4" />
           {formatDisplayTime(value)}
         </Button>
       </PopoverTrigger>

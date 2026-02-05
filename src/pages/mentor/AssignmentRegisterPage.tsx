@@ -29,149 +29,142 @@ import {
   SUBJECT_COLUMN_TEMPLATES,
 } from '@/data/assignmentRegisterMock';
 import { MOCK_MENTEE_TASKS } from '@/data/menteeDetailMock';
-import { useMentee } from '@/hooks/useMentee';
 import { useMenteeKpi } from '@/hooks/useMenteeDetail';
 import { useMentees } from '@/hooks/useMentees';
+import { getTodayDateStr } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
-import { useLearningGoalStore } from '@/stores/useLearningGoalStore';
+import { getMaterialsByIds, useLearningGoalStore } from '@/stores/useLearningGoalStore';
 
 const MAIN_SUBJECTS = ['국어', '영어', '수학'] as const;
+type MainSubject = (typeof MAIN_SUBJECTS)[number];
+const CURRENT_MENTOR_ID = 'mentor1';
 
-interface EditAssignmentState {
+interface FormState {
+  menteeId: string;
   title: string;
   goal: string;
-  subject: string;
+  subject: MainSubject;
+  improvementPointId: string;
+  description: string;
   columnContent: string;
+  motivationalTemplateId: string;
+  dateMode: 'single' | 'recurring';
+  singleDate: string;
+  recurringDays: number[];
+  recurringStartDate: string;
+  recurringEndDate: string;
+  recurringEndTime: string;
 }
+
+const createInitialForm = (menteeId?: string): FormState => ({
+  menteeId: menteeId ?? '',
+  title: '',
+  goal: '',
+  subject: '국어',
+  improvementPointId: '',
+  description: '',
+  columnContent: '',
+  motivationalTemplateId: '',
+  dateMode: 'single',
+  singleDate: getTodayDateStr(),
+  recurringDays: [],
+  recurringStartDate: getTodayDateStr(),
+  recurringEndDate: getTodayDateStr(),
+  recurringEndTime: '23:59',
+});
 
 export function AssignmentRegisterPage() {
   const { menteeId: urlMenteeId } = useParams<{ menteeId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const editAssignment = (location.state as { editAssignment?: EditAssignmentState })
-    ?.editAssignment;
-  const { data: mentees = [] } = useMentees();
-  const { data: selectedMentee } = useMentee(urlMenteeId ?? undefined);
-  const { data: kpi } = useMenteeKpi(urlMenteeId ?? undefined);
 
-  const [menteeId, setMenteeId] = useState(urlMenteeId ?? '');
-  const [dateMode, setDateMode] = useState<'single' | 'recurring'>('single');
-  const [singleDate, setSingleDate] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
-  const [recurringDays, setRecurringDays] = useState<number[]>([]);
-  const [recurringStartDate, setRecurringStartDate] = useState('');
-  const [recurringEndDate, setRecurringEndDate] = useState('');
-  const [recurringEndTime, setRecurringEndTime] = useState('23:59');
-  const [title, setTitle] = useState('');
-  const [goal, setGoal] = useState('');
-  const [subject, setSubject] = useState<(typeof MAIN_SUBJECTS)[number]>('국어');
-  const [improvementPointId, setImprovementPointId] = useState('');
-  const [columnContent, setColumnContent] = useState('');
+  // 외부 데이터
+  const { data: mentees = [] } = useMentees();
+  const { data: kpi } = useMenteeKpi(urlMenteeId);
+  const { getGoalsByMentor, initialize } = useLearningGoalStore();
+
+  // 폼 상태 (하나의 객체로 관리)
+  const [form, setForm] = useState<FormState>(() => createInitialForm(urlMenteeId));
   const [editorKey, setEditorKey] = useState(0);
-  const [materialTab, setMaterialTab] = useState<'column' | 'pdf'>('column');
   const [uploadedFiles, setUploadedFiles] = useState<{ id: string; name: string; size: string }[]>(
     [],
   );
 
-  const [tempSaveModalOpen, setTempSaveModalOpen] = useState(false);
-  const [loadFromDateModalOpen, setLoadFromDateModalOpen] = useState(false);
+  // UI 상태
+  const [materialTab, setMaterialTab] = useState<'column' | 'pdf'>('column');
+  const [activeModal, setActiveModal] = useState<'tempSave' | 'loadFromDate' | null>(null);
   const [loadMessage, setLoadMessage] = useState<'success' | 'empty' | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [motivationalTemplateId, setMotivationalTemplateId] = useState('');
 
+  // 초기화 + URL menteeId 동기화
   useEffect(() => {
-    if (urlMenteeId) setMenteeId(urlMenteeId);
-  }, [urlMenteeId]);
+    initialize(CURRENT_MENTOR_ID);
 
-  useEffect(() => {
-    if (dateMode === 'recurring' && !recurringStartDate && !recurringEndDate) {
-      const today = new Date();
-      const fmt = (d: Date) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      setRecurringStartDate(fmt(today));
-      setRecurringEndDate(fmt(today));
-    }
-  }, [dateMode]);
-
-  useEffect(() => {
-    if (editAssignment) {
-      setTitle(editAssignment.title);
-      setGoal(editAssignment.goal);
-      setSubject(editAssignment.subject as (typeof MAIN_SUBJECTS)[number]);
-      setColumnContent(editAssignment.columnContent);
+    // location.state에서 편집할 과제 데이터 적용
+    const editData = (location.state as { editAssignment?: Partial<FormState> })?.editAssignment;
+    if (editData) {
+      setForm((prev) => ({ ...prev, ...editData }));
       setEditorKey((k) => k + 1);
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [editAssignment, navigate, location.pathname]);
 
-  const displayMentee = menteeId
-    ? (mentees.find((m) => m.id === menteeId) ?? selectedMentee)
-    : null;
+    // URL menteeId 동기화
+    if (urlMenteeId && urlMenteeId !== form.menteeId) {
+      setForm((prev) => ({ ...prev, menteeId: urlMenteeId }));
+    }
+  }, [urlMenteeId]);
 
-  const {
-    getGoalsByMentor,
-    initialize: initializeGoals,
-    getMaterialsByIds,
-  } = useLearningGoalStore();
-  const CURRENT_MENTOR_ID = 'mentor1';
-
-  useEffect(() => {
-    initializeGoals(CURRENT_MENTOR_ID);
-  }, [initializeGoals]);
-
-  const learningGoals = useMemo(
-    () => getGoalsByMentor(CURRENT_MENTOR_ID),
-    [getGoalsByMentor],
+  // 파생 데이터 (useMemo로 컴포넌트 내에서 계산)
+  const learningGoals = useMemo(() => getGoalsByMentor(CURRENT_MENTOR_ID), [getGoalsByMentor]);
+  const selectedMentee = mentees.find((m) => m.id === form.menteeId);
+  const matchedMaterials = useMemo(() => {
+    const goal = learningGoals.find((g) => g.id === form.improvementPointId);
+    return goal ? getMaterialsByIds(goal.materialIds || []) : [];
+  }, [form.improvementPointId, learningGoals]);
+  const highlightDates = useMemo(
+    () =>
+      form.menteeId
+        ? [
+            ...new Set(
+              MOCK_MENTEE_TASKS.filter((t) => t.menteeId === form.menteeId).map((t) => t.date),
+            ),
+          ]
+        : [],
+    [form.menteeId],
   );
 
-  const matchedMaterials = useMemo(() => {
-    if (improvementPointId) {
-      const goal = learningGoals.find((g) => g.id === improvementPointId);
-      if (goal) return getMaterialsByIds(goal.materialIds || []);
-    }
-    return [];
-  }, [improvementPointId, learningGoals, getMaterialsByIds]);
+  // 폼 업데이트 헬퍼
+  const updateForm = useCallback(<K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
-  const highlightDates = useMemo(() => {
-    if (!menteeId) return [];
-    return [
-      ...new Set(MOCK_MENTEE_TASKS.filter((t) => t.menteeId === menteeId).map((t) => t.date)),
-    ];
-  }, [menteeId]);
-
-  const handleRecurringDaysChange = (days: number[]) => {
-    setRecurringDays(days);
-  };
-
-  const applyColumnTemplate = useCallback((template: string) => {
-    setColumnContent(template);
+  const applyTemplate = useCallback((content: string) => {
+    setForm((prev) => ({ ...prev, columnContent: content }));
     setEditorKey((k) => k + 1);
   }, []);
 
-  useEffect(() => {
-    if (improvementPointId) {
-      setMotivationalTemplateId('');
-      const goal = learningGoals.find((g) => g.id === improvementPointId);
-      if (goal) {
-        setGoal(goal.name);
-        if (goal.columnTemplate) {
-          applyColumnTemplate(goal.columnTemplate);
-        }
-      }
-    }
-  }, [improvementPointId, learningGoals, applyColumnTemplate]);
+  // 과제 목표 선택 시 관련 데이터 자동 설정
+  const handleGoalSelect = (goalId: string) => {
+    const goal = learningGoals.find((g) => g.id === goalId);
+    setForm((prev) => ({
+      ...prev,
+      improvementPointId: goalId,
+      motivationalTemplateId: '',
+      goal: goal?.name ?? prev.goal,
+    }));
+    if (goal?.columnTemplate) applyTemplate(goal.columnTemplate);
+  };
 
-  const handleLoadFromDate = (dateToLoad: string) => {
-    const tasks = MOCK_MENTEE_TASKS.filter((t) => t.menteeId === menteeId && t.date === dateToLoad);
-    if (tasks.length > 0) {
-      const first = tasks[0];
-      setTitle(first.title);
-      setGoal(`${first.subject} 학습`);
-      const subjectMap: Record<string, (typeof MAIN_SUBJECTS)[number]> = {
+  // 이전 날짜에서 불러오기
+  const handleLoadFromDate = (date: string) => {
+    const tasks = MOCK_MENTEE_TASKS.filter((t) => t.menteeId === form.menteeId && t.date === date);
+    if (tasks.length === 0) {
+      setLoadMessage('empty');
+    } else {
+      const task = tasks[0];
+      const subjectMap: Record<string, MainSubject> = {
         국어: '국어',
         영어: '영어',
         수학: '수학',
@@ -179,149 +172,127 @@ export function AssignmentRegisterPage() {
         사회: '국어',
         자기주도: '국어',
       };
-      const mappedSubject = subjectMap[first.subject] ?? '국어';
-      setSubject(mappedSubject);
-      const template = SUBJECT_COLUMN_TEMPLATES[mappedSubject] ?? SUBJECT_COLUMN_TEMPLATES.국어;
-      applyColumnTemplate(`<h3>${first.title}</h3><p>과목: ${first.subject}</p>${template}`);
+      const mapped = subjectMap[task.subject] ?? '국어';
+      setForm((prev) => ({
+        ...prev,
+        title: task.title,
+        goal: `${task.subject} 학습`,
+        subject: mapped,
+      }));
+      applyTemplate(
+        `<h3>${task.title}</h3><p>과목: ${task.subject}</p>${SUBJECT_COLUMN_TEMPLATES[mapped] ?? ''}`,
+      );
       setLoadMessage('success');
-    } else {
-      setLoadMessage('empty');
     }
     setTimeout(() => setLoadMessage(null), 3000);
   };
 
+  // 임시저장에서 불러오기
   const handleLoadDraft = (draft: (typeof MOCK_DRAFT_ASSIGNMENTS)[number]) => {
-    setMenteeId(draft.menteeId);
-    setTitle(draft.title);
-    setSubject(
-      (['국어', '영어', '수학'].includes(draft.subject)
-        ? draft.subject
-        : '국어') as (typeof MAIN_SUBJECTS)[number],
-    );
-    const template = SUBJECT_COLUMN_TEMPLATES[draft.subject] ?? SUBJECT_COLUMN_TEMPLATES.국어;
-    applyColumnTemplate(template);
-    setTempSaveModalOpen(false);
+    const mapped = (
+      ['국어', '영어', '수학'].includes(draft.subject) ? draft.subject : '국어'
+    ) as MainSubject;
+    setForm((prev) => ({ ...prev, menteeId: draft.menteeId, title: draft.title, subject: mapped }));
+    applyTemplate(SUBJECT_COLUMN_TEMPLATES[mapped] ?? '');
+    setActiveModal(null);
   };
 
+  // 파일 업로드
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
-    Array.from(files).forEach((f) => {
-      setUploadedFiles((prev) => [
-        ...prev,
-        {
-          id: `upload-${Date.now()}-${f.name}`,
-          name: f.name,
-          size: `${(f.size / 1024).toFixed(1)} KB`,
-        },
-      ]);
-    });
+    setUploadedFiles((prev) => [
+      ...prev,
+      ...Array.from(files).map((f) => ({
+        id: `upload-${Date.now()}-${f.name}`,
+        name: f.name,
+        size: `${(f.size / 1024).toFixed(1)} KB`,
+      })),
+    ]);
     e.target.value = '';
   };
 
-  const handleSubjectChange = (s: (typeof MAIN_SUBJECTS)[number]) => {
-    setSubject(s);
+  // 폼 검증
+  const validateForm = (): string | null => {
+    if (!form.menteeId || !form.title.trim()) return '대상 학생과 과제 제목을 입력해 주세요.';
+    if (form.dateMode === 'single' && !form.singleDate) return '과제 날짜를 선택해 주세요.';
+    if (form.dateMode === 'recurring') {
+      if (!form.recurringDays.length) return '요일 반복 시 최소 1개 이상의 요일을 선택해 주세요.';
+      if (!form.recurringStartDate || !form.recurringEndDate)
+        return '시작일과 종료일을 선택해 주세요.';
+      if (form.recurringStartDate > form.recurringEndDate)
+        return '시작일이 종료일보다 늦을 수 없습니다.';
+    }
+    return null;
   };
 
+  // 제출
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitError(null);
-    setIsSubmitting(true);
-
-    if (!menteeId || !title.trim()) {
-      setSubmitError('대상 학생과 과제 제목을 입력해 주세요.');
-      setIsSubmitting(false);
+    const error = validateForm();
+    if (error) {
+      setSubmitError(error);
       return;
     }
 
-    if (dateMode === 'single') {
-      if (!singleDate) {
-        setSubmitError('과제 날짜를 선택해 주세요.');
-        setIsSubmitting(false);
-        return;
-      }
-    } else {
-      if (!recurringDays.length) {
-        setSubmitError('요일 반복 시 최소 1개 이상의 요일을 선택해 주세요.');
-        setIsSubmitting(false);
-        return;
-      }
-      if (!recurringStartDate) {
-        setSubmitError('시작일을 선택해 주세요.');
-        setIsSubmitting(false);
-        return;
-      }
-      if (!recurringEndDate) {
-        setSubmitError('종료일을 선택해 주세요.');
-        setIsSubmitting(false);
-        return;
-      }
-      if (recurringStartDate > recurringEndDate) {
-        setSubmitError('시작일이 종료일보다 늦을 수 없습니다.');
-        setIsSubmitting(false);
-        return;
-      }
-    }
+    setSubmitError(null);
+    setIsSubmitting(true);
 
     try {
       const result = await registerAssignment({
-        menteeId,
-        dateMode,
-        singleDate: dateMode === 'single' ? singleDate : undefined,
-        recurringDays: dateMode === 'recurring' ? recurringDays : undefined,
-        recurringStartDate: dateMode === 'recurring' ? recurringStartDate : undefined,
-        recurringEndDate: dateMode === 'recurring' ? recurringEndDate : undefined,
-        recurringEndTime: dateMode === 'recurring' ? recurringEndTime : undefined,
-        title: title.trim(),
-        goal: goal.trim(),
-        subject,
-        content: columnContent.trim() || undefined,
+        menteeId: form.menteeId,
+        dateMode: form.dateMode,
+        singleDate: form.dateMode === 'single' ? form.singleDate : undefined,
+        recurringDays: form.dateMode === 'recurring' ? form.recurringDays : undefined,
+        recurringStartDate: form.dateMode === 'recurring' ? form.recurringStartDate : undefined,
+        recurringEndDate: form.dateMode === 'recurring' ? form.recurringEndDate : undefined,
+        recurringEndTime: form.dateMode === 'recurring' ? form.recurringEndTime : undefined,
+        title: form.title.trim(),
+        goal: form.goal.trim(),
+        subject: form.subject,
+        description: form.description.trim() || undefined,
+        content: form.columnContent.trim() || undefined,
       });
 
       if (result.success) {
-        // 캐시 즉시 갱신 후 이동 (미완료 과제에 바로 반영)
-        queryClient.invalidateQueries({ queryKey: ['incompleteAssignments', menteeId] });
-        await queryClient.refetchQueries({ queryKey: ['incompleteAssignments', menteeId] });
-        queryClient.invalidateQueries({ queryKey: ['mentees'] });
-        queryClient.invalidateQueries({ queryKey: ['submittedAssignments'] });
-        const registeredDate = dateMode === 'single' ? singleDate : recurringStartDate;
-        navigate(menteeId ? `/mentor/mentees/${menteeId}` : '/mentor', {
-          state: { registeredDate },
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['incompleteAssignments', form.menteeId] }),
+          queryClient.invalidateQueries({ queryKey: ['mentees'] }),
+          queryClient.invalidateQueries({ queryKey: ['submittedAssignments'] }),
+        ]);
+        navigate(form.menteeId ? `/mentor/mentees/${form.menteeId}` : '/mentor', {
+          state: {
+            registeredDate: form.dateMode === 'single' ? form.singleDate : form.recurringStartDate,
+          },
         });
       } else {
         setSubmitError(result.message ?? '과제 등록에 실패했습니다.');
-        setIsSubmitting(false);
       }
     } catch (err) {
-      let msg = '과제 등록 중 오류가 발생했습니다. 다시 시도해 주세요.';
-      if (err && typeof err === 'object' && 'response' in err) {
-        const res = (err as { response?: { data?: { message?: string } } }).response;
-        if (res?.data?.message) msg = res.data.message;
-      } else if (err instanceof Error) {
-        msg = err.message;
-      }
-      setSubmitError(msg);
+      setSubmitError(err instanceof Error ? err.message : '과제 등록 중 오류가 발생했습니다.');
+    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
     <div className="mx-auto max-w-7xl space-y-4 pb-12">
-      {/* 액션 버튼 */}
+      {/* 상단 버튼 */}
       <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="outline" icon={Save} onClick={() => setTempSaveModalOpen(true)}>
+        <Button variant="outline" icon={Save} onClick={() => setActiveModal('tempSave')}>
           임시저장 목록
         </Button>
         <Button
           variant="outline"
           icon={Copy}
-          onClick={() => setLoadFromDateModalOpen(true)}
-          disabled={!menteeId}
+          onClick={() => setActiveModal('loadFromDate')}
+          disabled={!form.menteeId}
         >
           이전 날짜 계획 불러오기
         </Button>
       </div>
 
+      {/* 알림 메시지 */}
       {loadMessage && (
         <div
           className={cn(
@@ -334,20 +305,20 @@ export function AssignmentRegisterPage() {
             : '해당 날짜에 등록된 과제가 없습니다.'}
         </div>
       )}
-
       {submitError && (
         <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">{submitError}</div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        {/* 기본 정보 */}
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
           <h2 className="mb-5 text-lg font-semibold text-slate-900">기본 정보</h2>
           <div className="grid items-start gap-6 sm:grid-cols-2">
             <div>
-              <Label htmlFor="mentee">대상 학생 선택</Label>
+              <Label>대상 학생 선택</Label>
               <DefaultSelect
-                value={menteeId}
-                onValueChange={setMenteeId}
+                value={form.menteeId}
+                onValueChange={(v) => updateForm('menteeId', v)}
                 placeholder="학생을 선택하세요"
                 className="mt-1.5"
                 options={mentees.map((m) => ({
@@ -360,41 +331,36 @@ export function AssignmentRegisterPage() {
             <div>
               <Label>과제 날짜</Label>
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setDateMode('single')}
-                  className={cn(
-                    'h-9 rounded-md px-3 text-sm font-medium transition-colors',
-                    dateMode === 'single'
-                      ? 'bg-slate-800 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
-                  )}
-                >
-                  단일 날짜
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDateMode('recurring')}
-                  className={cn(
-                    'h-9 rounded-md px-3 text-sm font-medium transition-colors',
-                    dateMode === 'recurring'
-                      ? 'bg-slate-800 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
-                  )}
-                >
-                  요일 반복
-                </button>
-                {dateMode === 'single' && (
-                  <DatePicker value={singleDate} onChange={setSingleDate} placeholder="날짜 선택" />
+                {(['single', 'recurring'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => updateForm('dateMode', mode)}
+                    className={cn(
+                      'h-9 rounded-md px-3 text-sm font-medium transition-colors',
+                      form.dateMode === mode
+                        ? 'bg-slate-800 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                    )}
+                  >
+                    {mode === 'single' ? '단일 날짜' : '요일 반복'}
+                  </button>
+                ))}
+                {form.dateMode === 'single' && (
+                  <DatePicker
+                    value={form.singleDate}
+                    onChange={(v) => updateForm('singleDate', v)}
+                    placeholder="날짜 선택"
+                  />
                 )}
               </div>
-              {dateMode === 'recurring' && (
+              {form.dateMode === 'recurring' && (
                 <div className="mt-4 space-y-4">
                   <div>
                     <p className="mb-2 text-xs font-medium text-slate-600">반복 요일</p>
                     <WeekdaySelector
-                      value={recurringDays}
-                      onChange={handleRecurringDaysChange}
+                      value={form.recurringDays}
+                      onChange={(v) => updateForm('recurringDays', v)}
                       className="w-full"
                     />
                   </div>
@@ -402,25 +368,22 @@ export function AssignmentRegisterPage() {
                     <div className="flex flex-col gap-1.5">
                       <Label className="text-sm font-medium text-slate-700">시작일</Label>
                       <DatePicker
-                        value={recurringStartDate}
-                        onChange={setRecurringStartDate}
-                        placeholder="시작일 선택"
+                        value={form.recurringStartDate}
+                        onChange={(v) => updateForm('recurringStartDate', v)}
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label className="text-sm font-medium text-slate-700">종료일</Label>
                       <DatePicker
-                        value={recurringEndDate}
-                        onChange={setRecurringEndDate}
-                        placeholder="종료일 선택"
+                        value={form.recurringEndDate}
+                        onChange={(v) => updateForm('recurringEndDate', v)}
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label className="text-sm font-medium text-slate-700">종료 시간</Label>
                       <TimePicker
-                        value={recurringEndTime}
-                        onChange={setRecurringEndTime}
-                        placeholder="시간 선택"
+                        value={form.recurringEndTime}
+                        onChange={(v) => updateForm('recurringEndTime', v)}
                       />
                     </div>
                   </div>
@@ -429,7 +392,7 @@ export function AssignmentRegisterPage() {
             </div>
           </div>
 
-          {displayMentee && (
+          {selectedMentee && (
             <div className="mt-4 rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-4">
               <p className="text-sm font-medium text-slate-700">학생 정보 요약</p>
               <ul className="mt-2 space-y-1 text-xs text-slate-600">
@@ -445,28 +408,24 @@ export function AssignmentRegisterPage() {
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
           <h2 className="mb-6 text-lg font-semibold text-slate-900">과제 상세 정보</h2>
           <div className="space-y-6">
-            <div>
-              <Label htmlFor="title">과제 제목</Label>
-              <Input
-                id="title"
-                placeholder="예: 2월 15일 수학 미적분 학습"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="mt-1.5 h-10"
-              />
-            </div>
+            <Input
+              label="과제 제목"
+              placeholder="예: 2월 15일 수학 미적분 학습"
+              value={form.title}
+              onChange={(e) => updateForm('title', e.target.value)}
+              className="h-10"
+            />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label>과목 선택</Label>
                 <DefaultSelect
-                  value={subject}
-                  onValueChange={(v) => handleSubjectChange(v as typeof subject)}
+                  value={form.subject}
+                  onValueChange={(v) => updateForm('subject', v as MainSubject)}
                   placeholder="과목을 선택하세요"
                   className="mt-1.5"
                   options={MAIN_SUBJECTS}
                 />
               </div>
-
               <div>
                 <Label>과제 목표 선택</Label>
                 {learningGoals.length === 0 ? (
@@ -479,24 +438,35 @@ export function AssignmentRegisterPage() {
                   </div>
                 ) : (
                   <DefaultSelect
-                    value={improvementPointId}
-                    onValueChange={setImprovementPointId}
+                    value={form.improvementPointId}
+                    onValueChange={handleGoalSelect}
                     placeholder="과제 목표를 선택하세요"
                     className="mt-1.5"
                     options={learningGoals.map((g) => ({
                       value: g.id,
-                      label:
-                        g.materialIds && g.materialIds.length > 0
-                          ? `${g.name} (${g.materialIds.length}개 학습자료)`
-                          : g.name,
+                      label: g.materialIds?.length
+                        ? `${g.name} (${g.materialIds.length}개 학습자료)`
+                        : g.name,
                     }))}
                   />
                 )}
               </div>
             </div>
+            <div>
+              <Label>과제 내용</Label>
+              <div className="mt-1.5">
+                <ColumnEditor
+                  defaultValue={form.description}
+                  onChange={(v) => updateForm('description', v)}
+                  placeholder="과제 내용을 상세히 입력하세요. (예: 학습 범위, 세부 지시사항 등)"
+                  minHeight="150px"
+                />
+              </div>
+            </div>
           </div>
         </section>
 
+        {/* 학습 자료 */}
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
           <h2 className="mb-4 text-lg font-semibold text-slate-900">학습 자료</h2>
           <Tabs
@@ -515,13 +485,11 @@ export function AssignmentRegisterPage() {
                   동기부여·학습법 칼럼 템플릿
                 </p>
                 <Select
-                  value={motivationalTemplateId}
+                  value={form.motivationalTemplateId}
                   onValueChange={(id) => {
-                    setMotivationalTemplateId(id);
-                    if (id) {
-                      const t = MOTIVATIONAL_COLUMN_TEMPLATES.find((m) => m.id === id);
-                      if (t) applyColumnTemplate(t.content);
-                    }
+                    updateForm('motivationalTemplateId', id);
+                    const t = MOTIVATIONAL_COLUMN_TEMPLATES.find((m) => m.id === id);
+                    if (t) applyTemplate(t.content);
                   }}
                 >
                   <SelectTrigger className="w-full max-w-md">
@@ -551,15 +519,13 @@ export function AssignmentRegisterPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <ColumnEditor
-                  key={editorKey}
-                  defaultValue={columnContent}
-                  onChange={setColumnContent}
-                  placeholder="학습 가이드 내용을 입력하세요. 과목 선택 시 기본 템플릿이 표시될 수 있습니다."
-                  minHeight="280px"
-                />
-              </div>
+              <ColumnEditor
+                key={editorKey}
+                defaultValue={form.columnContent}
+                onChange={(v) => updateForm('columnContent', v)}
+                placeholder="학습 가이드 내용을 입력하세요."
+                minHeight="280px"
+              />
             </div>
           ) : (
             <div className="mt-4 space-y-4">
@@ -615,30 +581,30 @@ export function AssignmentRegisterPage() {
           )}
         </section>
 
-        {/* 제출 */}
+        {/* 제출 버튼 */}
         <div className="flex justify-end gap-2">
-          <Link to={menteeId ? `/mentor/mentees/${menteeId}` : '/mentor'}>
+          <Link to={form.menteeId ? `/mentor/mentees/${form.menteeId}` : '/mentor'}>
             <Button type="button" variant="outline">
               취소
             </Button>
           </Link>
-          <Button type="submit" disabled={!menteeId || !title.trim() || isSubmitting}>
+          <Button type="submit" disabled={!form.menteeId || !form.title.trim() || isSubmitting}>
             {isSubmitting ? '등록 중...' : '과제 등록'}
           </Button>
         </div>
       </form>
 
+      {/* 모달 */}
       <LoadFromDateModal
-        isOpen={loadFromDateModalOpen}
-        onClose={() => setLoadFromDateModalOpen(false)}
-        selectedDate={singleDate}
+        isOpen={activeModal === 'loadFromDate'}
+        onClose={() => setActiveModal(null)}
+        selectedDate={form.singleDate}
         highlightDates={highlightDates}
         onConfirm={handleLoadFromDate}
       />
-
       <TempSaveListModal
-        isOpen={tempSaveModalOpen}
-        onClose={() => setTempSaveModalOpen(false)}
+        isOpen={activeModal === 'tempSave'}
+        onClose={() => setActiveModal(null)}
         drafts={MOCK_DRAFT_ASSIGNMENTS}
         onLoadDraft={handleLoadDraft}
       />
