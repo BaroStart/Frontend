@@ -32,7 +32,7 @@ const ASSIGNMENTS: Assignment[] = [
     subject: '수학',
     title: '미적분 II - 치환적분 연습',
     description: '부분적분과 치환적분을 활용한 정적분 문제 풀이 및 심화 응용',
-    submissionDate: '2025.02.02 14:30',
+    submissionDate: '2026.02.02 14:30',
     status: '완료',
   },
   {
@@ -40,7 +40,7 @@ const ASSIGNMENTS: Assignment[] = [
     subject: '영어',
     title: '영어 독해 - 주제문 찾기',
     description: '고난도 지문 3개 분석 및 주제 파악 연습 (수능 기출 변형)',
-    submissionDate: '2025.02.02 11:20',
+    submissionDate: '2026.02.02 11:20',
     status: '완료',
   },
   {
@@ -48,7 +48,7 @@ const ASSIGNMENTS: Assignment[] = [
     subject: '국어',
     title: '현대시 감상 - 표현 기법',
     description: '은유, 직유, 의인법 등 표현 기법 분석 및 에세이 작성',
-    submissionDate: '2025.02.02 09:40',
+    submissionDate: '2026.02.02 09:40',
     status: '완료',
   },
   {
@@ -56,7 +56,7 @@ const ASSIGNMENTS: Assignment[] = [
     subject: '수학',
     title: '확률과 통계 - 조건부 확률',
     description: '조건부 확률의 정의와 곱셈정리를 이용한 문제 해결',
-    submissionDate: '2025.02.03 10:00',
+    submissionDate: '2026.02.03 10:00',
     status: '미완료',
   },
 ];

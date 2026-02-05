@@ -41,6 +41,7 @@ export function AuthPhotoViewer({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
   const currentPhoto = photos[currentIndex];
@@ -98,11 +99,37 @@ export function AuthPhotoViewer({
     [scale, zoomTo, resetView]
   );
 
+  /** 이미지 로드 시 뷰포트에 맞게 최대 크기로 표시 */
+  const fitImageToContainer = useCallback(() => {
+    const viewport = viewportRef.current;
+    const img = imgRef.current;
+    if (!viewport || !img || !img.naturalWidth || !img.naturalHeight) return;
+    const cw = viewport.clientWidth;
+    const ch = viewport.clientHeight;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    if (cw <= 0 || ch <= 0) return;
+    const fitScale = Math.min(cw / iw, ch / ih, MAX_SCALE);
+    const clamped = Math.max(MIN_SCALE, Math.min(MAX_SCALE, fitScale));
+    setScale(clamped);
+    setPosition({ x: 0, y: 0 });
+  }, []);
+
   useEffect(() => {
     const up = () => setIsDragging(false);
     window.addEventListener('mouseup', up);
     return () => window.removeEventListener('mouseup', up);
   }, []);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      if (imageLoaded && !imageError) fitImageToContainer();
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [imageLoaded, imageError, fitImageToContainer]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -138,8 +165,9 @@ export function AuthPhotoViewer({
   const rotateLeft = () => setRotate((r) => r - 90);
   const rotateRight = () => setRotate((r) => r + 90);
   const fitToScreen = () => {
-    resetView();
-    setScale(1);
+    setPosition({ x: 0, y: 0 });
+    setRotate(0);
+    fitImageToContainer();
   };
 
   const toggleFullscreen = () => {
@@ -300,7 +328,7 @@ export function AuthPhotoViewer({
             type="button"
             onClick={fitToScreen}
             className={btnClass}
-            title="보기 초기화"
+            title="화면에 맞춤 (최대 크기로 표시)"
           >
             <Move className="h-4 w-4" />
           </button>
@@ -308,7 +336,7 @@ export function AuthPhotoViewer({
             type="button"
             onClick={toggleFullscreen}
             className={btnClass}
-            title="전체화면 (Esc로 종료)"
+            title="전체화면 (최대 크기로 보기, Esc로 종료)"
           >
             <Maximize2 className="h-4 w-4" />
           </button>
@@ -317,6 +345,7 @@ export function AuthPhotoViewer({
 
       {/* 이미지 영역 */}
       <div
+        ref={viewportRef}
         className={cn(
           'relative flex min-h-[360px] flex-1 items-center justify-center overflow-hidden',
           bgClass
@@ -367,11 +396,13 @@ export function AuthPhotoViewer({
             width: 'auto',
             height: 'auto',
             objectFit: 'contain',
-            // 확대 시 선명도 향상 (WebKit, 사진 검토용)
             imageRendering: '-webkit-optimize-contrast',
           } as React.CSSProperties}
           draggable={false}
-          onLoad={() => setImageLoaded(true)}
+          onLoad={() => {
+            setImageLoaded(true);
+            requestAnimationFrame(() => fitImageToContainer());
+          }}
           onError={() => setImageError(true)}
           fetchPriority="high"
         />
@@ -402,7 +433,9 @@ export function AuthPhotoViewer({
           textClass
         )}
       >
-        <span className="truncate">마우스 휠 확대/축소 · 드래그 이동 · 더블클릭 2배 줌</span>
+        <span className="truncate">
+          마우스 휠 확대/축소 · 드래그 이동 · 더블클릭 2배 줌 · <strong>전체화면 버튼(↗)</strong>으로 최대 크기
+        </span>
         <span className="shrink-0 opacity-70">+ / - / R / Esc</span>
       </div>
     </div>

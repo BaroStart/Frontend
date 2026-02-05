@@ -45,7 +45,7 @@ import type {
   MenteeTask,
 } from '@/types';
 
-/** "2025.02.02 오전 10:45" → "2025-02-02" */
+/** "2026.02.02 오전 10:45" → "2026-02-02" */
 function parseDateFromStr(str: string): string | null {
   const match = str.match(/(\d{4})\.(\d{1,2})\.(\d{1,2})/);
   if (!match) return null;
@@ -86,8 +86,13 @@ function formatDisplayDate(dateStr: string) {
   return `${y}년 ${parseInt(m, 10)}월 ${parseInt(d, 10)}일 ${weekdays[date.getDay()]}`;
 }
 
-/** 더미데이터(2025-02)와 맞춤 - 기능 확인용 */
-const DEMO_REF_DATE = '2025-02-04';
+function getTodayDateStr(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 function getAllScoresAverage(mentee: MenteeSummary): number | null {
   const s = mentee.scores;
@@ -116,7 +121,7 @@ export function MenteeDetailPage() {
   const { data: serverIncomplete = [] } = useIncompleteAssignments(menteeId);
   const { data: todayCommentData = null } = useTodayComment(menteeId);
 
-  const [selectedDate, setSelectedDate] = useState(DEMO_REF_DATE);
+  const [selectedDate, setSelectedDate] = useState(() => getTodayDateStr());
   const [viewMode, setViewMode] = useState<'today' | 'week' | 'month'>('today');
 
   useEffect(() => {
@@ -252,7 +257,7 @@ export function MenteeDetailPage() {
 
   const handleViewMode = (mode: 'today' | 'week' | 'month') => {
     setViewMode(mode);
-    if (mode === 'today') setSelectedDate(DEMO_REF_DATE);
+    if (mode === 'today') setSelectedDate(getTodayDateStr());
   };
 
   const handleAssignmentComplete = async (assignmentId: string) => {

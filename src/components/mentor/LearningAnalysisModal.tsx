@@ -164,7 +164,7 @@ export function LearningAnalysisModal({
             type="button"
             onClick={() => {
               onClose();
-              navigate(`/mentor/assignments?tab=analytics&menteeId=${menteeId}`);
+              navigate('/mentor/feedback?tab=analytics');
             }}
             className="w-full"
           >

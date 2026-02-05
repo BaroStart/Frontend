@@ -51,7 +51,7 @@ export function MenteeMainPage() {
         id: "a1",
         title: "물리 실험 보고서 작성",
         status: "PENDING",
-        dueAtText: "2025.02.04 (월) 18:00",
+        dueAtText: "2026.02.04 (월) 18:00",
       },
       {
         id: "a2",

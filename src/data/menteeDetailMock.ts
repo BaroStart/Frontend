@@ -8,50 +8,61 @@ import type {
 } from '@/types';
 
 export const MOCK_MENTEE_TASKS: MenteeTask[] = [
-  { id: 't1', menteeId: 's1', date: '2025-02-02', title: '영어 듣기 평가 20문제', subject: '영어', completed: true, completedAt: '오전 8:00' },
-  { id: 't2', menteeId: 's1', date: '2025-02-02', title: '수학 개념 노트 정리 (미분)', subject: '수학', completed: false, estimatedMinutes: 30 },
-  { id: 't3', menteeId: 's1', date: '2025-02-02', title: '국어 비문학 지문 3개 읽기', subject: '국어', completed: true, completedAt: '오후 1:30' },
-  { id: 't4', menteeId: 's1', date: '2025-02-02', title: '화학 원소 주기', subject: '과학', completed: false },
-  { id: 't5', menteeId: 's1', date: '2025-02-01', title: '영어 독해', subject: '영어', completed: true, completedAt: '오후 3:00' },
-  { id: 't6', menteeId: 's1', date: '2025-02-01', title: '국어 문법', subject: '국어', completed: true, completedAt: '오후 5:00' },
-  { id: 't7', menteeId: 's1', date: '2025-02-03', title: '수학 연습', subject: '수학', completed: false },
-  { id: 't8', menteeId: 's1', date: '2025-02-03', title: '화학 실험', subject: '과학', completed: false },
-  { id: 't9', menteeId: 's2', date: '2025-02-04', title: '물리 실험 정리', subject: '과학', completed: false },
-  { id: 't10', menteeId: 's2', date: '2025-02-04', title: '수학 문제풀이', subject: '수학', completed: true, completedAt: '오전 9:00' },
+  { id: 't1', menteeId: 's1', date: '2026-02-02', title: '영어 듣기 평가 20문제', subject: '영어', completed: true, completedAt: '오전 8:00' },
+  { id: 't2', menteeId: 's1', date: '2026-02-02', title: '수학 개념 노트 정리 (미분)', subject: '수학', completed: false, estimatedMinutes: 30 },
+  { id: 't3', menteeId: 's1', date: '2026-02-02', title: '국어 비문학 지문 3개 읽기', subject: '국어', completed: true, completedAt: '오후 1:30' },
+  { id: 't4', menteeId: 's1', date: '2026-02-02', title: '화학 원소 주기', subject: '과학', completed: false },
+  { id: 't5', menteeId: 's1', date: '2026-02-01', title: '영어 독해', subject: '영어', completed: true, completedAt: '오후 3:00' },
+  { id: 't6', menteeId: 's1', date: '2026-02-01', title: '국어 문법', subject: '국어', completed: true, completedAt: '오후 5:00' },
+  { id: 't7', menteeId: 's1', date: '2026-02-03', title: '수학 연습', subject: '수학', completed: false },
+  { id: 't8', menteeId: 's1', date: '2026-02-03', title: '화학 실험', subject: '과학', completed: false },
+  { id: 't9', menteeId: 's2', date: '2026-02-04', title: '물리 실험 정리', subject: '과학', completed: false },
+  { id: 't10', menteeId: 's2', date: '2026-02-04', title: '수학 문제풀이', subject: '수학', completed: true, completedAt: '오전 9:00' },
 ];
 
 export const MOCK_FEEDBACK_ITEMS: FeedbackItem[] = [
-  { id: 'f1', assignmentId: 'a1', menteeId: 's1', title: '영어 독해 - Chapter 5 문제풀이', subject: '영어', submittedAt: '2025.02.02 오전 10:45', status: 'urgent' },
-  { id: 'f2', assignmentId: 'a2', menteeId: 's1', title: '영어 단어 암기 - Day 15', subject: '영어', submittedAt: '2025.02.02 오후 3:20', status: 'pending' },
-  { id: 'f3', assignmentId: 'a3', menteeId: 's1', title: '수학 미적분 - 연습문제 3-2', subject: '수학', submittedAt: '2025.02.02 오후 5:30', status: 'partial', progress: 60, lastUpdate: '오후 5:30' },
-  { id: 'f4', assignmentId: 'a4', menteeId: 's1', title: '국어 비문학 독해 - 연습문제 2 완료', subject: '국어', submittedAt: '2025.02.01', status: 'completed', feedbackText: '지문의 핵심 내용을 잘 파악했어요. 다만 세부 정보를 묻는 문제에서 실수가 있었으니...', feedbackDate: '2025.02.01 오후 8:30' },
-  { id: 'f5', assignmentId: 'a5', menteeId: 's1', title: '수학 기하 - 벡터 문제 풀이 완료', subject: '수학', submittedAt: '2025.02.01', status: 'completed', feedbackDate: '2025.02.01 오후 6:15' },
-  { id: 'f6', assignmentId: 'a6', menteeId: 's1', title: '과학 실험 보고서 - 화학 반응', subject: '과학', submittedAt: '2025.02.05 오전 9:00', status: 'pending' },
-  { id: 'f11', assignmentId: 'a11', menteeId: 's1', title: '수학 오답노트 정리', subject: '수학', submittedAt: '2025.02.04 오전 9:00', status: 'urgent' },
-  { id: 'f12', assignmentId: 'a12', menteeId: 's1', title: '영어 듣기 평가', subject: '영어', submittedAt: '2025.02.04 오후 2:00', status: 'pending' },
-  { id: 'f7', assignmentId: 'a7', menteeId: 's1', title: '국어 문학 - 시 감상문', subject: '국어', submittedAt: '2025.02.10 오후 2:00', status: 'pending' },
-  { id: 'f8', assignmentId: 'a8', menteeId: 's2', title: '물리 실험 보고서 - 뉴턴 법칙', subject: '과학', submittedAt: '2025.02.04 오전 10:00', status: 'urgent' },
-  { id: 'f9', assignmentId: 'a9', menteeId: 's2', title: '수학 미적분 - 적분 연습', subject: '수학', submittedAt: '2025.02.03 오후 3:00', status: 'pending' },
-  { id: 'f10', assignmentId: 'a10', menteeId: 's2', title: '영어 독해 - 지문 분석', subject: '영어', submittedAt: '2025.02.01', status: 'completed', feedbackDate: '2025.02.02 오후 5:00' },
+  { id: 'f1', assignmentId: 'a1', menteeId: 's1', title: '영어 독해 - Chapter 5 문제풀이', subject: '영어', submittedAt: '2026.02.02 오전 10:45', status: 'urgent' },
+  { id: 'f2', assignmentId: 'a2', menteeId: 's1', title: '영어 단어 암기 - Day 15', subject: '영어', submittedAt: '2026.02.02 오후 3:20', status: 'pending' },
+  { id: 'f3', assignmentId: 'a3', menteeId: 's1', title: '수학 미적분 - 연습문제 3-2', subject: '수학', submittedAt: '2026.02.02 오후 5:30', status: 'partial', progress: 60, lastUpdate: '오후 5:30' },
+  { id: 'f4', assignmentId: 'a4', menteeId: 's1', title: '국어 비문학 독해 - 연습문제 2 완료', subject: '국어', submittedAt: '2026.02.01', status: 'completed', feedbackText: '지문의 핵심 내용을 잘 파악했어요. 다만 세부 정보를 묻는 문제에서 실수가 있었으니...', feedbackDate: '2026.02.01 오후 8:30' },
+  { id: 'f5', assignmentId: 'a5', menteeId: 's1', title: '수학 기하 - 벡터 문제 풀이 완료', subject: '수학', submittedAt: '2026.02.01', status: 'completed', feedbackDate: '2026.02.01 오후 6:15' },
+  { id: 'f6', assignmentId: 'a6', menteeId: 's1', title: '과학 실험 보고서 - 화학 반응', subject: '과학', submittedAt: '2026.02.05 오전 9:00', status: 'pending' },
+  { id: 'f11', assignmentId: 'a11', menteeId: 's1', title: '수학 오답노트 정리', subject: '수학', submittedAt: '2026.02.04 오전 9:00', status: 'urgent' },
+  { id: 'f12', assignmentId: 'a12', menteeId: 's1', title: '영어 듣기 평가', subject: '영어', submittedAt: '2026.02.04 오후 2:00', status: 'pending' },
+  { id: 'f7', assignmentId: 'a7', menteeId: 's1', title: '국어 문학 - 시 감상문', subject: '국어', submittedAt: '2026.02.10 오후 2:00', status: 'pending' },
+  { id: 'f8', assignmentId: 'a8', menteeId: 's2', title: '물리 실험 보고서 - 뉴턴 법칙', subject: '과학', submittedAt: '2026.02.04 오전 10:00', status: 'urgent' },
+  { id: 'f9', assignmentId: 'a9', menteeId: 's2', title: '수학 미적분 - 적분 연습', subject: '수학', submittedAt: '2026.02.03 오후 3:00', status: 'pending' },
+  { id: 'f10', assignmentId: 'a10', menteeId: 's2', title: '영어 독해 - 지문 분석', subject: '영어', submittedAt: '2026.02.01', status: 'completed', feedbackDate: '2026.02.02 오후 5:00' },
 ];
+
+/** 오늘 기준 상대 날짜 (YYYY-MM-DD) - 더미가 항상 현재 주/월에 보이도록 */
+function getDemoDate(daysOffset: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + daysOffset);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 /**
  * 미완료 과제 - IncompleteAssignment.id = FeedbackItem.assignmentId (동일 과제는 같은 ID 사용)
  * 과제 완료 시 피드백 대시보드에 추가되므로, 이미 피드백 항목이 있으면 중복 생성하지 않음
+ * getDemoDate()로 오늘 기준 날짜를 사용해 항상 표시되도록 함
  */
 export const MOCK_INCOMPLETE_ASSIGNMENTS: IncompleteAssignment[] = [
-  { id: 'a1', menteeId: 's1', title: '영어 독해 - Chapter 5 문제풀이', subject: '영어', description: '교재: 수능특강 영어독해/페이지: 45-52', status: 'completed', completedAt: '오전 10:45', completedAtDate: '2025-02-02' },
-  { id: 'a3', menteeId: 's1', title: '수학 미적분 - 연습문제 3-2', subject: '수학', description: '교재: EBS 수능완성 수학 / 페이지: 78-82', deadline: '오후 11:59', deadlineDate: '2025-02-02', status: 'in_progress' },
-  { id: 'a13', menteeId: 's1', title: '국어 문법 - 품사 분류 연습', subject: '국어', description: '워크시트 5장 / 온라인 제출', deadline: '오후 11:59', deadlineDate: '2025-02-03', status: 'not_started' },
-  { id: 'a2', menteeId: 's1', title: '영어 단어 암기 - Day 15', subject: '영어', description: '단어장: 수능필수 영단어 / 50개', status: 'completed', completedAt: '오후 3:20', completedAtDate: '2025-02-02' },
-  { id: 'a11', menteeId: 's1', title: '수학 오답노트 정리', subject: '수학', description: '지난주 모의고사 틀린 문제 5개', deadline: '1시간 후', deadlineDate: '2025-02-02', status: 'deadline_soon' },
-  { id: 'a14', menteeId: 's1', title: '영어 에세이 - 환경 문제', subject: '영어', description: '200자 이상 영작', deadline: '오후 11:59', deadlineDate: '2025-02-06', status: 'not_started' },
-  { id: 'a7', menteeId: 's1', title: '국어 문학 감상문', subject: '국어', description: '시 2편 분석', deadline: '오후 11:59', deadlineDate: '2025-02-04', status: 'deadline_soon' },
-  { id: 'a6', menteeId: 's1', title: '과학 실험 예비보고서', subject: '과학', description: '실험 설계 및 가설', status: 'completed', completedAt: '오전 11:00', completedAtDate: '2025-02-04' },
-  { id: 'a15', menteeId: 's1', title: '과학 탐구 보고서', subject: '과학', description: '주제 선정 및 계획서', deadline: '오후 11:59', deadlineDate: '2025-02-15', status: 'not_started' },
-  { id: 'a8', menteeId: 's2', title: '물리 실험 보고서', subject: '과학', description: '뉴턴 제2법칙 검증 실험', deadline: '오후 11:59', deadlineDate: '2025-02-04', status: 'deadline_soon' },
-  { id: 'a9', menteeId: 's2', title: '수학 미적분 문제집', subject: '수학', description: '3단원 연습문제 1-20', deadline: '오후 11:59', deadlineDate: '2025-02-05', status: 'in_progress' },
-  { id: 'a16', menteeId: 's2', title: '영어 에세이', subject: '영어', description: '환경 보호 주제 200자', status: 'completed', completedAt: '오후 2:00', completedAtDate: '2025-02-03' },
+  { id: 'a1', menteeId: 's1', title: '영어 독해 - Chapter 5 문제풀이', subject: '영어', description: '교재: 수능특강 영어독해/페이지: 45-52', status: 'completed', completedAt: '오전 10:45', completedAtDate: getDemoDate(-3) },
+  { id: 'a3', menteeId: 's1', title: '수학 미적분 - 연습문제 3-2', subject: '수학', description: '교재: EBS 수능완성 수학 / 페이지: 78-82', deadline: '오후 11:59', deadlineDate: getDemoDate(-3), status: 'in_progress' },
+  { id: 'a13', menteeId: 's1', title: '국어 문법 - 품사 분류 연습', subject: '국어', description: '워크시트 5장 / 온라인 제출', deadline: '오후 11:59', deadlineDate: getDemoDate(-2), status: 'not_started' },
+  { id: 'a2', menteeId: 's1', title: '영어 단어 암기 - Day 15', subject: '영어', description: '단어장: 수능필수 영단어 / 50개', status: 'completed', completedAt: '오후 3:20', completedAtDate: getDemoDate(-3) },
+  { id: 'a11', menteeId: 's1', title: '수학 오답노트 정리', subject: '수학', description: '지난주 모의고사 틀린 문제 5개', deadline: '1시간 후', deadlineDate: getDemoDate(0), status: 'deadline_soon' },
+  { id: 'a14', menteeId: 's1', title: '영어 에세이 - 환경 문제', subject: '영어', description: '200자 이상 영작', deadline: '오후 11:59', deadlineDate: getDemoDate(1), status: 'not_started' },
+  { id: 'a7', menteeId: 's1', title: '국어 문학 감상문', subject: '국어', description: '시 2편 분석', deadline: '오후 11:59', deadlineDate: getDemoDate(-1), status: 'deadline_soon' },
+  { id: 'a6', menteeId: 's1', title: '과학 실험 예비보고서', subject: '과학', description: '실험 설계 및 가설', status: 'completed', completedAt: '오전 11:00', completedAtDate: getDemoDate(-1) },
+  { id: 'a15', menteeId: 's1', title: '과학 탐구 보고서', subject: '과학', description: '주제 선정 및 계획서', deadline: '오후 11:59', deadlineDate: getDemoDate(10), status: 'not_started' },
+  { id: 'a8', menteeId: 's2', title: '물리 실험 보고서', subject: '과학', description: '뉴턴 제2법칙 검증 실험', deadline: '오후 11:59', deadlineDate: getDemoDate(-1), status: 'deadline_soon' },
+  { id: 'a9', menteeId: 's2', title: '수학 미적분 문제집', subject: '수학', description: '3단원 연습문제 1-20', deadline: '오후 11:59', deadlineDate: getDemoDate(0), status: 'in_progress' },
+  { id: 'a16', menteeId: 's2', title: '영어 에세이', subject: '영어', description: '환경 보호 주제 200자', status: 'completed', completedAt: '오후 2:00', completedAtDate: getDemoDate(-2) },
 ];
 
 export const MOCK_TODAY_COMMENTS: TodayComment[] = [
@@ -72,7 +83,7 @@ export const MOCK_ASSIGNMENT_DETAILS: Record<string, AssignmentDetail> = {
     assignmentId: 'a11',
     title: '수학 오답노트 정리',
     subject: '수학',
-    date: '2025.02.04',
+    date: '2026.02.04',
     goal: '지난주 모의고사에서 틀린 문제 5개를 분석하고 유형별로 정리하여 재시험 대비',
     content: `
 <p>지난주 수학 모의고사에서 틀린 문제를 중심으로 오답노트를 작성해 주세요.</p>
@@ -112,7 +123,7 @@ export const MOCK_ASSIGNMENT_DETAILS: Record<string, AssignmentDetail> = {
     assignmentId: 'a1',
     title: '비문학 독해 연습',
     subject: '국어',
-    date: '2025.02.02',
+    date: '2026.02.02',
     goal: '과학 지문 3개 풀이 및 오답 분석',
     content: '<p>교재: 수능특강 영어독해 / 페이지: 45-52</p><p>지문 2개 읽고 문제 풀이 후 오답 체크해 주세요.</p>',
     contentChecklist: [
@@ -139,7 +150,7 @@ export const MOCK_ASSIGNMENT_DETAILS: Record<string, AssignmentDetail> = {
     assignmentId: 'a7',
     title: '국어 문학 - 시 감상문',
     subject: '국어',
-    date: '2025.02.04',
+    date: '2026.02.04',
     goal: '시 2편을 읽고 감상문 작성 (각 200자 이상)',
     content: '<p>시 2편 분석 후 감상문을 작성해 주세요. 시의 주제, 표현 기법, 느낀 점을 포함해 주세요.</p>',
     providedPdfs: [],

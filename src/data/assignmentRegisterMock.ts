@@ -246,9 +246,9 @@ export const MOCK_IMPROVEMENT_POINTS: ImprovementPoint[] = [
 ];
 
 export const MOCK_LEARNING_MATERIALS: LearningMaterial[] = [
-  { id: 'mat1', title: '2025 수능특강 비문학.pdf', fileSize: '2.4 MB', improvementPointId: 'ip1', subject: '국어' },
+  { id: 'mat1', title: '2026 수능특강 비문학.pdf', fileSize: '2.4 MB', improvementPointId: 'ip1', subject: '국어' },
   { id: 'mat2', title: '문학 감상문 작성법.pdf', fileSize: '1.2 MB', improvementPointId: 'ip2', subject: '국어' },
-  { id: 'mat3', title: '2025 수능특강 영어독해.pdf', fileSize: '2.4 MB', improvementPointId: 'ip3', subject: '영어' },
+  { id: 'mat3', title: '2026 수능특강 영어독해.pdf', fileSize: '2.4 MB', improvementPointId: 'ip3', subject: '영어' },
   { id: 'mat4', title: '영어 독해 학습 가이드.pdf', fileSize: '0.8 MB', improvementPointId: 'ip3', subject: '영어' },
   { id: 'mat5', title: '수능 필수 영단어 50.pdf', fileSize: '0.5 MB', improvementPointId: 'ip4', subject: '영어' },
   { id: 'mat6', title: 'EBS 수능완성 수학.pdf', fileSize: '3.1 MB', improvementPointId: 'ip5', subject: '수학' },
@@ -263,7 +263,7 @@ export const MOCK_DRAFT_ASSIGNMENTS: DraftAssignment[] = [
     menteeName: '박지민',
     title: '2월 15일 수학 미적분 학습',
     subject: '수학',
-    savedAt: '2025.02.04 14:30',
+    savedAt: '2026.02.04 14:30',
     formData: {},
   },
   {
@@ -272,7 +272,7 @@ export const MOCK_DRAFT_ASSIGNMENTS: DraftAssignment[] = [
     menteeName: '박지민',
     title: '영어 독해 2지문',
     subject: '영어',
-    savedAt: '2025.02.03 09:15',
+    savedAt: '2026.02.03 09:15',
     formData: {},
   },
   {
@@ -281,7 +281,7 @@ export const MOCK_DRAFT_ASSIGNMENTS: DraftAssignment[] = [
     menteeName: '이서연',
     title: '물리 실험 보고서',
     subject: '과학',
-    savedAt: '2025.02.02 22:00',
+    savedAt: '2026.02.02 22:00',
     formData: {},
   },
 ];

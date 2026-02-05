@@ -18,7 +18,7 @@ export interface PlannerFeedback {
   createdAt: string;
 }
 
-const DEMO_DATE = '2025-02-04';
+const DEMO_DATE = '2026-02-04';
 
 export const MOCK_PLANNER_RECORDS: PlannerRecord[] = [
   { id: 'pr1', menteeId: 's1', date: DEMO_DATE, subject: '수학', durationMinutes: 172, startHour: 6 },
@@ -30,8 +30,8 @@ export const MOCK_PLANNER_RECORDS: PlannerRecord[] = [
   { id: 'pr7', menteeId: 's2', date: DEMO_DATE, subject: '수학', durationMinutes: 120, startHour: 8 },
   { id: 'pr8', menteeId: 's2', date: DEMO_DATE, subject: '영어', durationMinutes: 90, startHour: 11 },
   { id: 'pr9', menteeId: 's2', date: DEMO_DATE, subject: '과학', durationMinutes: 60, startHour: 14 },
-  { id: 'pr10', menteeId: 's1', date: '2025-02-03', subject: '수학', durationMinutes: 90, startHour: 9 },
-  { id: 'pr11', menteeId: 's1', date: '2025-02-03', subject: '영어', durationMinutes: 75, startHour: 11 },
+  { id: 'pr10', menteeId: 's1', date: '2026-02-03', subject: '수학', durationMinutes: 90, startHour: 9 },
+  { id: 'pr11', menteeId: 's1', date: '2026-02-03', subject: '영어', durationMinutes: 75, startHour: 11 },
 ];
 
 function formatDuration(minutes: number): string {
