@@ -30,17 +30,12 @@ import { getDefaultFeedbackTemplate, getFeedbackTemplates } from '@/lib/feedback
 import type { FeedbackItem } from '@/lib/mentorFeedbackStorage';
 import { getMentorFeedback, saveMentorFeedback } from '@/lib/mentorFeedbackStorage';
 import { cn } from '@/lib/utils';
+import type { FeedbackItemData } from '@/types';
 
 function parseDateFromSubmittedAt(submittedAt: string): string {
   const match = submittedAt.match(/^(\d{4})\.(\d{2})\.(\d{2})/);
   if (match) return `${match[1]}-${match[2]}-${match[3]}`;
   return new Date().toISOString().slice(0, 10);
-}
-
-interface FeedbackItemData {
-  id: string;
-  text: string;
-  isImportant: boolean;
 }
 
 export function FeedbackWritePage() {
@@ -570,8 +565,11 @@ export function FeedbackWritePage() {
                   취소
                 </Button>
               </Link>
-              <Button type="submit" disabled={saving || !feedbackItems.some((i) => i.text.trim())}>
-                <FileText className="h-4 w-4" />
+              <Button
+                type="submit"
+                icon={FileText}
+                disabled={saving || !feedbackItems.some((i) => i.text.trim())}
+              >
                 {saving ? '저장 중...' : '피드백 저장'}
               </Button>
             </div>

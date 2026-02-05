@@ -1,15 +1,10 @@
-import { Send } from 'lucide-react';
 import { useState } from 'react';
+
+import { Send, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-
-interface Message {
-  id: string;
-  content: string;
-  isMentor: boolean;
-  createdAt: string;
-}
+import type { ChatMessage } from '@/types';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -20,13 +15,13 @@ interface ChatModalProps {
 
 export function ChatModal({ isOpen, onClose, menteeName, initialContext }: ChatModalProps) {
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const handleSend = () => {
     const trimmed = message.trim();
     if (!trimmed) return;
 
-    const newMsg: Message = {
+    const newMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
       content: trimmed,
       isMentor: true,
@@ -56,7 +51,7 @@ export function ChatModal({ isOpen, onClose, menteeName, initialContext }: ChatM
             onClick={onClose}
             className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
           >
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </div>
 
@@ -74,17 +69,16 @@ export function ChatModal({ isOpen, onClose, menteeName, initialContext }: ChatM
             </p>
           ) : (
             messages.map((m) => (
-              <div
-                key={m.id}
-                className={`flex ${m.isMentor ? 'justify-end' : 'justify-start'}`}
-              >
+              <div key={m.id} className={`flex ${m.isMentor ? 'justify-end' : 'justify-start'}`}>
                 <div
                   className={`max-w-[80%] rounded-lg px-3 py-2 ${
                     m.isMentor ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-800'
                   }`}
                 >
                   <p className="text-sm">{m.content}</p>
-                  <p className={`mt-0.5 text-xs ${m.isMentor ? 'text-slate-300' : 'text-slate-500'}`}>
+                  <p
+                    className={`mt-0.5 text-xs ${m.isMentor ? 'text-slate-300' : 'text-slate-500'}`}
+                  >
                     {m.createdAt}
                   </p>
                 </div>

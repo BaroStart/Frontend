@@ -19,11 +19,11 @@ const SUBJECT_LABELS: Record<(typeof SUBJECTS)[number], string> = {
   math: '수학',
 };
 
-function toStr(v: number | undefined): string {
+function numberToString(v: number | undefined): string {
   return v != null ? String(v) : '';
 }
 
-function toNum(s: string): number | undefined {
+function stringToNumber(s: string): number | undefined {
   const n = parseFloat(s);
   return s.trim() && !Number.isNaN(n) ? n : undefined;
 }
@@ -39,10 +39,10 @@ export function ProfileEditModal({ isOpen, onClose, mentee, onSave }: ProfileEdi
   const [mockExam, setMockExam] = useState<SubjectScores>({});
 
   const setNaesinScore = (subject: keyof SubjectScores, value: string) => {
-    setNaesin((prev) => ({ ...prev, [subject]: toNum(value) }));
+    setNaesin((prev) => ({ ...prev, [subject]: stringToNumber(value) }));
   };
   const setMockExamScore = (subject: keyof SubjectScores, value: string) => {
-    setMockExam((prev) => ({ ...prev, [subject]: toNum(value) }));
+    setMockExam((prev) => ({ ...prev, [subject]: stringToNumber(value) }));
   };
 
   const handleReset = () => {
@@ -152,7 +152,7 @@ export function ProfileEditModal({ isOpen, onClose, mentee, onSave }: ProfileEdi
                     min={0}
                     max={100}
                     step={0.1}
-                    value={toStr(naesin[sub])}
+                    value={numberToString(naesin[sub])}
                     onChange={(e) => setNaesinScore(sub, e.target.value)}
                     placeholder="-"
                     className="mt-0.5"
@@ -179,7 +179,7 @@ export function ProfileEditModal({ isOpen, onClose, mentee, onSave }: ProfileEdi
                     min={0}
                     max={100}
                     step={0.1}
-                    value={toStr(mockExam[sub])}
+                    value={numberToString(mockExam[sub])}
                     onChange={(e) => setMockExamScore(sub, e.target.value)}
                     placeholder="-"
                     className="mt-0.5"

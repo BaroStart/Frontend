@@ -43,3 +43,7 @@ export const formatDisplayDate = (dateStr: string) => {
   const weekdays = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
   return `${y}년 ${+m}월 ${+d}일 ${weekdays[date.getDay()]}`;
 };
+
+export const formatDateDot = (dateStr: string) => dateStr.replace(/-/g, '.');
+
+export const formatDateDash = (dateStr: string) => dateStr.replace(/\./g, '-');

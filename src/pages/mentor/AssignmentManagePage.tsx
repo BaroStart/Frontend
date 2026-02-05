@@ -87,17 +87,17 @@ export function AssignmentManagePage() {
   // 플래너 상태
   const [planner, setPlanner] = useState({ menteeId: '', date: getTodayDateStr(), feedback: '' });
 
-  // 초기화 + URL 탭 파라미터 동기화
+  // 초기화 + URL 탭 동기화 (마운트 시 1회)
   useEffect(() => {
     initializeSeolstudyMaterials();
     initialize(CURRENT_MENTOR_ID);
     setMaterials(getMaterialsMeta().map((m) => ({ ...m, subCategory: m.subCategory || '기타' })));
-
     const tab = searchParams.get('tab') as TabType | null;
     if (tab && TABS.some((t) => t.id === tab)) setActiveTab(tab);
-  }, [initialize, searchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // 플래너 피드백 로드
+  // 플래너 피드백 로드 (mentee/date 변경 시)
   useEffect(() => {
     if (planner.menteeId && planner.date) {
       const saved = getPlannerFeedback(planner.menteeId, planner.date);
