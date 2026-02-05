@@ -21,20 +21,43 @@ function ChatIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+function ListIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+      <path
+        d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function TimeIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
+      <path
+        d="M12 8v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function MenteeMainPage() {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [commentOpen, setCommentOpen] = useState(false);
 
+  const [viewMode, setViewMode] = useState<"LIST" | "TIMETABLE">("LIST");
+
   const menteeName = "김멘티님";
   const isStarred = true;
-  const {
-    todos,
-    addAtTop,
-    toggleDone,
-    updateTitle,
-    remove,
-  } = useTodoStore();
+
+  const { todos, addAtTop, toggleDone, updateTitle, remove } = useTodoStore();
 
   const metaByDate = useMemo(
     () => ({
@@ -63,6 +86,7 @@ export function MenteeMainPage() {
     ],
     [selectedDate]
   );
+
   const items: TimelineItem[] = [
     { id: "1", type: "task", title: "할 일", start: "06:13", end: "06:30" },
     { id: "2", type: "assignment", title: "과제", start: "10:02", end: "10:52" },
@@ -71,7 +95,6 @@ export function MenteeMainPage() {
     { id: "5", type: "task", title: "주식", start: "14:10", end: "15:03" },
     { id: "6", type: "task", title: "코딩", start: "15:06", end: "15:47" },
   ];
-    
 
   return (
     <div className="px-4 pt-4">
@@ -121,22 +144,62 @@ export function MenteeMainPage() {
         defaultExpanded={false}
       />
 
-      <h1 className="my-8 font-bold">오늘의 학습 목록</h1>
+      <div className="my-8 flex items-center justify-between">
+        <h1 className="text-[18px] font-extrabold text-gray-900">오늘의 학습 목록</h1>
 
-      <AssignmentList
-        items={assignments}
-        onOpen={(id) => navigate(`/mentee/assignments/${id}`)}
-      />
+        <div className="flex rounded-full border border-gray-200 bg-gray-50 p-1">
+          <button
+            type="button"
+            onClick={() => setViewMode("LIST")}
+            className={[
+              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition",
+              viewMode === "LIST"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500",
+            ].join(" ")}
+            aria-pressed={viewMode === "LIST"}
+            aria-label="목록 보기"
+          >
+            <ListIcon className="h-4 w-4" />
+            목록
+          </button>
 
-      <TodoList
-        items={todos}
-        onAddAtTop={addAtTop}
-        onToggleDone={toggleDone}
-        onUpdateTitle={updateTitle}
-        onDelete={remove}
-      />
+          <button
+            type="button"
+            onClick={() => setViewMode("TIMETABLE")}
+            className={[
+              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition",
+              viewMode === "TIMETABLE"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500",
+            ].join(" ")}
+            aria-pressed={viewMode === "TIMETABLE"}
+            aria-label="타임테이블 보기"
+          >
+            <TimeIcon className="h-4 w-4" />
+            타임
+          </button>
+        </div>
+      </div>
 
-      <TimeTable items={items} startHour={5} endHour={5} />
+      {viewMode === "LIST" ? (
+        <>
+          <AssignmentList
+            items={assignments}
+            onOpen={(id) => navigate(`/mentee/assignments/${id}`)}
+          />
+
+          <TodoList
+            items={todos}
+            onAddAtTop={addAtTop}
+            onToggleDone={toggleDone}
+            onUpdateTitle={updateTitle}
+            onDelete={remove}
+          />
+        </>
+      ) : (
+        <TimeTable items={items} startHour={5} endHour={5} />
+      )}
     </div>
   );
 }
