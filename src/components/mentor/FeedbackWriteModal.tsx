@@ -1,19 +1,27 @@
 import { X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui/Button';
 import { Calendar } from '@/components/ui/Calendar';
 import { Label } from '@/components/ui/Label';
+import { DefaultSelect } from '@/components/ui/select';
 import { useMentees } from '@/hooks/useMentees';
 import { useSubmittedAssignments } from '@/hooks/useSubmittedAssignments';
 
 interface FeedbackWriteModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialMenteeId?: string;
+  initialAssignmentId?: string;
 }
 
-export function FeedbackWriteModal({ isOpen, onClose }: FeedbackWriteModalProps) {
+export function FeedbackWriteModal({
+  isOpen,
+  onClose,
+  initialMenteeId,
+  initialAssignmentId,
+}: FeedbackWriteModalProps) {
   const navigate = useNavigate();
   const [menteeId, setMenteeId] = useState<string>('');
   const [date, setDate] = useState<string>('');
@@ -30,56 +38,92 @@ export function FeedbackWriteModal({ isOpen, onClose }: FeedbackWriteModalProps)
     [submittedAssignments]
   );
 
-  const filteredByMentee = useMemo(
-    () => (menteeId ? pendingAssignments.filter((a) => a.menteeId === menteeId) : []),
-    [menteeId, pendingAssignments]
+  const filteredAssignments = useMemo(() => {
+    let result = pendingAssignments;
+    if (menteeId) {
+      result = result.filter((a) => a.menteeId === menteeId);
+    }
+    if (date) {
+      result = result.filter((a) => a.submittedAt.startsWith(date.replace(/-/g, '.')));
+    }
+    if (subject) {
+      result = result.filter((a) => a.subject === subject);
+    }
+    return result;
+  }, [pendingAssignments, menteeId, date, subject]);
+
+  // 과제 목록에서 캘린더 하이라이트할 날짜 추출 (멘티 필터 적용)
+  const highlightDates = useMemo(() => {
+    const assignments = menteeId
+      ? pendingAssignments.filter((a) => a.menteeId === menteeId)
+      : pendingAssignments;
+    return assignments.map((a) => a.submittedAt.split(' ')[0].replace(/\./g, '-'));
+  }, [pendingAssignments, menteeId]);
+
+  const subjectOptions = useMemo(() => {
+    const assignments = menteeId
+      ? pendingAssignments.filter((a) => a.menteeId === menteeId)
+      : pendingAssignments;
+    const subjects = Array.from(new Set(assignments.map((a) => a.subject))).sort();
+    return subjects.map((s) => ({ value: s, label: s }));
+  }, [pendingAssignments, menteeId]);
+
+  const menteeOptions = useMemo(
+    () =>
+      mentees.map((m) => ({
+        value: m.id,
+        label: `${m.name} (${m.grade} · ${m.track})`,
+      })),
+    [mentees]
   );
 
-  const filteredByDate = useMemo(() => {
-    if (!date) return filteredByMentee;
-    return filteredByMentee.filter((a) => a.submittedAt.startsWith(date.replace(/-/g, '.')));
-  }, [date, filteredByMentee]);
+  const assignmentOptions = useMemo(
+    () =>
+      filteredAssignments.map((a) => ({
+        value: a.id,
+        label: `${a.title} (${a.submittedAt})`,
+      })),
+    [filteredAssignments]
+  );
 
-  const filteredBySubject = useMemo(() => {
-    if (!subject) return filteredByDate;
-    return filteredByDate.filter((a) => a.subject === subject);
-  }, [subject, filteredByDate]);
-
-  const assignmentsToShow = filteredBySubject;
-
-  const highlightDates = useMemo(() => {
-    return filteredByMentee.map((a) => a.submittedAt.split(' ')[0].replace(/\./g, '-'));
-  }, [filteredByMentee]);
-
-  const handleMenteeChange = (id: string) => {
-    setMenteeId(id);
-    setDate('');
-    setSubject('');
-    setAssignmentId('');
-    const assignments = pendingAssignments.filter((a) => a.menteeId === id);
-    if (assignments.length > 0) {
-      const firstDate = assignments[0].submittedAt.split(' ')[0];
-      const [y, m] = firstDate.split('.').map(Number);
-      setCalendarYear(y);
-      setCalendarMonth(m);
+  useEffect(() => {
+    if (!isOpen) {
+      setMenteeId('');
+      setDate('');
+      setSubject('');
+      setAssignmentId('');
+      return;
     }
-  };
 
-  const handleDateChange = (d: string) => {
-    setDate(d);
-    setSubject('');
-    setAssignmentId('');
-  };
+    if (initialMenteeId) {
+      setMenteeId(initialMenteeId);
+      const assignments = pendingAssignments.filter((a) => a.menteeId === initialMenteeId);
+      if (assignments.length > 0) {
+        const firstDate = assignments[0].submittedAt.split(' ')[0];
+        const [y, m] = firstDate.split('.').map(Number);
+        setCalendarYear(y);
+        setCalendarMonth(m);
+      }
+    }
 
-  const handleSubjectChange = (s: string) => {
-    setSubject(s);
-    setAssignmentId('');
-  };
+    if (initialAssignmentId) {
+      const assignment = pendingAssignments.find((a) => a.id === initialAssignmentId);
+      if (assignment) {
+        setAssignmentId(initialAssignmentId);
+        setMenteeId(assignment.menteeId);
+        setSubject(assignment.subject);
+        const dateStr = assignment.submittedAt.split(' ')[0].replace(/\./g, '-');
+        setDate(dateStr);
+      }
+    }
+  }, [isOpen, initialMenteeId, initialAssignmentId, pendingAssignments]);
 
   const handleSubmit = () => {
-    if (!menteeId || !assignmentId) return;
+    if (!assignmentId) return;
+    const assignment = pendingAssignments.find((a) => a.id === assignmentId);
+    if (!assignment) return;
     onClose();
-    navigate(`/mentor/mentees/${menteeId}/feedback/${assignmentId}`);
+    navigate(`/mentor/mentees/${assignment.menteeId}/feedback/${assignmentId}`);
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -94,7 +138,7 @@ export function FeedbackWriteModal({ isOpen, onClose }: FeedbackWriteModalProps)
       onClick={handleBackdropClick}
     >
       <div
-        className="w-full max-w-md rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden"
+        className="w-full max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
@@ -112,18 +156,12 @@ export function FeedbackWriteModal({ isOpen, onClose }: FeedbackWriteModalProps)
           {/* 멘티 선택 */}
           <div className="space-y-2">
             <Label>멘티</Label>
-            <select
+            <DefaultSelect
               value={menteeId}
-              onChange={(e) => handleMenteeChange(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400"
-            >
-              <option value="">멘티를 선택하세요</option>
-              {mentees.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} ({m.grade} · {m.track})
-                </option>
-              ))}
-            </select>
+              onValueChange={setMenteeId}
+              options={menteeOptions}
+              placeholder="멘티를 선택하세요"
+            />
           </div>
 
           {/* 날짜 선택 - 달력 */}
@@ -134,51 +172,34 @@ export function FeedbackWriteModal({ isOpen, onClose }: FeedbackWriteModalProps)
               month={calendarMonth}
               selectedDate={date || null}
               highlightDates={highlightDates}
-              onDateSelect={handleDateChange}
+              onDateSelect={setDate}
               onMonthChange={(y, m) => {
                 setCalendarYear(y);
                 setCalendarMonth(m);
               }}
-              className={!menteeId ? 'pointer-events-none opacity-50' : ''}
             />
           </div>
 
           {/* 과목 선택 */}
           <div className="space-y-2">
             <Label>과목</Label>
-            <select
+            <DefaultSelect
               value={subject}
-              onChange={(e) => handleSubjectChange(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400"
-              disabled={!menteeId}
-            >
-              <option value="">과목을 선택하세요</option>
-              {Array.from(new Set(filteredByDate.map((a) => a.subject)))
-                .sort()
-                .map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-            </select>
+              onValueChange={setSubject}
+              options={subjectOptions}
+              placeholder="과목을 선택하세요"
+            />
           </div>
 
           {/* 과제명 선택 */}
           <div className="space-y-2">
             <Label>과제명</Label>
-            <select
+            <DefaultSelect
               value={assignmentId}
-              onChange={(e) => setAssignmentId(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400"
-              disabled={!menteeId}
-            >
-              <option value="">과제를 선택하세요</option>
-              {assignmentsToShow.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.title} ({a.submittedAt})
-                </option>
-              ))}
-            </select>
+              onValueChange={setAssignmentId}
+              options={assignmentOptions}
+              placeholder="과제를 선택하세요"
+            />
           </div>
         </div>
 
@@ -186,7 +207,7 @@ export function FeedbackWriteModal({ isOpen, onClose }: FeedbackWriteModalProps)
           <Button variant="outline" onClick={onClose}>
             취소
           </Button>
-          <Button onClick={handleSubmit} disabled={!menteeId || !assignmentId}>
+          <Button onClick={handleSubmit} disabled={!assignmentId}>
             피드백 작성하기
           </Button>
         </div>

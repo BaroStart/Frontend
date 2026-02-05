@@ -25,7 +25,7 @@ import {
 import { UserIcon } from '@/components/icons';
 import { AssignmentDetailModal } from '@/components/mentor/AssignmentDetailModal';
 import { ChatModal } from '@/components/mentor/ChatModal';
-import { DatePicker } from '@/components/ui/date-picker';
+import { FeedbackWriteModal } from '@/components/mentor/FeedbackWriteModal';
 import { LearningAnalysisModal } from '@/components/mentor/LearningAnalysisModal';
 import { ProfileEditModal } from '@/components/mentor/ProfileEditModal';
 import {
@@ -36,6 +36,7 @@ import {
 import { ScheduleCalendar, type ScheduleItem } from '@/components/mentor/ScheduleCalendar';
 import { ScheduleItemContextMenu } from '@/components/mentor/ScheduleItemContextMenu';
 import { Button } from '@/components/ui/Button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/Input';
 import { SUBJECTS } from '@/data/menteeDetailMock';
 import { useMentee } from '@/hooks/useMentee';
@@ -167,6 +168,10 @@ export function MenteeDetailPage() {
   } | null>(null);
   const [learningAnalysisModalOpen, setLearningAnalysisModalOpen] = useState(false);
   const [profileEditModalOpen, setProfileEditModalOpen] = useState(false);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [feedbackModalInitialAssignmentId, setFeedbackModalInitialAssignmentId] = useState<
+    string | undefined
+  >(undefined);
   const [menteeOverride, setMenteeOverride] = useState<MenteeSummary | null>(null);
   const [chatContext, setChatContext] = useState<string | null>(null);
   const [personalSchedules, setPersonalSchedules] = useState<
@@ -553,6 +558,11 @@ export function MenteeDetailPage() {
     setAssignmentDetailModalOpen(true);
   };
 
+  const openFeedbackModal = (assignmentId?: string) => {
+    setFeedbackModalInitialAssignmentId(assignmentId);
+    setFeedbackModalOpen(true);
+  };
+
   const handleSaveAssignmentDetail = (
     id: string,
     data: Partial<AssignmentDetail>,
@@ -805,7 +815,6 @@ export function MenteeDetailPage() {
               <FeedbackCard
                 key={item.id}
                 item={item}
-                menteeId={menteeId!}
                 onViewAssignment={() =>
                   openAssignmentDetail(
                     item.assignmentId,
@@ -814,6 +823,7 @@ export function MenteeDetailPage() {
                     item.status,
                   )
                 }
+                onFeedbackClick={() => openFeedbackModal(item.assignmentId)}
               />
             ))}
           </div>
@@ -1089,6 +1099,13 @@ export function MenteeDetailPage() {
         }
       />
 
+      <FeedbackWriteModal
+        isOpen={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
+        initialMenteeId={menteeId}
+        initialAssignmentId={feedbackModalInitialAssignmentId}
+      />
+
       <AssignmentDetailModal
         isOpen={assignmentDetailModalOpen}
         onClose={() => {
@@ -1232,12 +1249,12 @@ function ScheduleItemCard({
 
 function FeedbackCard({
   item,
-  menteeId,
   onViewAssignment,
+  onFeedbackClick,
 }: {
   item: FeedbackItem;
-  menteeId: string;
   onViewAssignment: () => void;
+  onFeedbackClick: () => void;
 }) {
   const statusLabels = {
     urgent: '긴급',
@@ -1292,9 +1309,9 @@ function FeedbackCard({
       <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
         {item.status !== 'completed' ? (
           <>
-            <Link to={`/mentor/mentees/${menteeId}/feedback/${item.assignmentId}`}>
-              <Button size="sm">피드백 작성하기</Button>
-            </Link>
+            <Button size="sm" onClick={onFeedbackClick}>
+              피드백 작성하기
+            </Button>
             <Button size="sm" variant="outline" onClick={onViewAssignment}>
               ● 과제 보기
             </Button>
@@ -1304,11 +1321,9 @@ function FeedbackCard({
             <Button size="sm" variant="outline" onClick={onViewAssignment}>
               ● 과제 보기
             </Button>
-            <Link to={`/mentor/mentees/${menteeId}/feedback/${item.assignmentId}`}>
-              <Button size="sm" variant="outline">
-                전체 피드백 보기
-              </Button>
-            </Link>
+            <Button size="sm" variant="outline" onClick={onFeedbackClick}>
+              전체 피드백 보기
+            </Button>
           </>
         )}
       </div>
