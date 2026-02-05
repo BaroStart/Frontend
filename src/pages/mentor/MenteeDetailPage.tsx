@@ -1,3 +1,7 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+
+import { useQueryClient } from '@tanstack/react-query';
 import {
   BarChart3,
   Calendar,
@@ -14,19 +18,17 @@ import {
   Trash2,
   User,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 
+import { UserIcon } from '@/components/icons';
 import { AssignmentDetailModal } from '@/components/mentor/AssignmentDetailModal';
 import { ChatModal } from '@/components/mentor/ChatModal';
-import { DatePickerModal } from '@/components/mentor/DatePickerModal';
 import { LearningAnalysisModal } from '@/components/mentor/LearningAnalysisModal';
 import { ProfileEditModal } from '@/components/mentor/ProfileEditModal';
 import { ScheduleAddModal } from '@/components/mentor/ScheduleAddModal';
 import { ScheduleCalendar, type ScheduleItem } from '@/components/mentor/ScheduleCalendar';
 import { Button } from '@/components/ui/Button';
-import { UserIcon } from '@/components/icons';
+import { DatePicker } from '@/components/ui/date-picker';
+import { SUBJECTS } from '@/data/menteeDetailMock';
 import { useMentee } from '@/hooks/useMentee';
 import {
   useFeedbackItems,
@@ -36,7 +38,6 @@ import {
   useTodayComment,
 } from '@/hooks/useMenteeDetail';
 import { useAssignmentStore } from '@/stores/useAssignmentStore';
-import { SUBJECTS } from '@/data/menteeDetailMock';
 import type {
   AssignmentDetail,
   FeedbackItem,
@@ -86,8 +87,11 @@ function formatDisplayDate(dateStr: string) {
   return `${y}년 ${parseInt(m, 10)}월 ${parseInt(d, 10)}일 ${weekdays[date.getDay()]}`;
 }
 
-/** 더미데이터(2025-02)와 맞춤 - 기능 확인용 */
-const DEMO_REF_DATE = '2025-02-04';
+function getTodayStr() {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+}
+const TODAY_DATE = getTodayStr();
 
 function getAllScoresAverage(mentee: MenteeSummary): number | null {
   const s = mentee.scores;
@@ -107,17 +111,18 @@ export function MenteeDetailPage() {
   const queryClient = useQueryClient();
   const removeIncomplete = useAssignmentStore((s) => s.removeIncomplete);
   const clearRegisteredIncomplete = useAssignmentStore((s) => s.clearRegisteredIncomplete);
-  const registeredDateFromState = (location.state as { registeredDate?: string } | null)?.registeredDate;
+  const registeredDateFromState = (location.state as { registeredDate?: string } | null)
+    ?.registeredDate;
+
+  const [selectedDate, setSelectedDate] = useState(TODAY_DATE);
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
 
   const { data: mentee = null, isLoading: isMenteeLoading } = useMentee(menteeId);
   const { data: kpi = null } = useMenteeKpi(menteeId);
   const { data: serverTasks = [] } = useMenteeTasks(menteeId);
   const { data: serverFeedbackItems = [] } = useFeedbackItems(menteeId);
   const { data: serverIncomplete = [] } = useIncompleteAssignments(menteeId);
-  const { data: todayCommentData = null } = useTodayComment(menteeId);
-
-  const [selectedDate, setSelectedDate] = useState(DEMO_REF_DATE);
-  const [viewMode, setViewMode] = useState<'today' | 'week' | 'month'>('today');
+  const { data: todayCommentData = null } = useTodayComment(menteeId, selectedDate);
 
   useEffect(() => {
     if (registeredDateFromState) {
@@ -125,7 +130,6 @@ export function MenteeDetailPage() {
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [registeredDateFromState, navigate, location.pathname]);
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [chatModalOpen, setChatModalOpen] = useState(false);
   const [feedbackSubjectFilter, setFeedbackSubjectFilter] = useState<string>('전체');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -138,7 +142,9 @@ export function MenteeDetailPage() {
   const [scheduleAddModalOpen, setScheduleAddModalOpen] = useState(false);
   const [assignmentDetailModalOpen, setAssignmentDetailModalOpen] = useState(false);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
-  const [selectedAssignmentSource, setSelectedAssignmentSource] = useState<'feedback' | 'incomplete'>('feedback');
+  const [selectedAssignmentSource, setSelectedAssignmentSource] = useState<
+    'feedback' | 'incomplete'
+  >('feedback');
   const [selectedFeedbackStatus, setSelectedFeedbackStatus] = useState<
     'urgent' | 'pending' | 'partial' | 'completed' | null
   >(null);
@@ -156,8 +162,11 @@ export function MenteeDetailPage() {
   const displayMentee = (menteeOverride ?? mentee)!;
 
   const allTasks = useMemo(
-    () => [...serverTasks.filter((t) => t.menteeId === menteeId), ...tasksState.filter((t) => t.menteeId === menteeId)],
-    [menteeId, serverTasks, tasksState]
+    () => [
+      ...serverTasks.filter((t) => t.menteeId === menteeId),
+      ...tasksState.filter((t) => t.menteeId === menteeId),
+    ],
+    [menteeId, serverTasks, tasksState],
   );
 
   const scheduleItems: ScheduleItem[] = useMemo(() => {
@@ -172,7 +181,7 @@ export function MenteeDetailPage() {
 
   const dateTasks = useMemo(
     () => allTasks.filter((t) => t.date === selectedDate),
-    [allTasks, selectedDate]
+    [allTasks, selectedDate],
   );
 
   const handleAddSchedule = (data: { title: string; subject: string; date: string }) => {
@@ -190,7 +199,7 @@ export function MenteeDetailPage() {
   };
 
   const dateRange = useMemo(() => {
-    if (viewMode === 'today') return { start: selectedDate, end: selectedDate };
+    if (viewMode === 'day') return { start: selectedDate, end: selectedDate };
     if (viewMode === 'week') return getWeekRange(selectedDate);
     return getMonthRange(selectedDate);
   }, [viewMode, selectedDate]);
@@ -205,11 +214,15 @@ export function MenteeDetailPage() {
       seen.add(f.assignmentId);
       baseItems.push(f);
     }
-    const bySubject = feedbackSubjectFilter === '전체' ? baseItems : baseItems.filter((f) => f.subject === feedbackSubjectFilter);
+    const bySubject =
+      feedbackSubjectFilter === '전체'
+        ? baseItems
+        : baseItems.filter((f) => f.subject === feedbackSubjectFilter);
     return bySubject.filter((f) => {
-      const dateStr = f.status === 'completed' && f.feedbackDate
-        ? parseDateFromStr(f.feedbackDate)
-        : parseDateFromStr(f.submittedAt);
+      const dateStr =
+        f.status === 'completed' && f.feedbackDate
+          ? parseDateFromStr(f.feedbackDate)
+          : parseDateFromStr(f.submittedAt);
       if (!dateStr) return true;
       return isDateInRange(dateStr, dateRange.start, dateRange.end);
     });
@@ -233,10 +246,6 @@ export function MenteeDetailPage() {
   const pendingFeedbackCount = feedbackItems.filter((f) => f.status !== 'completed').length;
   const totalCount = filteredAndSortedAssignments.length;
   const todayComment = todayCommentData;
-  const highlightDates = useMemo(
-    () => [...new Set(allTasks.map((t) => t.date))],
-    [allTasks]
-  );
 
   const handlePrevDate = () => {
     const d = new Date(selectedDate);
@@ -250,9 +259,8 @@ export function MenteeDetailPage() {
     setSelectedDate(d.toISOString().split('T')[0]);
   };
 
-  const handleViewMode = (mode: 'today' | 'week' | 'month') => {
-    setViewMode(mode);
-    if (mode === 'today') setSelectedDate(DEMO_REF_DATE);
+  const handleViewMode = (mode: 'day' | 'week' | 'month') => {
+    setViewMode((prev) => (prev === mode ? 'day' : mode));
   };
 
   const handleAssignmentComplete = async (assignmentId: string) => {
@@ -290,7 +298,7 @@ export function MenteeDetailPage() {
     assignmentId: string,
     fallback?: { title: string; goal?: string; subject?: string },
     source: 'feedback' | 'incomplete' = 'feedback',
-    feedbackStatus?: 'urgent' | 'pending' | 'partial' | 'completed'
+    feedbackStatus?: 'urgent' | 'pending' | 'partial' | 'completed',
   ) => {
     setSelectedAssignmentId(assignmentId);
     setSelectedAssignmentFallback(fallback ?? null);
@@ -302,7 +310,7 @@ export function MenteeDetailPage() {
   const handleSaveAssignmentDetail = (
     id: string,
     data: Partial<AssignmentDetail>,
-    source: 'feedback' | 'incomplete'
+    source: 'feedback' | 'incomplete',
   ) => {
     setAssignmentDetailOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...data } }));
     if (source === 'incomplete' && (data.title != null || data.goal != null)) {
@@ -314,8 +322,8 @@ export function MenteeDetailPage() {
                 ...(data.title != null && { title: data.title }),
                 ...(data.goal != null && { description: data.goal }),
               }
-            : a
-        )
+            : a,
+        ),
       );
     }
   };
@@ -349,7 +357,9 @@ export function MenteeDetailPage() {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <span className="text-base font-bold text-slate-900 sm:text-lg">{displayMentee.name}</span>
+                <span className="text-base font-bold text-slate-900 sm:text-lg">
+                  {displayMentee.name}
+                </span>
                 <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-600">
                   {displayMentee.grade} · {displayMentee.track}
                 </span>
@@ -372,24 +382,23 @@ export function MenteeDetailPage() {
             <Button
               variant="outline"
               size="sm"
+              icon={BarChart3}
               onClick={() => setLearningAnalysisModalOpen(true)}
             >
-              <BarChart3 className="h-4 w-4" />
               학습 분석
             </Button>
             <Button
               variant="outline"
               size="sm"
+              icon={MessageCircle}
               onClick={() => {
                 setChatContext(null);
                 setChatModalOpen(true);
               }}
             >
-              <MessageCircle className="h-4 w-4" />
               메시지 보내기
             </Button>
-            <Button size="sm" onClick={() => setProfileEditModalOpen(true)}>
-              <User className="h-4 w-4" />
+            <Button size="sm" icon={User} onClick={() => setProfileEditModalOpen(true)}>
               프로필 수정
             </Button>
           </div>
@@ -473,38 +482,35 @@ export function MenteeDetailPage() {
           >
             <ChevronRight className="h-5 w-5" />
           </button>
-          <button
-            type="button"
-            onClick={() => setDatePickerOpen(true)}
-            className="ml-2 flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-          >
-            <Calendar className="h-4 w-4" />
-            날짜 선택
-          </button>
+          <DatePicker
+            value={selectedDate}
+            onChange={setSelectedDate}
+            placeholder="날짜 선택"
+            className="ml-2"
+            hideValue
+          />
         </div>
         <div className="flex gap-2" role="group" aria-label="보기 모드">
           <button
             type="button"
-            onClick={() => handleViewMode('today')}
-            className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${viewMode === 'today' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            onClick={() => setSelectedDate(TODAY_DATE)}
+            className="rounded-lg px-3 py-1.5 text-sm transition-colors bg-slate-100 text-slate-600 hover:bg-slate-200"
           >
             오늘
           </button>
           <button
             type="button"
             onClick={() => handleViewMode('week')}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${viewMode === 'week' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${viewMode === 'week' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
           >
-            <Calendar className="h-4 w-4" />
-            주간 보기
+            주간
           </button>
           <button
             type="button"
             onClick={() => handleViewMode('month')}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${viewMode === 'month' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${viewMode === 'month' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
           >
-            <Calendar className="h-4 w-4" />
-            월간 보기
+            월간
           </button>
         </div>
       </div>
@@ -545,7 +551,7 @@ export function MenteeDetailPage() {
                     item.assignmentId,
                     { title: item.title, subject: item.subject },
                     'feedback',
-                    item.status
+                    item.status,
                   )
                 }
               />
@@ -565,20 +571,23 @@ export function MenteeDetailPage() {
               <Button
                 size="sm"
                 variant="outline"
+                icon={RotateCcw}
                 onClick={async () => {
-                  if (window.confirm('등록한 과제를 모두 초기화할까요? 더미 데이터는 유지됩니다.')) {
+                  if (
+                    window.confirm('등록한 과제를 모두 초기화할까요? 더미 데이터는 유지됩니다.')
+                  ) {
                     clearRegisteredIncomplete(menteeId ?? undefined);
-                    await queryClient.invalidateQueries({ queryKey: ['incompleteAssignments', menteeId] });
+                    await queryClient.invalidateQueries({
+                      queryKey: ['incompleteAssignments', menteeId],
+                    });
                   }
                 }}
                 title="등록한 과제만 초기화 (더미 유지)"
               >
-                <RotateCcw className="h-4 w-4" />
                 초기화
               </Button>
               <Link to={`/mentor/mentees/${menteeId}/assignments/new`}>
-                <Button size="sm" variant="outline">
-                  <Plus className="h-4 w-4" />
+                <Button size="sm" variant="outline" icon={Plus}>
                   과제 추가
                 </Button>
               </Link>
@@ -598,7 +607,7 @@ export function MenteeDetailPage() {
                   openAssignmentDetail(
                     a.id,
                     { title: a.title, goal: a.description, subject: a.subject },
-                    'incomplete'
+                    'incomplete',
                   )
                 }
               />
@@ -646,7 +655,9 @@ export function MenteeDetailPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium text-slate-900">{todayComment.authorName}</span>
-                      <span className="shrink-0 text-xs text-slate-500">{todayComment.createdAt}</span>
+                      <span className="shrink-0 text-xs text-slate-500">
+                        {todayComment.createdAt}
+                      </span>
                     </div>
                     <p className="mt-1 text-sm text-slate-600">{todayComment.content}</p>
                   </div>
@@ -677,8 +688,12 @@ export function MenteeDetailPage() {
             <Calendar className="h-4 w-4" />
             학습 일정 캘린더
           </h3>
-          <Button size="sm" variant="outline" onClick={() => setScheduleAddModalOpen(true)}>
-            <Plus className="h-4 w-4" />
+          <Button
+            size="sm"
+            variant="outline"
+            icon={Plus}
+            onClick={() => setScheduleAddModalOpen(true)}
+          >
             일정 추가
           </Button>
         </div>
@@ -708,14 +723,6 @@ export function MenteeDetailPage() {
         menteeName={mentee?.name ?? ''}
       />
 
-      <DatePickerModal
-        isOpen={datePickerOpen}
-        onClose={() => setDatePickerOpen(false)}
-        selectedDate={selectedDate}
-        highlightDates={highlightDates}
-        onDateSelect={setSelectedDate}
-      />
-
       <ChatModal
         isOpen={chatModalOpen}
         onClose={() => setChatModalOpen(false)}
@@ -729,7 +736,7 @@ export function MenteeDetailPage() {
         mentee={displayMentee}
         onSave={(data) =>
           setMenteeOverride((prev) =>
-            prev ? { ...prev, ...data } : displayMentee ? { ...displayMentee, ...data } : null
+            prev ? { ...prev, ...data } : displayMentee ? { ...displayMentee, ...data } : null,
           )
         }
       />
@@ -809,7 +816,9 @@ function TaskItem({ task }: { task: MenteeTask }) {
           )}
         </div>
       </div>
-      <span className="rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-600">{task.subject}</span>
+      <span className="rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-600">
+        {task.subject}
+      </span>
     </div>
   );
 }
@@ -823,7 +832,12 @@ function FeedbackCard({
   menteeId: string;
   onViewAssignment: () => void;
 }) {
-  const statusLabels = { urgent: '긴급', pending: '대기중', partial: '부분완료', completed: '완료' };
+  const statusLabels = {
+    urgent: '긴급',
+    pending: '대기중',
+    partial: '부분완료',
+    completed: '완료',
+  };
 
   return (
     <div
@@ -849,9 +863,7 @@ function FeedbackCard({
             >
               {statusLabels[item.status]}
             </span>
-            {item.status === 'partial' && (
-              <span className="text-xs text-slate-500">검토 필요</span>
-            )}
+            {item.status === 'partial' && <span className="text-xs text-slate-500">검토 필요</span>}
           </div>
           <p className="mt-0.5 text-xs text-slate-500">
             {item.status === 'completed' && item.feedbackDate
@@ -861,7 +873,9 @@ function FeedbackCard({
             {item.subject}
           </p>
           {item.status === 'partial' && item.progress != null && (
-            <p className="text-xs text-slate-500">진행률: {item.progress}% · 마지막 업데이트: {item.lastUpdate}</p>
+            <p className="text-xs text-slate-500">
+              진행률: {item.progress}% · 마지막 업데이트: {item.lastUpdate}
+            </p>
           )}
           {item.status === 'completed' && item.feedbackText && (
             <p className="mt-1 text-xs text-slate-600 line-clamp-2">{item.feedbackText}</p>
@@ -884,7 +898,9 @@ function FeedbackCard({
               ● 과제 보기
             </Button>
             <Link to={`/mentor/mentees/${menteeId}/feedback/${item.assignmentId}`}>
-              <Button size="sm" variant="outline">전체 피드백 보기</Button>
+              <Button size="sm" variant="outline">
+                전체 피드백 보기
+              </Button>
             </Link>
           </>
         )}
@@ -933,7 +949,9 @@ function IncompleteAssignmentCard({
             if (!isCompleted) onComplete();
           }}
           className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
-            isCompleted ? 'border-slate-600 bg-slate-600 text-white' : 'border-slate-300 hover:border-slate-500'
+            isCompleted
+              ? 'border-slate-600 bg-slate-600 text-white'
+              : 'border-slate-300 hover:border-slate-500'
           }`}
         >
           {isCompleted && <Check className="h-3 w-3" />}
@@ -958,10 +976,24 @@ function IncompleteAssignmentCard({
             </button>
             {showDeleteConfirm ? (
               <div className="absolute right-0 top-8 z-10 flex gap-1 rounded border border-slate-200 bg-white p-2 shadow-lg">
-                <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); onConfirmDelete(); }}>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onConfirmDelete();
+                  }}
+                >
                   삭제
                 </Button>
-                <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); onCancelDelete(); }}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCancelDelete();
+                  }}
+                >
                   취소
                 </Button>
               </div>

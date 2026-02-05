@@ -345,18 +345,18 @@ export function FeedbackWritePage() {
               <Button
                 size="sm"
                 variant="outline"
+                icon={RotateCcw}
                 onClick={() => {}}
                 title="이전 피드백 보기"
               >
-                <RotateCcw className="h-4 w-4" />
                 이전 피드백 보기
               </Button>
               <Button
                 size="sm"
                 variant="outline"
+                icon={FileText}
                 onClick={() => setTemplateModalOpen(true)}
               >
-                <FileText className="h-4 w-4" />
                 템플릿 불러오기
               </Button>
             </div>

@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+
 import {
   BarChart3,
   BookOpen,
@@ -17,20 +20,19 @@ import {
   Upload,
   X,
 } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { useState, useEffect } from 'react';
 
-import { Button } from '@/components/ui/Button';
-import { useSubmittedAssignments } from '@/hooks/useSubmittedAssignments';
-import { useMentees } from '@/hooks/useMentees';
 import { LearningAnalyticsSection } from '@/components/mentor/LearningAnalyticsSection';
+import { Button } from '@/components/ui/Button';
+import { Tabs } from '@/components/ui/tabs';
+import { useMentees } from '@/hooks/useMentees';
+import { useSubmittedAssignments } from '@/hooks/useSubmittedAssignments';
 import {
   DEFAULT_TEMPLATE_CONTENT,
-  getFeedbackTemplates,
-  saveFeedbackTemplate,
   deleteFeedbackTemplate,
   deleteFeedbackTemplates,
   type FeedbackTemplate,
+  getFeedbackTemplates,
+  saveFeedbackTemplate,
 } from '@/lib/feedbackTemplateStorage';
 
 type TabType = 'feedback' | 'templates' | 'analytics';
@@ -58,7 +60,6 @@ export function FeedbackManagePage() {
   const { data: submittedAssignments = [] } = useSubmittedAssignments();
   const { data: mentees = [] } = useMentees();
 
-  // URL 쿼리 파라미터에서 탭 읽기
   useEffect(() => {
     const tabParam = searchParams.get('tab') as TabType | null;
     if (tabParam && ['feedback', 'templates', 'analytics'].includes(tabParam)) {
@@ -66,7 +67,6 @@ export function FeedbackManagePage() {
     }
   }, [searchParams]);
 
-  // 템플릿 로드
   useEffect(() => {
     setTemplates(getFeedbackTemplates());
   }, [templateModalOpen, editingTemplate, viewingTemplate]);
@@ -79,7 +79,6 @@ export function FeedbackManagePage() {
     { id: 'analytics' as TabType, label: '통계 분석', icon: BarChart3 },
   ];
 
-  // 템플릿 필터링
   const filteredTemplates = templates.filter((t) => {
     if (subjectFilter === '전체') return true;
     return t.subject === subjectFilter;
@@ -88,7 +87,7 @@ export function FeedbackManagePage() {
   const totalPages = Math.max(1, Math.ceil(filteredTemplates.length / PAGE_SIZE));
   const paginatedTemplates = filteredTemplates.slice(
     (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
+    currentPage * PAGE_SIZE,
   );
 
   // 요약 카드
@@ -123,12 +122,9 @@ export function FeedbackManagePage() {
   };
 
   const handleExport = () => {
-    const toExport = selectedIds.size > 0
-      ? templates.filter((t) => selectedIds.has(t.id))
-      : templates;
-    const text = toExport
-      .map((t) => `[${t.subject}] ${t.name}\n${t.content}\n---`)
-      .join('\n\n');
+    const toExport =
+      selectedIds.size > 0 ? templates.filter((t) => selectedIds.has(t.id)) : templates;
+    const text = toExport.map((t) => `[${t.subject}] ${t.name}\n${t.content}\n---`).join('\n\n');
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -140,36 +136,18 @@ export function FeedbackManagePage() {
 
   return (
     <div className="min-w-0 space-y-6">
-      {/* 헤더 */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm text-slate-500">
-            피드백을 관리하고 템플릿을 활용하여 작성 시간을 단축하세요
-          </p>
-        </div>
-      </div>
-
-      {/* 탭 네비게이션 */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-200">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'border-slate-800 text-slate-900'
-                  : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+      <Tabs
+        items={tabs}
+        value={activeTab}
+        onChange={setActiveTab}
+        rightContent={
+          activeTab === 'templates' ? (
+            <Button icon={Plus} onClick={() => setTemplateModalOpen(true)}>
+              새 템플릿 추가
+            </Button>
+          ) : undefined
+        }
+      />
 
       {/* 피드백 관리 탭 */}
       {activeTab === 'feedback' && (
@@ -201,9 +179,7 @@ export function FeedbackManagePage() {
                           </p>
                         </div>
                       </div>
-                      <Link
-                        to={`/mentor/mentees/${assignment.menteeId}/feedback/${assignment.id}`}
-                      >
+                      <Link to={`/mentor/mentees/${assignment.menteeId}/feedback/${assignment.id}`}>
                         <Button size="sm">피드백 작성</Button>
                       </Link>
                     </div>
@@ -218,14 +194,6 @@ export function FeedbackManagePage() {
       {/* 피드백 템플릿 관리 탭 */}
       {activeTab === 'templates' && (
         <div className="space-y-6">
-          {/* 상단: 새 템플릿 추가 버튼 */}
-          <div className="flex justify-end">
-            <Button onClick={() => setTemplateModalOpen(true)}>
-              <Plus className="h-4 w-4" />
-              새 템플릿 추가
-            </Button>
-          </div>
-
           {/* 요약 카드 */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -274,8 +242,7 @@ export function FeedbackManagePage() {
             </div>
           </div>
 
-          {/* 필터 탭 */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-100 p-0.5">
             {['전체', '국어', '영어', '수학', '공통'].map((sub) => (
               <button
                 key={sub}
@@ -284,10 +251,10 @@ export function FeedbackManagePage() {
                   setSubjectFilter(sub);
                   setCurrentPage(1);
                 }}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`h-8 rounded-md px-3 text-sm font-medium transition-colors ${
                   subjectFilter === sub
-                    ? 'bg-slate-800 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {sub}
@@ -348,9 +315,7 @@ export function FeedbackManagePage() {
                             className="rounded border-slate-300"
                           />
                         </td>
-                        <td className="px-4 py-3 font-medium text-slate-900">
-                          {template.name}
-                        </td>
+                        <td className="px-4 py-3 font-medium text-slate-900">{template.name}</td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
                             <SubjectIcon className="h-3.5 w-3.5" />
@@ -358,16 +323,12 @@ export function FeedbackManagePage() {
                           </span>
                         </td>
                         <td className="max-w-[240px] px-4 py-3">
-                          <p className="truncate text-sm text-slate-600">
-                            {template.content}
-                          </p>
+                          <p className="truncate text-sm text-slate-600">{template.content}</p>
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-500">
                           {template.createdAt.replace(/-/g, '.')}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-600">
-                          {template.useCount}회
-                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-600">{template.useCount}회</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
                             <button
@@ -389,7 +350,9 @@ export function FeedbackManagePage() {
                             <button
                               type="button"
                               onClick={() => {
-                                if (window.confirm(`"${template.name}" 템플릿을 삭제하시겠습니까?`)) {
+                                if (
+                                  window.confirm(`"${template.name}" 템플릿을 삭제하시겠습니까?`)
+                                ) {
                                   deleteFeedbackTemplate(template.id);
                                   setTemplates(getFeedbackTemplates());
                                 }
@@ -414,14 +377,13 @@ export function FeedbackManagePage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  icon={Trash2}
                   onClick={handleBulkDelete}
                   disabled={selectedIds.size === 0}
                 >
-                  <Trash2 className="h-4 w-4" />
                   선택 항목 삭제
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleExport}>
-                  <Download className="h-4 w-4" />
+                <Button variant="outline" size="sm" icon={Download} onClick={handleExport}>
                   내보내기
                 </Button>
               </div>
@@ -495,10 +457,7 @@ export function FeedbackManagePage() {
 
       {/* 보기 모달 */}
       {viewingTemplate && (
-        <TemplateViewModal
-          template={viewingTemplate}
-          onClose={() => setViewingTemplate(null)}
-        />
+        <TemplateViewModal template={viewingTemplate} onClose={() => setViewingTemplate(null)} />
       )}
     </div>
   );
@@ -513,15 +472,13 @@ function TemplateEditModal({
   template: FeedbackTemplate | null;
   existingTemplates: FeedbackTemplate[];
   onClose: () => void;
-  onSave: (t: Omit<FeedbackTemplate, 'useCount'> & { useCount?: number; isDefault?: boolean }) => void;
+  onSave: (
+    t: Omit<FeedbackTemplate, 'useCount'> & { useCount?: number; isDefault?: boolean },
+  ) => void;
 }) {
   const [name, setName] = useState(template?.name ?? '');
-  const [subject, setSubject] = useState<FeedbackTemplate['subject']>(
-    template?.subject ?? '국어'
-  );
-  const [content, setContent] = useState(
-    template?.content ?? DEFAULT_TEMPLATE_CONTENT
-  );
+  const [subject, setSubject] = useState<FeedbackTemplate['subject']>(template?.subject ?? '국어');
+  const [content, setContent] = useState(template?.content ?? DEFAULT_TEMPLATE_CONTENT);
   const [isDefault, setIsDefault] = useState(template?.isDefault ?? false);
   const [loadTemplateOpen, setLoadTemplateOpen] = useState(false);
 
@@ -595,16 +552,16 @@ function TemplateEditModal({
               <label className="mb-2 block text-sm font-medium text-slate-700">
                 과목 선택 <span className="text-red-500">*</span>
               </label>
-              <div className="flex gap-2">
+              <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1">
                 {(['국어', '영어', '수학', '공통'] as const).map((sub) => (
                   <button
                     key={sub}
                     type="button"
                     onClick={() => setSubject(sub)}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                    className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
                       subject === sub
-                        ? 'bg-slate-800 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     {sub}
@@ -624,9 +581,9 @@ function TemplateEditModal({
                     type="button"
                     variant="outline"
                     size="sm"
+                    icon={Upload}
                     onClick={() => setLoadTemplateOpen((v) => !v)}
                   >
-                    <Upload className="h-4 w-4" />
                     템플릿 불러오기
                   </Button>
                   {loadTemplateOpen && templatesToLoad.length > 0 && (
@@ -651,8 +608,7 @@ function TemplateEditModal({
                     </>
                   )}
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={handleReset}>
-                  <RotateCcw className="h-4 w-4" />
+                <Button type="button" variant="outline" size="sm" icon={RotateCcw} onClick={handleReset}>
                   초기화
                 </Button>
               </div>

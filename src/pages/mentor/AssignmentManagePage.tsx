@@ -1,5 +1,10 @@
+import { useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+
 import {
+  BookOpen,
   Calendar,
+  Edit2,
   File,
   FileText,
   FolderOpen,
@@ -7,80 +12,81 @@ import {
   Layers,
   Plus,
   Search,
+  Target,
   Trash2,
   Upload,
+  X,
 } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/Button';
-import { useMentees } from '@/hooks/useMentees';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
-  MOCK_LEARNING_MATERIALS,
-  SUBJECT_SUBCATEGORIES,
-} from '@/data/assignmentRegisterMock';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Tabs } from '@/components/ui/tabs';
+import { SUBJECT_SUBCATEGORIES } from '@/data/assignmentRegisterMock';
 import {
-  getPlannerRecordsByMenteeAndDate,
   formatPlannerDuration,
+  getPlannerRecordsByMenteeAndDate,
   type PlannerRecord,
 } from '@/data/plannerMock';
-import { getPlannerFeedback, savePlannerFeedback } from '@/lib/plannerFeedbackStorage';
+import { useMentees } from '@/hooks/useMentees';
 import {
   deleteMaterial,
   getMaterialsMeta,
-  saveMaterial,
+  initializeSeolstudyMaterials,
   type MaterialMeta,
+  saveMaterial,
 } from '@/lib/materialStorage';
+import { getPlannerFeedback, savePlannerFeedback } from '@/lib/plannerFeedbackStorage';
+import { type LearningGoal, useLearningGoalStore } from '@/stores/useLearningGoalStore';
 
-type TabType = 'templates' | 'materials' | 'planner';
+type TabType = 'materials' | 'goals' | 'planner' | 'templates';
 
 interface MaterialItem extends MaterialMeta {}
 
+const CURRENT_MENTOR_ID = 'mentor1';
+
 export function AssignmentManagePage() {
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<TabType>('templates');
-  
-  // 학습 자료 관리 상태
-  const [materials, setMaterials] = useState<MaterialItem[]>(() => {
+  const [activeTab, setActiveTab] = useState<TabType>('materials');
+  const [materials, setMaterials] = useState<MaterialItem[]>([]);
+  const {
+    getGoalsBySubject,
+    addGoal,
+    updateGoal,
+    deleteGoal,
+    getMaterialsByIds,
+    initialize: initializeGoals,
+  } = useLearningGoalStore();
+  const [goalSubjectFilter, setGoalSubjectFilter] = useState<string>('전체');
+  const [goalSearchQuery, setGoalSearchQuery] = useState('');
+  const [goalModalOpen, setGoalModalOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<LearningGoal | null>(null);
+
+  useEffect(() => {
+    initializeSeolstudyMaterials();
+    initializeGoals(CURRENT_MENTOR_ID);
     const stored = getMaterialsMeta();
-    if (stored.length > 0) {
-      return stored.map((m) => ({
+    setMaterials(
+      stored.map((m) => ({
         ...m,
         subCategory: m.subCategory || '기타',
-      }));
-    }
-    // 초기 Mock 데이터
-    return MOCK_LEARNING_MATERIALS.map((mat, idx) => {
-      const subject = mat.subject || '기타';
-      let subCategory = '기타';
-      if (subject === '국어') {
-        if (mat.title.includes('비문학')) subCategory = '비문학';
-        else if (mat.title.includes('문학')) subCategory = '문학';
-        else subCategory = '문법';
-      } else if (subject === '영어') subCategory = '독해/듣기/어휘';
-      else if (subject === '수학') subCategory = mat.title.includes('기하') ? '기하' : '미적분';
-      return {
-        id: mat.id,
-        title: mat.title,
-        fileName: mat.title,
-        fileSize: mat.fileSize || '0 MB',
-        fileType: (mat.title.toLowerCase().endsWith('.pdf') ? 'pdf' : 
-                  /\.(jpg|jpeg|png|gif)$/i.test(mat.title) ? 'image' :
-                  /\.(doc|docx|xls|xlsx)$/i.test(mat.title) ? 'document' : 'other') as MaterialItem['fileType'],
-        subject,
-        subCategory,
-        uploadedAt: new Date(Date.now() - idx * 86400000).toISOString().split('T')[0],
-      };
-    });
-  });
+      })),
+    );
+  }, [initializeGoals]);
   const [materialSubjectFilter, setMaterialSubjectFilter] = useState<string>('전체');
   const [materialSubCategoryFilter, setMaterialSubCategoryFilter] = useState<string>('전체');
   const [materialSearchQuery, setMaterialSearchQuery] = useState<string>('');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [pendingFiles, setPendingFiles] = useState<{ file: File; meta: Partial<MaterialMeta> }[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; meta: Partial<MaterialMeta> }[]>(
+    [],
+  );
   const materialFileInputRef = useRef<HTMLInputElement>(null);
-
-  // 플래너 관리 상태
   const [plannerMenteeId, setPlannerMenteeId] = useState<string>('');
   const [plannerDate, setPlannerDate] = useState<string>(() => {
     const d = new Date();
@@ -88,15 +94,13 @@ export function AssignmentManagePage() {
   });
   const [plannerFeedbackText, setPlannerFeedbackText] = useState<string>('');
 
-  // URL 쿼리 파라미터에서 탭 읽기
   useEffect(() => {
     const tabParam = searchParams.get('tab') as TabType | null;
-    if (tabParam && ['templates', 'materials', 'planner'].includes(tabParam)) {
+    if (tabParam && ['materials', 'goals', 'planner', 'templates'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
 
-  // 플래너 피드백 로드
   useEffect(() => {
     if (plannerMenteeId && plannerDate) {
       const saved = getPlannerFeedback(plannerMenteeId, plannerDate);
@@ -109,70 +113,64 @@ export function AssignmentManagePage() {
   const { data: mentees = [] } = useMentees();
 
   const tabs = [
-    { id: 'templates' as TabType, label: '과제 템플릿', icon: Layers },
     { id: 'materials' as TabType, label: '학습 자료', icon: FolderOpen },
+    { id: 'goals' as TabType, label: '학습 목표', icon: Target },
     { id: 'planner' as TabType, label: '플래너 관리', icon: Calendar },
+    { id: 'templates' as TabType, label: '과제 템플릿', icon: Layers },
   ];
+
+  const goals = getGoalsBySubject(CURRENT_MENTOR_ID, goalSubjectFilter);
+  const filteredGoals = goals.filter(
+    (g) => goalSearchQuery === '' || g.name.toLowerCase().includes(goalSearchQuery.toLowerCase()),
+  );
+
+  const handleAddGoal = () => {
+    setEditingGoal(null);
+    setGoalModalOpen(true);
+  };
+
+  const handleEditGoal = (goal: LearningGoal) => {
+    setEditingGoal(goal);
+    setGoalModalOpen(true);
+  };
+
+  const handleDeleteGoal = (id: string) => {
+    if (window.confirm('이 학습 목표를 삭제하시겠습니까?')) {
+      deleteGoal(id);
+    }
+  };
+
+  const handleSaveGoal = (data: Omit<LearningGoal, 'id' | 'createdAt'>) => {
+    if (editingGoal) {
+      updateGoal(editingGoal.id, data);
+    } else {
+      addGoal(data);
+    }
+    setGoalModalOpen(false);
+    setEditingGoal(null);
+  };
 
   return (
     <div className="min-w-0 space-y-6">
-      {/* 헤더 */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm text-slate-500">
-            과제를 관리하고 피드백을 작성하세요
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+      <Tabs
+        items={tabs}
+        value={activeTab}
+        onChange={setActiveTab}
+        rightContent={
           <Link to="/mentor/assignments/new">
-            <Button size="sm">
-              <Plus className="h-4 w-4" />
-              새 과제 등록
-            </Button>
+            <Button icon={Plus}>새 과제 등록</Button>
           </Link>
-        </div>
-      </div>
-
-      {/* 탭 네비게이션 */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-200">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'border-slate-800 text-slate-900'
-                  : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 탭별 콘텐츠 */}
-      {/* 과제 템플릿 탭 */}
-      {activeTab === 'templates' && (
-        <PlaceholderSection
-          title="과제 템플릿"
-          description="자주 사용하는 과제 템플릿을 저장하고 재사용할 수 있습니다."
-          icon={<Layers className="h-8 w-8" />}
-        />
-      )}
+        }
+      />
 
       {/* 학습 자료 탭 */}
       {activeTab === 'materials' && (
         <div className="space-y-6">
           {/* 상단: 필터 및 검색 */}
-          <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4">
-            {/* 과목 필터 */}
-            <div className="flex flex-wrap gap-2">
-              {['전체', '국어', '영어', '수학', '과학', '사회'].map((subject) => (
+          <div className="flex flex-wrap items-center gap-3">
+            {/* 과목 필터 - h-9 기준 */}
+            <div className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+              {['전체', '국어', '영어', '수학'].map((subject) => (
                 <button
                   key={subject}
                   type="button"
@@ -180,48 +178,30 @@ export function AssignmentManagePage() {
                     setMaterialSubjectFilter(subject);
                     setMaterialSubCategoryFilter('전체');
                   }}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`h-8 rounded-md px-3 text-sm font-medium transition-colors ${
                     materialSubjectFilter === subject
-                      ? 'bg-slate-800 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   {subject}
                 </button>
               ))}
             </div>
-            {/* 세부 카테고리 필터 (과목 선택 시) */}
-            {materialSubjectFilter !== '전체' && SUBJECT_SUBCATEGORIES[materialSubjectFilter] && (
-              <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
-                <span className="text-xs font-medium text-slate-500">세부 분류:</span>
-                {['전체', ...SUBJECT_SUBCATEGORIES[materialSubjectFilter]].map((sub) => (
-                  <button
-                    key={sub}
-                    type="button"
-                    onClick={() => setMaterialSubCategoryFilter(sub)}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                      materialSubCategoryFilter === sub
-                        ? 'bg-slate-700 text-white'
-                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    {sub}
-                  </button>
-                ))}
-              </div>
-            )}
-            {/* 검색 및 업로드 */}
-            <div className="flex gap-2 border-t border-slate-100 pt-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="자료 검색..."
-                  value={materialSearchQuery}
-                  onChange={(e) => setMaterialSearchQuery(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
-                />
-              </div>
+            {/* 검색 - h-9 */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="자료 검색..."
+                value={materialSearchQuery}
+                onChange={(e) => setMaterialSearchQuery(e.target.value)}
+                className="h-9 w-48 rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm focus:border-slate-400 focus:outline-none"
+              />
+            </div>
+
+            {/* 업로드 버튼 - h-9 (Button default) */}
+            <div className="ml-auto">
               <input
                 ref={materialFileInputRef}
                 type="file"
@@ -231,30 +211,39 @@ export function AssignmentManagePage() {
                 onChange={(e) => {
                   const files = Array.from(e.target.files || []);
                   if (files.length === 0) return;
-                  setPendingFiles(files.map((file) => ({
-                    file,
-                    meta: {
-                      title: file.name,
-                      fileName: file.name,
-                      fileSize: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-                      fileType: (file.type.includes('pdf') ? 'pdf' :
-                                file.type.startsWith('image/') ? 'image' :
-                                file.type.includes('document') || file.type.includes('word') || file.type.includes('excel') ? 'document' : 'other') as MaterialMeta['fileType'],
-                      subject: '국어',
-                      subCategory: '비문학',
-                      uploadedAt: new Date().toISOString().split('T')[0],
-                    },
-                  })));
+                  setPendingFiles(
+                    files.map((file) => ({
+                      file,
+                      meta: {
+                        title: file.name,
+                        fileName: file.name,
+                        fileSize: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+                        fileType: (file.type.includes('pdf')
+                          ? 'pdf'
+                          : file.type.startsWith('image/')
+                            ? 'image'
+                            : file.type.includes('document') ||
+                                file.type.includes('word') ||
+                                file.type.includes('excel')
+                              ? 'document'
+                              : 'other') as MaterialMeta['fileType'],
+                        subject: '국어',
+                        subCategory: '비문학',
+                        uploadedAt: new Date().toISOString().split('T')[0],
+                        source: 'mentor' as const,
+                      },
+                    })),
+                  );
                   setUploadModalOpen(true);
                   e.target.value = '';
                 }}
               />
               <Button
                 type="button"
+                icon={Upload}
                 className="whitespace-nowrap"
                 onClick={() => materialFileInputRef.current?.click()}
               >
-                <Upload className="h-4 w-4" />
                 파일 업로드
               </Button>
             </div>
@@ -286,9 +275,13 @@ export function AssignmentManagePage() {
           {/* 자료 목록 */}
           {(() => {
             const filteredMaterials = materials.filter((mat) => {
-              const matchesSubject = materialSubjectFilter === '전체' || mat.subject === materialSubjectFilter;
-              const matchesSubCategory = materialSubCategoryFilter === '전체' || mat.subCategory === materialSubCategoryFilter;
-              const matchesSearch = materialSearchQuery === '' || 
+              const matchesSubject =
+                materialSubjectFilter === '전체' || mat.subject === materialSubjectFilter;
+              const matchesSubCategory =
+                materialSubCategoryFilter === '전체' ||
+                mat.subCategory === materialSubCategoryFilter;
+              const matchesSearch =
+                materialSearchQuery === '' ||
                 mat.title.toLowerCase().includes(materialSearchQuery.toLowerCase()) ||
                 mat.fileName.toLowerCase().includes(materialSearchQuery.toLowerCase());
               return matchesSubject && matchesSubCategory && matchesSearch;
@@ -299,7 +292,9 @@ export function AssignmentManagePage() {
                 <div className="flex min-h-[400px] flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12">
                   <FolderOpen className="h-12 w-12 text-slate-300" />
                   <p className="mt-4 text-sm text-slate-500">
-                    {materialSearchQuery || materialSubjectFilter !== '전체' || materialSubCategoryFilter !== '전체'
+                    {materialSearchQuery ||
+                    materialSubjectFilter !== '전체' ||
+                    materialSubCategoryFilter !== '전체'
                       ? '검색 결과가 없습니다.'
                       : '등록된 학습 자료가 없습니다.'}
                   </p>
@@ -310,10 +305,15 @@ export function AssignmentManagePage() {
             return (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredMaterials.map((material) => {
-                  const FileIcon = material.fileType === 'pdf' ? FileText :
-                                 material.fileType === 'image' ? Image :
-                                 material.fileType === 'document' ? File : File;
-                  
+                  const FileIcon =
+                    material.fileType === 'pdf'
+                      ? FileText
+                      : material.fileType === 'image'
+                        ? Image
+                        : material.fileType === 'document'
+                          ? File
+                          : File;
+
                   return (
                     <div
                       key={material.id}
@@ -324,11 +324,17 @@ export function AssignmentManagePage() {
                           <FileIcon className="h-6 w-6" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h3 className="truncate font-semibold text-slate-900">{material.title}</h3>
+                          <h3 className="truncate font-semibold text-slate-900">
+                            {material.title}
+                          </h3>
                           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5">{material.subject}</span>
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5">
+                              {material.subject}
+                            </span>
                             {material.subCategory && material.subCategory !== '기타' && (
-                              <span className="rounded-full bg-slate-100 px-2 py-0.5">{material.subCategory}</span>
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5">
+                                {material.subCategory}
+                              </span>
                             )}
                             <span>{material.fileSize}</span>
                             <span>•</span>
@@ -358,6 +364,90 @@ export function AssignmentManagePage() {
         </div>
       )}
 
+      {/* 학습 목표 탭 */}
+      {activeTab === 'goals' && (
+        <div className="space-y-6">
+          {/* 툴바: 필터 + 검색 + 추가 버튼 */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* 과목 필터 - h-9 기준 */}
+            <div className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+              {['전체', '국어', '영어', '수학'].map((subject) => (
+                <button
+                  key={subject}
+                  type="button"
+                  onClick={() => setGoalSubjectFilter(subject)}
+                  className={`h-8 rounded-md px-3 text-sm font-medium transition-colors ${
+                    goalSubjectFilter === subject
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {subject}
+                </button>
+              ))}
+            </div>
+
+            {/* 검색 - h-9 */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="학습 목표 검색..."
+                value={goalSearchQuery}
+                onChange={(e) => setGoalSearchQuery(e.target.value)}
+                className="h-9 w-48 rounded-lg border border-slate-200 bg-white pl-9 pr-4 text-sm focus:border-slate-400 focus:outline-none"
+              />
+            </div>
+
+            {/* 새 학습 목표 추가 */}
+            <Button icon={Plus} onClick={handleAddGoal} className="ml-auto">
+              새 학습 목표 추가
+            </Button>
+          </div>
+
+          {/* 학습 목표 목록 */}
+          {filteredGoals.length === 0 ? (
+            <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-12">
+              <BookOpen className="h-12 w-12 text-slate-300" />
+              <p className="mt-4 text-sm text-slate-500">
+                {goalSearchQuery || goalSubjectFilter !== '전체'
+                  ? '검색 결과가 없습니다'
+                  : '등록된 학습 목표가 없습니다'}
+              </p>
+              <p className="mt-2 text-xs text-slate-400">
+                학습 목표를 추가하여 과제 등록 시 활용하세요
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredGoals.map((goal) => (
+                <LearningGoalCard
+                  key={goal.id}
+                  goal={goal}
+                  materials={getMaterialsByIds(goal.materialIds || [])}
+                  onEdit={handleEditGoal}
+                  onDelete={handleDeleteGoal}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* 학습 목표 모달 */}
+          {goalModalOpen && (
+            <LearningGoalModal
+              goal={editingGoal}
+              materials={materials}
+              onSave={handleSaveGoal}
+              onClose={() => {
+                setGoalModalOpen(false);
+                setEditingGoal(null);
+              }}
+              mentorId={CURRENT_MENTOR_ID}
+            />
+          )}
+        </div>
+      )}
+
       {/* 플래너 관리 탭 */}
       {activeTab === 'planner' && (
         <div className="space-y-6">
@@ -366,18 +456,18 @@ export function AssignmentManagePage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
               <div className="flex-1">
                 <label className="mb-1 block text-sm font-medium text-slate-700">멘티 선택</label>
-                <select
-                  value={plannerMenteeId}
-                  onChange={(e) => setPlannerMenteeId(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400"
-                >
-                  <option value="">멘티를 선택하세요</option>
-                  {mentees.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name} ({m.grade} · {m.track})
-                    </option>
-                  ))}
-                </select>
+                <Select value={plannerMenteeId} onValueChange={setPlannerMenteeId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="멘티를 선택하세요" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mentees.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name} ({m.grade} · {m.track})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex-1">
                 <label className="mb-1 block text-sm font-medium text-slate-700">날짜 선택</label>
@@ -398,14 +488,17 @@ export function AssignmentManagePage() {
                 const records = getPlannerRecordsByMenteeAndDate(plannerMenteeId, plannerDate);
                 const totalMinutes = records.reduce((sum, r) => sum + r.durationMinutes, 0);
                 const totalHours = (totalMinutes / 60).toFixed(1);
-                const selectedMenteeName = mentees.find((m) => m.id === plannerMenteeId)?.name ?? '';
+                const selectedMenteeName =
+                  mentees.find((m) => m.id === plannerMenteeId)?.name ?? '';
 
                 return (
                   <div className="grid gap-6 lg:grid-cols-2">
                     {/* 좌측: 과제 목록 + 피드백 */}
                     <div className="space-y-6">
                       <div className="rounded-xl border border-slate-200 bg-white p-4">
-                        <h3 className="mb-3 text-base font-semibold text-slate-900">과제 (학습 기록)</h3>
+                        <h3 className="mb-3 text-base font-semibold text-slate-900">
+                          과제 (학습 기록)
+                        </h3>
                         {records.length === 0 ? (
                           <p className="py-6 text-center text-sm text-slate-500">
                             해당 날짜에 기록된 학습이 없습니다.
@@ -436,7 +529,9 @@ export function AssignmentManagePage() {
 
                       {/* 피드백 작성 */}
                       <div className="rounded-xl border border-slate-200 bg-white p-4">
-                        <h3 className="mb-3 text-base font-semibold text-slate-900">플래너 피드백</h3>
+                        <h3 className="mb-3 text-base font-semibold text-slate-900">
+                          플래너 피드백
+                        </h3>
                         <p className="mb-3 text-sm text-slate-500">
                           {selectedMenteeName}님의 학습 기록을 확인하고 피드백을 작성해주세요.
                         </p>
@@ -486,12 +581,22 @@ export function AssignmentManagePage() {
           ) : (
             <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12">
               <Calendar className="h-12 w-12 text-slate-300" />
-              <p className="mt-4 text-sm text-slate-500">멘티를 선택하면 플래너를 확인하고 피드백을 작성할 수 있습니다.</p>
+              <p className="mt-4 text-sm text-slate-500">
+                멘티를 선택하면 플래너를 확인하고 피드백을 작성할 수 있습니다.
+              </p>
             </div>
           )}
         </div>
       )}
 
+      {/* 과제 템플릿 탭 */}
+      {activeTab === 'templates' && (
+        <PlaceholderSection
+          title="과제 템플릿"
+          description="자주 사용하는 과제 템플릿을 저장하고 재사용할 수 있습니다."
+          icon={<Layers className="h-8 w-8" />}
+        />
+      )}
     </div>
   );
 }
@@ -529,9 +634,7 @@ function PlannerTimeline({ records }: { records: PlannerRecord[] }) {
                   title={`${r.subject} ${formatPlannerDuration(r.durationMinutes)}`}
                 />
               ))}
-              {blocks.length === 0 && (
-                <div className="h-6 flex-1 rounded bg-slate-50" />
-              )}
+              {blocks.length === 0 && <div className="h-6 flex-1 rounded bg-slate-50" />}
             </div>
           </div>
         );
@@ -554,9 +657,7 @@ function MaterialUploadModal({
 
   const updateItem = (index: number, updates: Partial<MaterialMeta>) => {
     setItems((prev) =>
-      prev.map((p, i) =>
-        i === index ? { ...p, meta: { ...p.meta, ...updates } } : p
-      )
+      prev.map((p, i) => (i === index ? { ...p, meta: { ...p.meta, ...updates } } : p)),
     );
   };
 
@@ -574,6 +675,7 @@ function MaterialUploadModal({
           fileSize: p.meta.fileSize || `${(p.file.size / 1024 / 1024).toFixed(2)} MB`,
           fileType: (p.meta.fileType || 'other') as MaterialMeta['fileType'],
           uploadedAt: p.meta.uploadedAt || new Date().toISOString().split('T')[0],
+          source: 'mentor' as const,
         } as MaterialMeta,
       }));
       await onConfirm(validItems);
@@ -596,41 +698,49 @@ function MaterialUploadModal({
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {items.map((item, index) => (
-            <div
-              key={index}
-              className="rounded-lg border border-slate-200 p-4"
-            >
+            <div key={index} className="rounded-lg border border-slate-200 p-4">
               <p className="mb-3 truncate text-sm font-medium text-slate-900">{item.file.name}</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-slate-600">과목</label>
-                  <select
+                  <Select
                     value={item.meta.subject || '국어'}
-                    onChange={(e) => {
-                      const subject = e.target.value;
+                    onValueChange={(subject) => {
                       updateItem(index, {
                         subject,
                         subCategory: SUBJECT_SUBCATEGORIES[subject]?.[0] ?? '기타',
                       });
                     }}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                   >
-                    {subjects.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-slate-600">세부 분류</label>
-                  <select
+                  <Select
                     value={item.meta.subCategory || '비문학'}
-                    onChange={(e) => updateItem(index, { subCategory: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    onValueChange={(value) => updateItem(index, { subCategory: value })}
                   >
-                    {(SUBJECT_SUBCATEGORIES[item.meta.subject || '국어'] ?? ['기타']).map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(SUBJECT_SUBCATEGORIES[item.meta.subject || '국어'] ?? ['기타']).map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>
@@ -640,11 +750,7 @@ function MaterialUploadModal({
           <Button type="button" variant="outline" onClick={onClose}>
             취소
           </Button>
-          <Button
-            type="button"
-            onClick={handleConfirm}
-            disabled={saving}
-          >
+          <Button type="button" onClick={handleConfirm} disabled={saving}>
             {saving ? '업로드 중...' : '업로드'}
           </Button>
         </div>
@@ -670,6 +776,204 @@ function PlaceholderSection({
       <h3 className="mt-4 text-lg font-semibold text-slate-800">{title}</h3>
       <p className="mt-2 text-center text-sm text-slate-500 max-w-md">{description}</p>
       <p className="mt-6 text-xs text-slate-400">준비 중입니다.</p>
+    </div>
+  );
+}
+
+// 학습 목표 카드 컴포넌트
+interface LearningGoalCardProps {
+  goal: LearningGoal;
+  materials: { id: string; title: string; source: 'seolstudy' | 'mentor' }[];
+  onEdit: (goal: LearningGoal) => void;
+  onDelete: (id: string) => void;
+}
+
+function LearningGoalCard({ goal, materials, onEdit, onDelete }: LearningGoalCardProps) {
+  return (
+    <div className="group rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-slate-300 hover:shadow-sm">
+      <div className="flex items-start justify-between">
+        <div className="min-w-0 flex-1">
+          <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+            {goal.subject}
+          </span>
+          <h3 className="mt-2 font-semibold text-slate-900">{goal.name}</h3>
+          {goal.description && (
+            <p className="mt-1 text-sm text-slate-500 line-clamp-2">{goal.description}</p>
+          )}
+        </div>
+        <div className="ml-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <button
+            type="button"
+            onClick={() => onEdit(goal)}
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          >
+            <Edit2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(goal.id)}
+            className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {materials.length > 0 && (
+        <div className="mt-3 border-t border-slate-100 pt-3">
+          <p className="mb-1.5 text-xs font-medium text-slate-500">연결된 학습자료</p>
+          <div className="flex flex-wrap gap-1.5">
+            {materials.map((mat) => (
+              <span
+                key={mat.id}
+                className={`inline-flex items-center rounded-md px-2 py-1 text-xs ${
+                  mat.source === 'seolstudy'
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'bg-slate-50 text-slate-600'
+                }`}
+              >
+                {mat.title}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 학습 목표 모달 컴포넌트
+interface LearningGoalModalProps {
+  goal: LearningGoal | null;
+  materials: MaterialMeta[];
+  onSave: (data: Omit<LearningGoal, 'id' | 'createdAt'>) => void;
+  onClose: () => void;
+  mentorId: string;
+}
+
+function LearningGoalModal({ goal, materials, onSave, onClose, mentorId }: LearningGoalModalProps) {
+  const [subject, setSubject] = useState<'국어' | '영어' | '수학'>(goal?.subject || '국어');
+  const [name, setName] = useState(goal?.name || '');
+  const [description, setDescription] = useState(goal?.description || '');
+  const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>(goal?.materialIds || []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    onSave({
+      mentorId,
+      name: name.trim(),
+      subject,
+      description: description.trim() || undefined,
+      materialIds: selectedMaterialIds,
+    });
+  };
+
+  const filteredMaterials = materials.filter((m) => !m.subject || m.subject === subject);
+
+  const toggleMaterial = (id: string) => {
+    setSelectedMaterialIds((prev) =>
+      prev.includes(id) ? prev.filter((mid) => mid !== id) : [...prev, id],
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-slate-100 p-5">
+          <h2 className="text-lg font-semibold text-slate-900">
+            {goal ? '학습 목표 수정' : '새 학습 목표 추가'}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5 p-5">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">과목</label>
+            <Select value={subject} onValueChange={(v) => setSubject(v as typeof subject)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="국어">국어</SelectItem>
+                <SelectItem value="영어">영어</SelectItem>
+                <SelectItem value="수학">수학</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">학습 목표 이름</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="예: 비문학 지문 구조 파악"
+              className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">설명 (선택)</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="학습 목표에 대한 간단한 설명"
+              rows={2}
+              className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">연결 학습자료</label>
+            <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-200">
+              {filteredMaterials.length === 0 ? (
+                <p className="p-4 text-center text-sm text-slate-500">
+                  해당 과목의 학습자료가 없습니다
+                </p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {filteredMaterials.map((mat) => (
+                    <label
+                      key={mat.id}
+                      className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-slate-50"
+                    >
+                      <Checkbox
+                        checked={selectedMaterialIds.includes(mat.id)}
+                        onCheckedChange={() => toggleMaterial(mat.id)}
+                      />
+                      <div className="flex flex-1 items-center gap-2">
+                        <span className="text-sm">{mat.title}</span>
+                        {mat.source === 'seolstudy' && (
+                          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">
+                            설스터디
+                          </span>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              취소
+            </Button>
+            <Button type="submit">{goal ? '수정' : '추가'}</Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

@@ -12,6 +12,13 @@ import { saveAs } from 'file-saver';
 import { useMemo, useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/Button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useMentee } from '@/hooks/useMentee';
 import {
   useFeedbackItems,
@@ -276,18 +283,18 @@ export function LearningAnalyticsSection() {
     <div className="space-y-6">
       <div className="rounded-xl border border-slate-200 bg-white p-4">
         <label className="mb-2 block text-sm font-medium text-slate-700">분석할 멘티 선택</label>
-        <select
-          value={selectedMenteeId}
-          onChange={(e) => setSelectedMenteeId(e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400 sm:max-w-xs"
-        >
-          <option value="">멘티를 선택하세요</option>
-          {mentees.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name} ({m.grade} · {m.track})
-            </option>
-          ))}
-        </select>
+        <Select value={selectedMenteeId} onValueChange={setSelectedMenteeId}>
+          <SelectTrigger className="w-full sm:max-w-xs">
+            <SelectValue placeholder="멘티를 선택하세요" />
+          </SelectTrigger>
+          <SelectContent>
+            {mentees.map((m) => (
+              <SelectItem key={m.id} value={m.id}>
+                {m.name} ({m.grade} · {m.track})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {selectedMenteeId && analysis && displayAnalysis ? (
@@ -346,8 +353,8 @@ export function LearningAnalyticsSection() {
                 }
               }}
               className="no-print"
+              icon={Download}
             >
-              <Download className="h-4 w-4" />
               PDF 다운로드
             </Button>
             <Button
@@ -400,8 +407,8 @@ export function LearningAnalyticsSection() {
               }}
               variant="outline"
               className="no-print"
+              icon={FileText}
             >
-              <FileText className="h-4 w-4" />
               Word 다운로드
             </Button>
           </div>
