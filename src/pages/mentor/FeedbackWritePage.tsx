@@ -11,7 +11,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { API_CONFIG } from '@/api/config';
 import { AuthPhotoViewer } from '@/components/mentor/AuthPhotoViewer';
-import { DatePickerModal } from '@/components/mentor/DatePickerModal';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Button } from '@/components/ui/Button';
 import { useAssignmentDetail } from '@/hooks/useAssignmentDetail';
 import { useMentee } from '@/hooks/useMentee';
@@ -50,7 +50,6 @@ export function FeedbackWritePage() {
   const [status, setStatus] = useState<'partial' | 'completed'>('completed');
   const [saving, setSaving] = useState(false);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [assignmentDropdownOpen, setAssignmentDropdownOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [remainingTime, setRemainingTime] = useState<string>('');
@@ -94,13 +93,6 @@ export function FeedbackWritePage() {
   // 날짜: 선택된 날짜 또는 현재 과제 제출일
   const displayDate = selectedDate ?? (assignmentFromList ? parseDateFromSubmittedAt(assignmentFromList.submittedAt) : new Date().toISOString().slice(0, 10));
   const displayDateFormatted = displayDate.replace(/-/g, '.');
-  const highlightDates = useMemo(
-    () =>
-      submittedAssignments.map((a) =>
-        parseDateFromSubmittedAt(a.submittedAt)
-      ),
-    [submittedAssignments]
-  );
   const assignmentsForDate = useMemo(
     () =>
       submittedAssignments.filter(
@@ -221,7 +213,6 @@ export function FeedbackWritePage() {
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
-    setDatePickerOpen(false);
   };
 
   if (!menteeId || !assignmentId) {
@@ -280,14 +271,11 @@ export function FeedbackWritePage() {
           </div>
           <div className="flex min-w-0 items-center gap-3">
             <span className="w-20 shrink-0 text-sm font-medium text-slate-600">날짜 선택</span>
-            <button
-              type="button"
-              onClick={() => setDatePickerOpen(true)}
-              className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 transition-colors hover:bg-slate-50"
-            >
-              <span className="truncate">{displayDateFormatted}</span>
-              <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
-            </button>
+            <DatePicker
+              value={displayDate}
+              onChange={handleDateSelect}
+              className="min-w-0 flex-1"
+            />
           </div>
           <div className="relative flex min-w-0 items-center gap-3">
             <span className="w-20 shrink-0 text-sm font-medium text-slate-600">과제 선택</span>
@@ -474,15 +462,6 @@ export function FeedbackWritePage() {
           </form>
         </div>
       </div>
-
-      {/* 날짜 선택 모달 */}
-      <DatePickerModal
-        isOpen={datePickerOpen}
-        onClose={() => setDatePickerOpen(false)}
-        selectedDate={displayDate}
-        highlightDates={highlightDates}
-        onDateSelect={handleDateSelect}
-      />
 
       {/* 템플릿 선택 모달 */}
       {templateModalOpen && (

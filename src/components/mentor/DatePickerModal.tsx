@@ -1,5 +1,7 @@
-import { X } from 'lucide-react';
+// TODO: 삭제 예정
 import { useEffect, useState } from 'react';
+
+import { X } from 'lucide-react';
 
 import { Calendar } from '@/components/ui/Calendar';
 
@@ -19,8 +21,12 @@ export function DatePickerModal({
   onDateSelect,
 }: DatePickerModalProps) {
   const today = new Date();
-  const [year, setYear] = useState(selectedDate ? parseInt(selectedDate.split('-')[0], 10) : today.getFullYear());
-  const [month, setMonth] = useState(selectedDate ? parseInt(selectedDate.split('-')[1], 10) : today.getMonth() + 1);
+  const [year, setYear] = useState(
+    selectedDate ? parseInt(selectedDate.split('-')[0], 10) : today.getFullYear(),
+  );
+  const [month, setMonth] = useState(
+    selectedDate ? parseInt(selectedDate.split('-')[1], 10) : today.getMonth() + 1,
+  );
 
   useEffect(() => {
     if (isOpen && selectedDate) {

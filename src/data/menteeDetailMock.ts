@@ -214,17 +214,6 @@ export const MOCK_FEEDBACK_ITEMS: FeedbackItem[] = [
   },
 ];
 
-/** 오늘 기준 상대 날짜 (YYYY-MM-DD) - 더미가 항상 현재 주/월에 보이도록 */
-function _getDemoDate(daysOffset: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + daysOffset);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-void _getDemoDate; // 나중에 동적 날짜가 필요할 때 사용
-
 /**
  * 미완료 과제 - IncompleteAssignment.id = FeedbackItem.assignmentId (동일 과제는 같은 ID 사용)
  * 과제 완료 시 피드백 대시보드에 추가되므로, 이미 피드백 항목이 있으면 중복 생성하지 않음
