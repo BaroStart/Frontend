@@ -1,9 +1,11 @@
-import { useEffect, useRef } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useRef } from 'react';
+import type { Control } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 
-type Meridiem = "AM" | "PM";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+type Meridiem = 'AM' | 'PM';
 
 export type TimeRangeValue = {
   start: { meridiem: Meridiem; hour: number; minute: number };
@@ -20,28 +22,28 @@ type Props = {
 
 function toMinutes(m: Meridiem, hour12: number, minute: number) {
   const h = hour12 % 12; // 12 -> 0
-  const h24 = m === "PM" ? h + 12 : h;
+  const h24 = m === 'PM' ? h + 12 : h;
   return h24 * 60 + minute;
 }
 
 const schema = z
   .object({
-    startMeridiem: z.enum(["AM", "PM"]),
-    startHour: z.number().int().min(1, "1~12").max(12, "1~12"),
-    startMinute: z.number().int().min(0, "0~59").max(59, "0~59"),
+    startMeridiem: z.enum(['AM', 'PM']),
+    startHour: z.number().int().min(1, '1~12').max(12, '1~12'),
+    startMinute: z.number().int().min(0, '0~59').max(59, '0~59'),
 
-    endMeridiem: z.enum(["AM", "PM"]),
-    endHour: z.number().int().min(1, "1~12").max(12, "1~12"),
-    endMinute: z.number().int().min(0, "0~59").max(59, "0~59"),
+    endMeridiem: z.enum(['AM', 'PM']),
+    endHour: z.number().int().min(1, '1~12').max(12, '1~12'),
+    endMinute: z.number().int().min(0, '0~59').max(59, '0~59'),
   })
   .superRefine((v, ctx) => {
     const start = toMinutes(v.startMeridiem, v.startHour, v.startMinute);
     const end = toMinutes(v.endMeridiem, v.endHour, v.endMinute);
     if (end <= start) {
       ctx.addIssue({
-        code: "custom",
-        path: ["endHour"],
-        message: "종료 시간이 시작 시간보다 늦어야 해요.",
+        code: 'custom',
+        path: ['endHour'],
+        message: '종료 시간이 시작 시간보다 늦어야 해요.',
       });
     }
   });
@@ -49,12 +51,12 @@ const schema = z
 type FormValues = z.infer<typeof schema>;
 
 function pad2(n: number) {
-  return String(n).padStart(2, "0");
+  return String(n).padStart(2, '0');
 }
 
 export function TimeRangeModal({
   open,
-  title = "공부 기록 추가",
+  title = '공부 기록 추가',
   initialValue,
   onClose,
   onSubmit,
@@ -63,13 +65,13 @@ export function TimeRangeModal({
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    mode: "onSubmit",
+    mode: 'onSubmit',
     defaultValues: {
-      startMeridiem: initialValue?.start.meridiem ?? "AM",
+      startMeridiem: initialValue?.start.meridiem ?? 'AM',
       startHour: initialValue?.start.hour ?? 5,
       startMinute: initialValue?.start.minute ?? 0,
 
-      endMeridiem: initialValue?.end.meridiem ?? "AM",
+      endMeridiem: initialValue?.end.meridiem ?? 'AM',
       endHour: initialValue?.end.hour ?? 7,
       endMinute: initialValue?.end.minute ?? 53,
     },
@@ -79,10 +81,10 @@ export function TimeRangeModal({
     if (!open) return;
 
     form.reset({
-      startMeridiem: initialValue?.start.meridiem ?? "AM",
+      startMeridiem: initialValue?.start.meridiem ?? 'AM',
       startHour: initialValue?.start.hour ?? 5,
       startMinute: initialValue?.start.minute ?? 0,
-      endMeridiem: initialValue?.end.meridiem ?? "AM",
+      endMeridiem: initialValue?.end.meridiem ?? 'AM',
       endHour: initialValue?.end.hour ?? 7,
       endMinute: initialValue?.end.minute ?? 53,
     });
@@ -90,13 +92,13 @@ export function TimeRangeModal({
     const t = setTimeout(() => firstFocusRef.current?.focus(), 0);
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === 'Escape') onClose();
     };
-    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener('keydown', onKeyDown);
 
     return () => {
       clearTimeout(t);
-      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener('keydown', onKeyDown);
     };
   }, [open, initialValue, onClose, form]);
 
@@ -197,8 +199,8 @@ function MeridiemToggle({
   valueName,
   firstRef,
 }: {
-  control: any;
-  valueName: "startMeridiem" | "endMeridiem";
+  control: Control<FormValues>;
+  valueName: 'startMeridiem' | 'endMeridiem';
   firstRef?: React.RefObject<HTMLButtonElement | null>;
 }) {
   return (
@@ -208,23 +210,23 @@ function MeridiemToggle({
       render={({ field }) => (
         <div className="flex flex-col text-xs">
           <button
-            ref={firstRef as any}
+            ref={firstRef}
             type="button"
-            onClick={() => field.onChange("AM")}
+            onClick={() => field.onChange('AM')}
             className={[
-              "px-1 text-left font-semibold",
-              field.value === "AM" ? "text-blue-600" : "text-gray-400",
-            ].join(" ")}
+              'px-1 text-left font-semibold',
+              field.value === 'AM' ? 'text-blue-600' : 'text-gray-400',
+            ].join(' ')}
           >
             오전
           </button>
           <button
             type="button"
-            onClick={() => field.onChange("PM")}
+            onClick={() => field.onChange('PM')}
             className={[
-              "px-1 text-left font-semibold",
-              field.value === "PM" ? "text-blue-600" : "text-gray-400",
-            ].join(" ")}
+              'px-1 text-left font-semibold',
+              field.value === 'PM' ? 'text-blue-600' : 'text-gray-400',
+            ].join(' ')}
           >
             오후
           </button>
@@ -239,12 +241,12 @@ function TimeBoxes({
   hourName,
   minuteName,
 }: {
-  control: any;
-  hourName: "startHour" | "endHour";
-  minuteName: "startMinute" | "endMinute";
+  control: Control<FormValues>;
+  hourName: 'startHour' | 'endHour';
+  minuteName: 'startMinute' | 'endMinute';
 }) {
   const inputCls =
-    "h-14 w-16 rounded-2xl border border-gray-200 bg-white text-center text-3xl font-extrabold text-gray-900 outline-none focus:border-gray-300 focus:ring-2 focus:ring-gray-900/10";
+    'h-14 w-16 rounded-2xl border border-gray-200 bg-white text-center text-3xl font-extrabold text-gray-900 outline-none focus:border-gray-300 focus:ring-2 focus:ring-gray-900/10';
   return (
     <div className="flex items-center gap-2">
       <Controller

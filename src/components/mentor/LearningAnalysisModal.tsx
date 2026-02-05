@@ -1,6 +1,7 @@
-import { BarChart3, Calendar, Download, Info, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+import { ArrowRight, BarChart3, Calendar, Download, Info } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
 import { useSubjectStudyTimes } from '@/hooks/useLearningAnalysis';
@@ -38,7 +39,8 @@ export function LearningAnalysisModal({
   const maxHours = Math.max(...subjectData.map((s) => s.hours), 1);
 
   const handleDownloadReport = () => {
-    const report = `${menteeName} 학습 분석 리포트 (${period === 'week' ? '이번 주' : '이번 달'})\n\n` +
+    const report =
+      `${menteeName} 학습 분석 리포트 (${period === 'week' ? '이번 주' : '이번 달'})\n\n` +
       `과목별 학습 시간:\n` +
       subjectData.map((s) => `  ${s.subject}: ${s.hours}h`).join('\n') +
       `\n\n주간 학습 패턴:\n` +
@@ -88,8 +90,13 @@ export function LearningAnalysisModal({
               <Calendar className="h-4 w-4" />
               이번 달
             </button>
-            <Button type="button" variant="outline" size="sm" onClick={handleDownloadReport}>
-              <Download className="h-4 w-4" />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              icon={Download}
+              onClick={handleDownloadReport}
+            >
               리포트 다운로드
             </Button>
             <button

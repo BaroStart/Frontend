@@ -12,6 +12,7 @@ interface CalendarProps {
   onDateSelect: (date: string) => void;
   onMonthChange: (year: number, month: number) => void;
   className?: string;
+  todayDate?: string;
 }
 
 export function Calendar({
@@ -22,9 +23,11 @@ export function Calendar({
   onDateSelect,
   onMonthChange,
   className,
+  todayDate,
 }: CalendarProps) {
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const defaultTodayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayStr = todayDate ?? defaultTodayStr;
 
   const firstDay = new Date(year, month - 1, 1);
   const lastDay = new Date(year, month, 0);
@@ -62,7 +65,12 @@ export function Calendar({
   }
 
   return (
-    <div className={cn('rounded-2xl border border-slate-100 bg-white p-5 shadow-sm', className)}>
+    <div
+      className={cn(
+        'min-w-[320px] rounded-2xl border border-slate-100 bg-white p-5 shadow-sm',
+        className,
+      )}
+    >
       {/* 헤더 */}
       <div className="mb-5 flex items-center justify-between">
         <button
@@ -90,8 +98,8 @@ export function Calendar({
           <div
             key={day}
             className={cn(
-              'flex h-9 items-center justify-center text-xs font-medium',
-              i === 0 ? 'text-slate-400' : i === 6 ? 'text-slate-400' : 'text-slate-500'
+              'flex h-10 w-10 items-center justify-center text-sm font-medium',
+              i === 0 ? 'text-slate-400' : i === 6 ? 'text-slate-400' : 'text-slate-500',
             )}
           >
             {day}
@@ -103,7 +111,7 @@ export function Calendar({
       <div className="grid grid-cols-7 gap-1">
         {days.map((day, i) => {
           if (day === null) {
-            return <div key={`empty-${i}`} className="h-10" />;
+            return <div key={`empty-${i}`} className="h-10 w-10" />;
           }
           const dateStr = formatDate(day);
           const isSelected = selectedDate === dateStr;
@@ -118,12 +126,15 @@ export function Calendar({
               type="button"
               onClick={() => onDateSelect(dateStr)}
               className={cn(
-                'relative flex h-10 items-center justify-center rounded-full text-sm font-medium transition-all duration-150',
+                'relative flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-all duration-150',
                 isSelected && 'bg-slate-800 text-white shadow-md',
                 !isSelected && isToday && 'ring-1 ring-slate-300 ring-offset-2 text-slate-900',
-                !isSelected && !isToday && hasAssignment && 'bg-slate-100 text-slate-800 hover:bg-slate-200',
+                !isSelected &&
+                  !isToday &&
+                  hasAssignment &&
+                  'bg-slate-100 text-slate-800 hover:bg-slate-200',
                 !isSelected && !isToday && !hasAssignment && 'text-slate-600 hover:bg-slate-50',
-                isWeekend && !isSelected && 'text-slate-400'
+                isWeekend && !isSelected && 'text-slate-400',
               )}
             >
               {day}

@@ -148,26 +148,20 @@ export function ScheduleAddModal({
               </select>
             </div>
           )}
-          <div>
-            <Label htmlFor="schedule-title">제목</Label>
-            <Input
-              id="schedule-title"
-              placeholder={mode === 'learning' ? '예: 수학 오답노트 정리, 영어 듣기 평가' : '예: 1학기 중간고사, 6월 모의고사'}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="schedule-date">날짜</Label>
-            <Input
-              id="schedule-date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="mt-1"
-            />
-          </div>
+          <Input
+            id="schedule-title"
+            label="제목"
+            placeholder={mode === 'learning' ? '예: 수학 오답노트 정리, 영어 듣기 평가' : '예: 1학기 중간고사, 6월 모의고사'}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <Input
+            id="schedule-date"
+            label="날짜"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
           <div className="flex gap-2 pt-2">
             <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
               취소

@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+
 import {
   BookOpen,
   Calendar,
@@ -14,16 +17,14 @@ import {
   Trash2,
   TrendingUp,
 } from 'lucide-react';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
 
-import { FeedbackWriteModal } from '@/components/mentor/FeedbackWriteModal';
 import { UserIcon } from '@/components/icons';
+import { FeedbackWriteModal } from '@/components/mentor/FeedbackWriteModal';
 import { Button } from '@/components/ui/Button';
 import { useMentees } from '@/hooks/useMentees';
 import { useSubmittedAssignments } from '@/hooks/useSubmittedAssignments';
-import { useAuthStore } from '@/stores/useAuthStore';
 import { getDeadlineStatus } from '@/lib/feedbackDeadline';
+import { useAuthStore } from '@/stores/useAuthStore';
 import type { MenteeSummary, SubmittedAssignment } from '@/types';
 
 const FILTER_TABS = [
@@ -36,7 +37,16 @@ export function MentorMainPage() {
   const { user } = useAuthStore();
   const [filterTab, setFilterTab] = useState<(typeof FILTER_TABS)[number]['id']>('all');
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [feedbackModalInitial, setFeedbackModalInitial] = useState<{
+    menteeId?: string;
+    assignmentId?: string;
+  }>({});
   const [deletedMenteeIds, setDeletedMenteeIds] = useState<Set<string>>(new Set());
+
+  const openFeedbackModal = (menteeId?: string, assignmentId?: string) => {
+    setFeedbackModalInitial({ menteeId, assignmentId });
+    setFeedbackModalOpen(true);
+  };
 
   const { data: mentees = [] } = useMentees();
   const { data: submittedAssignments = [] } = useSubmittedAssignments();
@@ -44,7 +54,7 @@ export function MentorMainPage() {
   const totalPendingFeedback = mentees.reduce((sum, m) => sum + m.pendingFeedbackCount, 0);
   const pendingWithoutFeedback = submittedAssignments.filter((a) => !a.feedbackDone);
   const overdueFeedbackCount = pendingWithoutFeedback.filter(
-    (a) => getDeadlineStatus(a.submittedAt) === 'overdue'
+    (a) => getDeadlineStatus(a.submittedAt) === 'overdue',
   ).length;
   const weeklyCompleted = 8;
 
@@ -58,7 +68,9 @@ export function MentorMainPage() {
     });
 
   const handleDeleteMentee = (menteeId: string, menteeName: string) => {
-    if (window.confirm(`"${menteeName}" 멘티를 삭제하시겠습니까?\n삭제된 멘티는 목록에서 제거됩니다.`)) {
+    if (
+      window.confirm(`"${menteeName}" 멘티를 삭제하시겠습니까?\n삭제된 멘티는 목록에서 제거됩니다.`)
+    ) {
       setDeletedMenteeIds((prev) => new Set(prev).add(menteeId));
       alert('멘티가 삭제되었습니다.');
     }
@@ -72,9 +84,7 @@ export function MentorMainPage() {
           <h2 className="text-base font-bold text-white sm:text-lg">
             안녕하세요, {user?.name ?? '멘토'}님! 👋
           </h2>
-          <p className="mt-1 text-sm text-slate-300">
-            오늘도 멘티들의 성장을 함께 만들어가요
-          </p>
+          <p className="mt-1 text-sm text-slate-300">오늘도 멘티들의 성장을 함께 만들어가요</p>
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-4">
           <SummaryCard label="담당 멘티" value={`${mentees.length}명`} />
@@ -106,11 +116,7 @@ export function MentorMainPage() {
               description="멘티에게 과제 부여하기"
             />
           </Link>
-          <button
-            type="button"
-            onClick={() => setFeedbackModalOpen(true)}
-            className="w-full text-left"
-          >
+          <button type="button" onClick={() => openFeedbackModal()} className="w-full text-left">
             <QuickActionCard
               icon={<FileUp className="h-8 w-8" />}
               title="피드백 작성"
@@ -148,6 +154,7 @@ export function MentorMainPage() {
               mentee={mentee}
               recentAssignments={submittedAssignments.filter((a) => a.menteeId === mentee.id)}
               onDelete={() => handleDeleteMentee(mentee.id, mentee.name)}
+              onFeedbackClick={(assignmentId) => openFeedbackModal(mentee.id, assignmentId)}
             />
           ))}
         </div>
@@ -156,6 +163,8 @@ export function MentorMainPage() {
       <FeedbackWriteModal
         isOpen={feedbackModalOpen}
         onClose={() => setFeedbackModalOpen(false)}
+        initialMenteeId={feedbackModalInitial.menteeId}
+        initialAssignmentId={feedbackModalInitial.assignmentId}
       />
     </div>
   );
@@ -205,10 +214,10 @@ function QuickActionCard({
 
 function RecentAssignmentItem({
   assignment,
-  menteeId,
+  onFeedbackClick,
 }: {
   assignment: SubmittedAssignment;
-  menteeId: string;
+  onFeedbackClick: () => void;
 }) {
   const Icon =
     assignment.iconType === 'camera'
@@ -234,14 +243,9 @@ function RecentAssignmentItem({
           피드백 완료
         </span>
       ) : (
-        <Link
-          to={`/mentor/mentees/${menteeId}/feedback/${assignment.id}`}
-          className="shrink-0"
-        >
-          <Button size="sm" className="whitespace-nowrap">
-            피드백 작성하기
-          </Button>
-        </Link>
+        <Button size="sm" className="whitespace-nowrap" onClick={onFeedbackClick}>
+          피드백 작성하기
+        </Button>
       )}
     </div>
   );
@@ -251,10 +255,12 @@ function MenteeCard({
   mentee,
   recentAssignments,
   onDelete,
+  onFeedbackClick,
 }: {
   mentee: MenteeSummary;
   recentAssignments: SubmittedAssignment[];
   onDelete: () => void;
+  onFeedbackClick: (assignmentId: string) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const todayProgress =
@@ -360,9 +366,7 @@ function MenteeCard({
           <p className="mt-0.5 text-base font-bold text-slate-900 sm:mt-1 sm:text-lg">
             {mentee.learningCert ?? '-'}
           </p>
-          <p className="text-xs text-slate-500">
-            {mentee.learningCertUploaded ?? '-'}
-          </p>
+          <p className="text-xs text-slate-500">{mentee.learningCertUploaded ?? '-'}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
           <div className="flex items-center gap-1.5">
@@ -403,7 +407,11 @@ function MenteeCard({
               <p className="py-4 text-center text-xs text-slate-500">제출된 과제가 없습니다.</p>
             ) : (
               recent.map((a) => (
-                <RecentAssignmentItem key={a.id} assignment={a} menteeId={mentee.id} />
+                <RecentAssignmentItem
+                  key={a.id}
+                  assignment={a}
+                  onFeedbackClick={() => onFeedbackClick(a.id)}
+                />
               ))
             );
           })()}
