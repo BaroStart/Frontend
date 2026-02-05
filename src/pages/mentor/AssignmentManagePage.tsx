@@ -20,13 +20,7 @@ import {
 
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { DefaultSelect } from '@/components/ui/select';
 import { Tabs } from '@/components/ui/tabs';
 import { SUBJECT_SUBCATEGORIES } from '@/data/assignmentRegisterMock';
 import {
@@ -459,18 +453,15 @@ export function AssignmentManagePage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
               <div className="flex-1">
                 <label className="mb-1 block text-sm font-medium text-slate-700">멘티 선택</label>
-                <Select value={plannerMenteeId} onValueChange={setPlannerMenteeId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="멘티를 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mentees.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.name} ({m.grade} · {m.track})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <DefaultSelect
+                  value={plannerMenteeId}
+                  onValueChange={setPlannerMenteeId}
+                  placeholder="멘티를 선택하세요"
+                  options={mentees.map((m) => ({
+                    value: m.id,
+                    label: `${m.name} (${m.grade} · ${m.track})`,
+                  }))}
+                />
               </div>
               <div className="flex-1">
                 <label className="mb-1 block text-sm font-medium text-slate-700">날짜 선택</label>
@@ -702,7 +693,7 @@ function MaterialUploadModal({
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-slate-600">과목</label>
-                  <Select
+                  <DefaultSelect
                     value={item.meta.subject || '국어'}
                     onValueChange={(subject) => {
                       updateItem(index, {
@@ -710,36 +701,16 @@ function MaterialUploadModal({
                         subCategory: SUBJECT_SUBCATEGORIES[subject]?.[0] ?? '기타',
                       });
                     }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subjects.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    options={subjects}
+                  />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-slate-600">세부 분류</label>
-                  <Select
+                  <DefaultSelect
                     value={item.meta.subCategory || '비문학'}
                     onValueChange={(value) => updateItem(index, { subCategory: value })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(SUBJECT_SUBCATEGORIES[item.meta.subject || '국어'] ?? ['기타']).map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    options={SUBJECT_SUBCATEGORIES[item.meta.subject || '국어'] ?? ['기타']}
+                  />
                 </div>
               </div>
             </div>
@@ -899,16 +870,11 @@ function LearningGoalModal({ goal, materials, onSave, onClose, mentorId }: Learn
         <form onSubmit={handleSubmit} className="space-y-5 p-5">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">과목</label>
-            <Select value={subject} onValueChange={(v) => setSubject(v as typeof subject)}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="국어">국어</SelectItem>
-                <SelectItem value="영어">영어</SelectItem>
-                <SelectItem value="수학">수학</SelectItem>
-              </SelectContent>
-            </Select>
+            <DefaultSelect
+              value={subject}
+              onValueChange={(v) => setSubject(v as typeof subject)}
+              options={['국어', '영어', '수학']}
+            />
           </div>
 
           <div>

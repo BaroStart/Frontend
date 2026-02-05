@@ -137,6 +137,45 @@ const SelectSeparator = React.forwardRef<
 ));
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
+export type SelectOption = string | { value: string; label: string };
+
+interface DefaultSelectProps {
+  value?: string;
+  onValueChange?: (value: string) => void;
+  options: readonly SelectOption[];
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
+}
+
+function DefaultSelect({
+  value,
+  onValueChange,
+  options,
+  placeholder,
+  className,
+  disabled,
+}: DefaultSelectProps) {
+  const normalizedOptions = options.map((opt) =>
+    typeof opt === 'string' ? { value: opt, label: opt } : opt,
+  );
+
+  return (
+    <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+      <SelectTrigger className={cn('w-full', className)}>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {normalizedOptions.map((opt) => (
+          <SelectItem key={opt.value} value={opt.value}>
+            {opt.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 export {
   Select,
   SelectContent,
@@ -148,4 +187,5 @@ export {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
+  DefaultSelect,
 };

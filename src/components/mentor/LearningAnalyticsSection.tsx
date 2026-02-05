@@ -12,13 +12,7 @@ import { saveAs } from 'file-saver';
 import { useMemo, useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/Button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { DefaultSelect } from '@/components/ui/select';
 import { useMentee } from '@/hooks/useMentee';
 import {
   useFeedbackItems,
@@ -283,18 +277,16 @@ export function LearningAnalyticsSection() {
     <div className="space-y-6">
       <div className="rounded-xl border border-slate-200 bg-white p-4">
         <label className="mb-2 block text-sm font-medium text-slate-700">분석할 멘티 선택</label>
-        <Select value={selectedMenteeId} onValueChange={setSelectedMenteeId}>
-          <SelectTrigger className="w-full sm:max-w-xs">
-            <SelectValue placeholder="멘티를 선택하세요" />
-          </SelectTrigger>
-          <SelectContent>
-            {mentees.map((m) => (
-              <SelectItem key={m.id} value={m.id}>
-                {m.name} ({m.grade} · {m.track})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <DefaultSelect
+          value={selectedMenteeId}
+          onValueChange={setSelectedMenteeId}
+          placeholder="멘티를 선택하세요"
+          className="sm:max-w-xs"
+          options={mentees.map((m) => ({
+            value: m.id,
+            label: `${m.name} (${m.grade} · ${m.track})`,
+          }))}
+        />
       </div>
 
       {selectedMenteeId && analysis && displayAnalysis ? (

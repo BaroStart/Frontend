@@ -14,6 +14,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import {
+  DefaultSelect,
   Select,
   SelectContent,
   SelectItem,
@@ -114,7 +115,7 @@ export function AssignmentRegisterPage() {
     : null;
 
   const {
-    getGoalsBySubject,
+    getGoalsByMentor,
     initialize: initializeGoals,
     getMaterialsByIds,
   } = useLearningGoalStore();
@@ -125,11 +126,9 @@ export function AssignmentRegisterPage() {
   }, [initializeGoals]);
 
   const learningGoals = useMemo(
-    () => getGoalsBySubject(CURRENT_MENTOR_ID, subject),
-    [getGoalsBySubject, subject],
+    () => getGoalsByMentor(CURRENT_MENTOR_ID),
+    [getGoalsByMentor],
   );
-
-  const selectedGoal = learningGoals.find((g) => g.id === improvementPointId);
 
   const matchedMaterials = useMemo(() => {
     if (improvementPointId) {
@@ -352,18 +351,16 @@ export function AssignmentRegisterPage() {
           <div className="grid items-start gap-6 sm:grid-cols-2">
             <div>
               <Label htmlFor="mentee">대상 학생 선택</Label>
-              <Select value={menteeId} onValueChange={setMenteeId}>
-                <SelectTrigger className="mt-1.5 w-full">
-                  <SelectValue placeholder="학생을 선택하세요" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mentees.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.name} ({m.grade} · {m.track})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <DefaultSelect
+                value={menteeId}
+                onValueChange={setMenteeId}
+                placeholder="학생을 선택하세요"
+                className="mt-1.5"
+                options={mentees.map((m) => ({
+                  value: m.id,
+                  label: `${m.name} (${m.grade} · ${m.track})`,
+                }))}
+              />
             </div>
 
             <div>
@@ -467,58 +464,40 @@ export function AssignmentRegisterPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label>과목 선택</Label>
-                <Select
+                <DefaultSelect
                   value={subject}
                   onValueChange={(v) => handleSubjectChange(v as typeof subject)}
-                >
-                  <SelectTrigger className="mt-1.5 w-full">
-                    <SelectValue placeholder="과목을 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MAIN_SUBJECTS.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="과목을 선택하세요"
+                  className="mt-1.5"
+                  options={MAIN_SUBJECTS}
+                />
               </div>
 
               <div>
                 <Label>과제 목표 선택</Label>
-                <Select value={improvementPointId} onValueChange={setImprovementPointId}>
-                  <SelectTrigger className="mt-1.5 w-full">
-                    <SelectValue placeholder="과제 목표를 선택하세요">
-                      {selectedGoal && (
-                        <span className="flex items-center gap-2">{selectedGoal.name}</span>
-                      )}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {learningGoals.length === 0 ? (
-                      <div className="p-3 text-center text-sm text-slate-500">
-                        등록된 과제 목표가 없습니다.
-                        <br />
-                        <span className="text-xs text-slate-400">
-                          과제 관리 &gt; 과제 목표에서 추가하세요
-                        </span>
-                      </div>
-                    ) : (
-                      learningGoals.map((g) => (
-                        <SelectItem key={g.id} value={g.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{g.name}</span>
-                            {g.materialIds && g.materialIds.length > 0 && (
-                              <span className="text-xs text-slate-400">
-                                ({g.materialIds.length}개 학습자료)
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                {learningGoals.length === 0 ? (
+                  <div className="mt-1.5 rounded-md border border-slate-200 p-3 text-center text-sm text-slate-500">
+                    등록된 과제 목표가 없습니다.
+                    <br />
+                    <span className="text-xs text-slate-400">
+                      과제 관리 &gt; 과제 목표에서 추가하세요
+                    </span>
+                  </div>
+                ) : (
+                  <DefaultSelect
+                    value={improvementPointId}
+                    onValueChange={setImprovementPointId}
+                    placeholder="과제 목표를 선택하세요"
+                    className="mt-1.5"
+                    options={learningGoals.map((g) => ({
+                      value: g.id,
+                      label:
+                        g.materialIds && g.materialIds.length > 0
+                          ? `${g.name} (${g.materialIds.length}개 학습자료)`
+                          : g.name,
+                    }))}
+                  />
+                )}
               </div>
             </div>
           </div>
