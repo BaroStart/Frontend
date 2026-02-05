@@ -485,10 +485,10 @@ export function AssignmentRegisterPage() {
               </div>
 
               <div>
-                <Label>학습 목표 선택</Label>
+                <Label>과제 목표 선택</Label>
                 <Select value={improvementPointId} onValueChange={setImprovementPointId}>
                   <SelectTrigger className="mt-1.5 w-full">
-                    <SelectValue placeholder="학습 목표를 선택하세요">
+                    <SelectValue placeholder="과제 목표를 선택하세요">
                       {selectedGoal && (
                         <span className="flex items-center gap-2">{selectedGoal.name}</span>
                       )}
@@ -497,10 +497,10 @@ export function AssignmentRegisterPage() {
                   <SelectContent>
                     {learningGoals.length === 0 ? (
                       <div className="p-3 text-center text-sm text-slate-500">
-                        등록된 학습 목표가 없습니다.
+                        등록된 과제 목표가 없습니다.
                         <br />
                         <span className="text-xs text-slate-400">
-                          과제 관리 &gt; 학습 목표에서 추가하세요
+                          과제 관리 &gt; 과제 목표에서 추가하세요
                         </span>
                       </div>
                     ) : (
@@ -552,7 +552,7 @@ export function AssignmentRegisterPage() {
                   }}
                 >
                   <SelectTrigger className="w-full max-w-md">
-                    <SelectValue placeholder="선택 안 함 (학습 목표/과목 템플릿 또는 직접 작성)" />
+                    <SelectValue placeholder="선택 안 함 (과제 목표/과목 템플릿 또는 직접 작성)" />
                   </SelectTrigger>
                   <SelectContent>
                     <div className="px-2 py-1.5 text-xs font-semibold text-slate-500">

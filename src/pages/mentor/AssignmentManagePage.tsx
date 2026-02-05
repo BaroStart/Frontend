@@ -114,7 +114,7 @@ export function AssignmentManagePage() {
 
   const tabs = [
     { id: 'materials' as TabType, label: '학습 자료', icon: FolderOpen },
-    { id: 'goals' as TabType, label: '학습 목표', icon: Target },
+    { id: 'goals' as TabType, label: '과제 목표', icon: Target },
     { id: 'planner' as TabType, label: '플래너 관리', icon: Calendar },
     { id: 'templates' as TabType, label: '과제 템플릿', icon: Layers },
   ];
@@ -135,7 +135,7 @@ export function AssignmentManagePage() {
   };
 
   const handleDeleteGoal = (id: string) => {
-    if (window.confirm('이 학습 목표를 삭제하시겠습니까?')) {
+    if (window.confirm('이 과제 목표를 삭제하시겠습니까?')) {
       deleteGoal(id);
     }
   };
@@ -163,12 +163,9 @@ export function AssignmentManagePage() {
         }
       />
 
-      {/* 학습 자료 탭 */}
       {activeTab === 'materials' && (
         <div className="space-y-6">
-          {/* 상단: 필터 및 검색 */}
           <div className="flex flex-wrap items-center gap-3">
-            {/* 과목 필터 - h-9 기준 */}
             <div className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-100 p-0.5">
               {['전체', '국어', '영어', '수학'].map((subject) => (
                 <button
@@ -188,7 +185,6 @@ export function AssignmentManagePage() {
                 </button>
               ))}
             </div>
-            {/* 검색 - h-9 */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
@@ -200,7 +196,6 @@ export function AssignmentManagePage() {
               />
             </div>
 
-            {/* 업로드 버튼 - h-9 (Button default) */}
             <div className="ml-auto">
               <input
                 ref={materialFileInputRef}
@@ -274,7 +269,7 @@ export function AssignmentManagePage() {
 
           {/* 자료 목록 */}
           {(() => {
-            const filteredMaterials = materials.filter((mat) => {
+            const sortedMaterials = materials.filter((mat) => {
               const matchesSubject =
                 materialSubjectFilter === '전체' || mat.subject === materialSubjectFilter;
               const matchesSubCategory =
@@ -287,7 +282,7 @@ export function AssignmentManagePage() {
               return matchesSubject && matchesSubCategory && matchesSearch;
             });
 
-            if (filteredMaterials.length === 0) {
+            if (sortedMaterials.length === 0) {
               return (
                 <div className="flex min-h-[400px] flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12">
                   <FolderOpen className="h-12 w-12 text-slate-300" />
@@ -304,7 +299,7 @@ export function AssignmentManagePage() {
 
             return (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredMaterials.map((material) => {
+                {sortedMaterials.map((material) => {
                   const FileIcon =
                     material.fileType === 'pdf'
                       ? FileText
@@ -314,19 +309,36 @@ export function AssignmentManagePage() {
                           ? File
                           : File;
 
+                  const isSeolstudy = material.source === 'seolstudy';
+
                   return (
                     <div
                       key={material.id}
-                      className="group relative rounded-xl border border-slate-200 bg-white p-4 transition-shadow hover:shadow-md"
+                      className={`group relative rounded-xl border p-4 ${
+                        isSeolstudy ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 bg-white'
+                      }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                        <div
+                          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${
+                            isSeolstudy
+                              ? 'bg-blue-100 text-blue-600'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
                           <FileIcon className="h-6 w-6" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h3 className="truncate font-semibold text-slate-900">
-                            {material.title}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="truncate font-semibold text-slate-900">
+                              {material.title}
+                            </h3>
+                            {isSeolstudy && (
+                              <span className="shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700">
+                                설스터디
+                              </span>
+                            )}
+                          </div>
                           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                             <span className="rounded-full bg-slate-100 px-2 py-0.5">
                               {material.subject}
@@ -364,12 +376,9 @@ export function AssignmentManagePage() {
         </div>
       )}
 
-      {/* 학습 목표 탭 */}
       {activeTab === 'goals' && (
         <div className="space-y-6">
-          {/* 툴바: 필터 + 검색 + 추가 버튼 */}
           <div className="flex flex-wrap items-center gap-3">
-            {/* 과목 필터 - h-9 기준 */}
             <div className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-100 p-0.5">
               {['전체', '국어', '영어', '수학'].map((subject) => (
                 <button
@@ -387,35 +396,32 @@ export function AssignmentManagePage() {
               ))}
             </div>
 
-            {/* 검색 - h-9 */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="학습 목표 검색..."
+                placeholder="과제 목표 검색..."
                 value={goalSearchQuery}
                 onChange={(e) => setGoalSearchQuery(e.target.value)}
                 className="h-9 w-48 rounded-lg border border-slate-200 bg-white pl-9 pr-4 text-sm focus:border-slate-400 focus:outline-none"
               />
             </div>
 
-            {/* 새 학습 목표 추가 */}
             <Button icon={Plus} onClick={handleAddGoal} className="ml-auto">
-              새 학습 목표 추가
+              새 과제 목표 추가
             </Button>
           </div>
 
-          {/* 학습 목표 목록 */}
           {filteredGoals.length === 0 ? (
             <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-12">
               <BookOpen className="h-12 w-12 text-slate-300" />
               <p className="mt-4 text-sm text-slate-500">
                 {goalSearchQuery || goalSubjectFilter !== '전체'
                   ? '검색 결과가 없습니다'
-                  : '등록된 학습 목표가 없습니다'}
+                  : '등록된 과제 목표가 없습니다'}
               </p>
               <p className="mt-2 text-xs text-slate-400">
-                학습 목표를 추가하여 과제 등록 시 활용하세요
+                과제 목표를 추가하여 과제 등록 시 활용하세요
               </p>
             </div>
           ) : (
@@ -432,7 +438,6 @@ export function AssignmentManagePage() {
             </div>
           )}
 
-          {/* 학습 목표 모달 */}
           {goalModalOpen && (
             <LearningGoalModal
               goal={editingGoal}
@@ -448,10 +453,8 @@ export function AssignmentManagePage() {
         </div>
       )}
 
-      {/* 플래너 관리 탭 */}
       {activeTab === 'planner' && (
         <div className="space-y-6">
-          {/* 멘티 및 날짜 선택 */}
           <div className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
               <div className="flex-1">
@@ -483,7 +486,6 @@ export function AssignmentManagePage() {
 
           {plannerMenteeId ? (
             <>
-              {/* 학생 기록 (과제/학습 시간) */}
               {(() => {
                 const records = getPlannerRecordsByMenteeAndDate(plannerMenteeId, plannerDate);
                 const totalMinutes = records.reduce((sum, r) => sum + r.durationMinutes, 0);
@@ -493,7 +495,6 @@ export function AssignmentManagePage() {
 
                 return (
                   <div className="grid gap-6 lg:grid-cols-2">
-                    {/* 좌측: 과제 목록 + 피드백 */}
                     <div className="space-y-6">
                       <div className="rounded-xl border border-slate-200 bg-white p-4">
                         <h3 className="mb-3 text-base font-semibold text-slate-900">
@@ -563,7 +564,6 @@ export function AssignmentManagePage() {
                       </div>
                     </div>
 
-                    {/* 우측: 타임라인 */}
                     <div className="rounded-xl border border-slate-200 bg-white p-4">
                       <h3 className="mb-3 text-base font-semibold text-slate-900">타임라인</h3>
                       {records.length === 0 ? (
@@ -589,7 +589,6 @@ export function AssignmentManagePage() {
         </div>
       )}
 
-      {/* 과제 템플릿 탭 */}
       {activeTab === 'templates' && (
         <PlaceholderSection
           title="과제 템플릿"
@@ -780,7 +779,6 @@ function PlaceholderSection({
   );
 }
 
-// 학습 목표 카드 컴포넌트
 interface LearningGoalCardProps {
   goal: LearningGoal;
   materials: { id: string; title: string; source: 'seolstudy' | 'mentor' }[];
@@ -842,7 +840,6 @@ function LearningGoalCard({ goal, materials, onEdit, onDelete }: LearningGoalCar
   );
 }
 
-// 학습 목표 모달 컴포넌트
 interface LearningGoalModalProps {
   goal: LearningGoal | null;
   materials: MaterialMeta[];
@@ -870,7 +867,11 @@ function LearningGoalModal({ goal, materials, onSave, onClose, mentorId }: Learn
     });
   };
 
-  const filteredMaterials = materials.filter((m) => !m.subject || m.subject === subject);
+  const sortedMaterials = [...materials].sort((a, b) => {
+    const aMatch = a.subject === subject ? 0 : 1;
+    const bMatch = b.subject === subject ? 0 : 1;
+    return aMatch - bMatch;
+  });
 
   const toggleMaterial = (id: string) => {
     setSelectedMaterialIds((prev) =>
@@ -884,7 +885,7 @@ function LearningGoalModal({ goal, materials, onSave, onClose, mentorId }: Learn
       <div className="relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-100 p-5">
           <h2 className="text-lg font-semibold text-slate-900">
-            {goal ? '학습 목표 수정' : '새 학습 목표 추가'}
+            {goal ? '과제 목표 수정' : '새 과제 목표 추가'}
           </h2>
           <button
             type="button"
@@ -911,7 +912,7 @@ function LearningGoalModal({ goal, materials, onSave, onClose, mentorId }: Learn
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">학습 목표 이름</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700">과제 목표 이름</label>
             <input
               type="text"
               value={name}
@@ -927,7 +928,7 @@ function LearningGoalModal({ goal, materials, onSave, onClose, mentorId }: Learn
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="학습 목표에 대한 간단한 설명"
+              placeholder="과제 목표에 대한 간단한 설명"
               rows={2}
               className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
             />
@@ -936,16 +937,16 @@ function LearningGoalModal({ goal, materials, onSave, onClose, mentorId }: Learn
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">연결 학습자료</label>
             <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-200">
-              {filteredMaterials.length === 0 ? (
-                <p className="p-4 text-center text-sm text-slate-500">
-                  해당 과목의 학습자료가 없습니다
-                </p>
+              {sortedMaterials.length === 0 ? (
+                <p className="p-4 text-center text-sm text-slate-500">등록된 학습자료가 없습니다</p>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  {filteredMaterials.map((mat) => (
+                  {sortedMaterials.map((mat) => (
                     <label
                       key={mat.id}
-                      className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-slate-50"
+                      className={`flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-slate-50 ${
+                        mat.subject !== subject ? 'opacity-60' : ''
+                      }`}
                     >
                       <Checkbox
                         checked={selectedMaterialIds.includes(mat.id)}
@@ -953,6 +954,15 @@ function LearningGoalModal({ goal, materials, onSave, onClose, mentorId }: Learn
                       />
                       <div className="flex flex-1 items-center gap-2">
                         <span className="text-sm">{mat.title}</span>
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-xs ${
+                            mat.subject === subject
+                              ? 'bg-slate-200 text-slate-700'
+                              : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {mat.subject}
+                        </span>
                         {mat.source === 'seolstudy' && (
                           <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">
                             설스터디
