@@ -267,9 +267,7 @@ export function FeedbackWritePage() {
 
   return (
     <div className="-m-4 flex h-[calc(100vh-4rem)] flex-col bg-slate-50 sm:-m-6">
-      {/* ===== 통합 헤더 바 ===== */}
       <div className="flex shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-6 py-3">
-        {/* 멘티 프로필 */}
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200">
             <span className="text-sm font-medium text-slate-600">{mentee?.name?.[0] ?? '?'}</span>
@@ -282,10 +280,8 @@ export function FeedbackWritePage() {
           </div>
         </div>
 
-        {/* 구분선 */}
         <div className="h-8 w-px bg-slate-200" />
 
-        {/* 날짜 선택 */}
         <div className="relative">
           <button
             type="button"
@@ -323,10 +319,8 @@ export function FeedbackWritePage() {
           )}
         </div>
 
-        {/* 구분선 */}
         <div className="h-8 w-px bg-slate-200" />
 
-        {/* 과제 선택 */}
         <div className="relative flex-1">
           <button
             type="button"
@@ -386,7 +380,7 @@ export function FeedbackWritePage() {
           )}
         </div>
 
-        {/* 우측: 마감 시간 */}
+        {/* 우측: 마 시간 */}
         {assignmentFromList?.submittedAt && remainingTime && (
           <div
             className={cn(
@@ -406,11 +400,8 @@ export function FeedbackWritePage() {
         )}
       </div>
 
-      {/* ===== 메인 콘텐츠 (2단 레이아웃) ===== */}
       <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
-        {/* 좌측: 인증 사진 뷰어 */}
         <div className="flex w-1/2 min-w-[400px] flex-col border-r border-slate-200 bg-slate-800">
-          {/* 사진 뷰어 탭 바 */}
           <div className="flex shrink-0 items-center justify-between border-b border-slate-700 bg-slate-900 px-4 py-2">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-slate-300">인증 사진 뷰어</span>
@@ -455,7 +446,6 @@ export function FeedbackWritePage() {
             </div>
           </div>
 
-          {/* 사진 뷰어 본체 */}
           <div className="flex min-h-0 flex-1 items-center justify-center p-4">
             {photos.length > 0 ? (
               <AuthPhotoViewer photos={photos} className="h-full w-full" darkMode />
@@ -510,7 +500,6 @@ export function FeedbackWritePage() {
                 <span className="text-sm text-slate-500">{displayDateFormatted}</span>
               </div>
 
-              {/* 피드백 항목들 */}
               <div className="space-y-4">
                 {feedbackItems.map((item, index) => (
                   <div
@@ -561,7 +550,6 @@ export function FeedbackWritePage() {
                 ))}
               </div>
 
-              {/* 피드백 항목 추가 버튼 */}
               <button
                 type="button"
                 onClick={handleAddFeedbackItem}
@@ -591,7 +579,6 @@ export function FeedbackWritePage() {
         </div>
       </div>
 
-      {/* 템플릿 선택 모달 */}
       {templateModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"

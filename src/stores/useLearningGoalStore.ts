@@ -1,11 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import {
-  getMaterialsMeta,
-  initializeSeolstudyMaterials,
-  type MaterialMeta,
-} from '@/lib/materialStorage';
+import { getMaterialsMeta, initializeSeolstudyMaterials } from '@/lib/materialStorage';
 
 export interface LearningGoal {
   id: string;
@@ -26,10 +22,6 @@ interface LearningGoalStore {
 
   getGoalsByMentor: (mentorId: string) => LearningGoal[];
   getGoalById: (id: string) => LearningGoal | undefined;
-
-  getMaterials: () => MaterialMeta[];
-  getMaterialById: (id: string) => MaterialMeta | undefined;
-  getMaterialsByIds: (ids: string[]) => MaterialMeta[];
 
   initialize: (mentorId: string) => void;
 }
@@ -72,18 +64,6 @@ export const useLearningGoalStore = create<LearningGoalStore>()(
         return get().goals.find((g) => g.id === id);
       },
 
-      getMaterials: () => {
-        return getMaterialsMeta();
-      },
-
-      getMaterialById: (id) => {
-        return getMaterialsMeta().find((m) => m.id === id);
-      },
-
-      getMaterialsByIds: (ids) => {
-        return getMaterialsMeta().filter((m) => ids.includes(m.id));
-      },
-
       initialize: (_mentorId) => {
         initializeSeolstudyMaterials();
       },
@@ -93,3 +73,7 @@ export const useLearningGoalStore = create<LearningGoalStore>()(
     },
   ),
 );
+
+export function getMaterialsByIds(ids: string[]) {
+  return getMaterialsMeta().filter((m) => ids.includes(m.id));
+}
