@@ -50,14 +50,13 @@ export function AssignmentManagePage() {
   const [activeTab, setActiveTab] = useState<TabType>('materials');
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const {
-    getGoalsBySubject,
+    getGoalsByMentor,
     addGoal,
     updateGoal,
     deleteGoal,
     getMaterialsByIds,
     initialize: initializeGoals,
   } = useLearningGoalStore();
-  const [goalSubjectFilter, setGoalSubjectFilter] = useState<string>('전체');
   const [goalSearchQuery, setGoalSearchQuery] = useState('');
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<LearningGoal | null>(null);
@@ -113,7 +112,7 @@ export function AssignmentManagePage() {
     { id: 'templates' as TabType, label: '과제 템플릿', icon: Layers },
   ];
 
-  const goals = getGoalsBySubject(CURRENT_MENTOR_ID, goalSubjectFilter);
+  const goals = getGoalsByMentor(CURRENT_MENTOR_ID);
   const filteredGoals = goals.filter(
     (g) => goalSearchQuery === '' || g.name.toLowerCase().includes(goalSearchQuery.toLowerCase()),
   );
@@ -373,23 +372,6 @@ export function AssignmentManagePage() {
       {activeTab === 'goals' && (
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-100 p-0.5">
-              {['전체', '국어', '영어', '수학'].map((subject) => (
-                <button
-                  key={subject}
-                  type="button"
-                  onClick={() => setGoalSubjectFilter(subject)}
-                  className={`h-8 rounded-md px-3 text-sm font-medium transition-colors ${
-                    goalSubjectFilter === subject
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {subject}
-                </button>
-              ))}
-            </div>
-
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
@@ -410,9 +392,7 @@ export function AssignmentManagePage() {
             <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-12">
               <BookOpen className="h-12 w-12 text-slate-300" />
               <p className="mt-4 text-sm text-slate-500">
-                {goalSearchQuery || goalSubjectFilter !== '전체'
-                  ? '검색 결과가 없습니다'
-                  : '등록된 과제 목표가 없습니다'}
+                {goalSearchQuery ? '검색 결과가 없습니다' : '등록된 과제 목표가 없습니다'}
               </p>
               <p className="mt-2 text-xs text-slate-400">
                 과제 목표를 추가하여 과제 등록 시 활용하세요
@@ -762,10 +742,7 @@ function LearningGoalCard({ goal, materials, onEdit, onDelete }: LearningGoalCar
     <div className="group rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-slate-300 hover:shadow-sm">
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
-          <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-            {goal.subject}
-          </span>
-          <h3 className="mt-2 font-semibold text-slate-900">{goal.name}</h3>
+          <h3 className="font-semibold text-slate-900">{goal.name}</h3>
           {goal.description && (
             <p className="mt-1 text-sm text-slate-500 line-clamp-2">{goal.description}</p>
           )}
@@ -820,7 +797,6 @@ interface LearningGoalModalProps {
 }
 
 function LearningGoalModal({ goal, materials, onSave, onClose, mentorId }: LearningGoalModalProps) {
-  const [subject, setSubject] = useState<'국어' | '영어' | '수학'>(goal?.subject || '국어');
   const [name, setName] = useState(goal?.name || '');
   const [description, setDescription] = useState(goal?.description || '');
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>(goal?.materialIds || []);
@@ -832,17 +808,10 @@ function LearningGoalModal({ goal, materials, onSave, onClose, mentorId }: Learn
     onSave({
       mentorId,
       name: name.trim(),
-      subject,
       description: description.trim() || undefined,
       materialIds: selectedMaterialIds,
     });
   };
-
-  const sortedMaterials = [...materials].sort((a, b) => {
-    const aMatch = a.subject === subject ? 0 : 1;
-    const bMatch = b.subject === subject ? 0 : 1;
-    return aMatch - bMatch;
-  });
 
   const toggleMaterial = (id: string) => {
     setSelectedMaterialIds((prev) =>
@@ -869,15 +838,6 @@ function LearningGoalModal({ goal, materials, onSave, onClose, mentorId }: Learn
 
         <form onSubmit={handleSubmit} className="space-y-5 p-5">
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">과목</label>
-            <DefaultSelect
-              value={subject}
-              onValueChange={(v) => setSubject(v as typeof subject)}
-              options={['국어', '영어', '수학']}
-            />
-          </div>
-
-          <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">과제 목표 이름</label>
             <input
               type="text"
@@ -903,16 +863,14 @@ function LearningGoalModal({ goal, materials, onSave, onClose, mentorId }: Learn
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">연결 학습자료</label>
             <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-200">
-              {sortedMaterials.length === 0 ? (
+              {materials.length === 0 ? (
                 <p className="p-4 text-center text-sm text-slate-500">등록된 학습자료가 없습니다</p>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  {sortedMaterials.map((mat) => (
+                  {materials.map((mat) => (
                     <label
                       key={mat.id}
-                      className={`flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-slate-50 ${
-                        mat.subject !== subject ? 'opacity-60' : ''
-                      }`}
+                      className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-slate-50"
                     >
                       <Checkbox
                         checked={selectedMaterialIds.includes(mat.id)}
@@ -920,13 +878,7 @@ function LearningGoalModal({ goal, materials, onSave, onClose, mentorId }: Learn
                       />
                       <div className="flex flex-1 items-center gap-2">
                         <span className="text-sm">{mat.title}</span>
-                        <span
-                          className={`rounded px-1.5 py-0.5 text-xs ${
-                            mat.subject === subject
-                              ? 'bg-slate-200 text-slate-700'
-                              : 'bg-slate-100 text-slate-500'
-                          }`}
-                        >
+                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">
                           {mat.subject}
                         </span>
                         {mat.source === 'seolstudy' && (

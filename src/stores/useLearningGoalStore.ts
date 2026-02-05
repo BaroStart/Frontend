@@ -11,7 +11,6 @@ export interface LearningGoal {
   id: string;
   mentorId: string;
   name: string;
-  subject: '국어' | '영어' | '수학';
   description?: string;
   materialIds: string[];
   columnTemplate?: string;
@@ -26,7 +25,6 @@ interface LearningGoalStore {
   deleteGoal: (id: string) => void;
 
   getGoalsByMentor: (mentorId: string) => LearningGoal[];
-  getGoalsBySubject: (mentorId: string, subject: string) => LearningGoal[];
   getGoalById: (id: string) => LearningGoal | undefined;
 
   getMaterials: () => MaterialMeta[];
@@ -68,12 +66,6 @@ export const useLearningGoalStore = create<LearningGoalStore>()(
 
       getGoalsByMentor: (mentorId) => {
         return get().goals.filter((g) => g.mentorId === mentorId);
-      },
-
-      getGoalsBySubject: (mentorId, subject) => {
-        return get().goals.filter(
-          (g) => g.mentorId === mentorId && (subject === '전체' || g.subject === subject),
-        );
       },
 
       getGoalById: (id) => {

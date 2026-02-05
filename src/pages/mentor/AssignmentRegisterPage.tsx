@@ -223,11 +223,6 @@ export function AssignmentRegisterPage() {
 
   const handleSubjectChange = (s: (typeof MAIN_SUBJECTS)[number]) => {
     setSubject(s);
-    setImprovementPointId('');
-    if (!columnContent.trim()) {
-      const template = SUBJECT_COLUMN_TEMPLATES[s];
-      if (template) applyColumnTemplate(template);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
