@@ -202,43 +202,77 @@ function PlannerContent({
 }
 
 function PlannerTimeline({ records }: { records: PlannerRecord[] }) {
-  const COLORS: Record<string, string> = {
-    수학: 'bg-rose-200',
-    영어: 'bg-violet-200',
-    국어: 'bg-amber-200',
-    문학: 'bg-amber-100',
-    사탐: 'bg-emerald-200',
-    한국사: 'bg-emerald-100',
-    과탐: 'bg-sky-200',
-    과학: 'bg-sky-200',
+  const SUBJECT_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
+    수학: { bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-400' },
+    영어: { bg: 'bg-violet-100', text: 'text-violet-700', dot: 'bg-violet-400' },
+    국어: { bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-400' },
+    문학: { bg: 'bg-amber-50', text: 'text-amber-600', dot: 'bg-amber-300' },
+    사탐: { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-400' },
+    한국사: { bg: 'bg-emerald-50', text: 'text-emerald-600', dot: 'bg-emerald-300' },
+    과탐: { bg: 'bg-sky-100', text: 'text-sky-700', dot: 'bg-sky-400' },
+    과학: { bg: 'bg-sky-100', text: 'text-sky-700', dot: 'bg-sky-400' },
   };
+  const DEFAULT_STYLE = { bg: 'bg-secondary', text: 'text-foreground/60', dot: 'bg-foreground/30' };
+
   const hours = Array.from({ length: 15 }, (_, i) => i + 6);
   const sorted = [...records].sort((a, b) => (a.startHour ?? 0) - (b.startHour ?? 0));
+  const usedSubjects = [...new Set(records.map((r) => r.subject))];
 
   return (
-    <div className="space-y-1">
-      {hours.map((hour) => {
-        const blocks = sorted.filter((r) => {
-          const start = r.startHour ?? 0;
-          const end = start + Math.ceil(r.durationMinutes / 60);
-          return hour >= start && hour < end;
-        });
-        return (
-          <div key={hour} className="flex items-center gap-2">
-            <span className="w-8 shrink-0 text-xs text-muted-foreground">{hour}시</span>
-            <div className="flex flex-1 gap-1">
-              {blocks.map((r) => (
-                <div
-                  key={r.id}
-                  className={`h-6 flex-1 rounded ${COLORS[r.subject] ?? 'bg-secondary'}`}
-                  title={`${r.subject} ${formatPlannerDuration(r.durationMinutes)}`}
-                />
-              ))}
-              {blocks.length === 0 && <div className="h-6 flex-1 rounded bg-white/60" />}
+    <div className="space-y-3">
+      {/* 범례 */}
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {usedSubjects.map((subj) => {
+          const style = SUBJECT_STYLES[subj] ?? DEFAULT_STYLE;
+          return (
+            <div key={subj} className="flex items-center gap-1.5">
+              <span className={`h-2.5 w-2.5 rounded-full ${style.dot}`} />
+              <span className="text-xs font-medium text-foreground/70">{subj}</span>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+
+      {/* 타임라인 */}
+      <div className="overflow-hidden rounded-lg border border-border/40">
+        {hours.map((hour, idx) => {
+          const blocks = sorted.filter((r) => {
+            const start = r.startHour ?? 0;
+            const end = start + Math.ceil(r.durationMinutes / 60);
+            return hour >= start && hour < end;
+          });
+          const isEven = idx % 2 === 0;
+          return (
+            <div
+              key={hour}
+              className={`flex items-center gap-3 px-3 py-1.5 ${isEven ? 'bg-white' : 'bg-secondary/20'} ${idx < hours.length - 1 ? 'border-b border-border/30' : ''}`}
+            >
+              <span className="w-7 shrink-0 text-right text-[11px] font-medium tabular-nums text-muted-foreground">
+                {hour}시
+              </span>
+              <div className="flex flex-1 gap-1.5">
+                {blocks.map((r) => {
+                  const style = SUBJECT_STYLES[r.subject] ?? DEFAULT_STYLE;
+                  return (
+                    <div
+                      key={r.id}
+                      className={`flex h-7 flex-1 items-center justify-center rounded-md ${style.bg}`}
+                      title={`${r.subject} ${formatPlannerDuration(r.durationMinutes)}`}
+                    >
+                      <span className={`truncate px-1.5 text-[11px] font-medium ${style.text}`}>
+                        {r.subject}
+                      </span>
+                    </div>
+                  );
+                })}
+                {blocks.length === 0 && (
+                  <div className="h-7 flex-1 rounded-md border border-dashed border-border/30" />
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
