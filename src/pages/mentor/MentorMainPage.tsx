@@ -20,6 +20,8 @@ import {
 import { UserIcon } from '@/components/icons';
 import { FeedbackWriteModal } from '@/components/mentor/FeedbackWriteModal';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { FilterTabs } from '@/components/ui/FilterTabs';
 import { useMentees } from '@/hooks/useMentees';
 import { useSubmittedAssignments } from '@/hooks/useSubmittedAssignments';
 import { getDeadlineStatus } from '@/lib/feedbackDeadline';
@@ -167,22 +169,11 @@ export function MentorMainPage() {
       <section>
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h3 className="text-base font-bold text-foreground">담당 멘티 현황</h3>
-          <div className="flex rounded-md bg-secondary p-0.5">
-            {FILTER_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setFilterTab(tab.id)}
-                className={`rounded px-3 py-1 text-xs font-medium transition-all ${
-                  filterTab === tab.id
-                    ? 'bg-white text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <FilterTabs
+            items={FILTER_TABS.map((tab) => ({ id: tab.id, label: tab.label }))}
+            value={filterTab}
+            onChange={setFilterTab}
+          />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -199,12 +190,10 @@ export function MentorMainPage() {
         </div>
 
         {filteredMentees.length === 0 && (
-          <div className="rounded-lg border border-border bg-white p-12 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-secondary">
-              <UserIcon className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <p className="text-xs text-muted-foreground">해당하는 멘티가 없습니다</p>
-          </div>
+          <EmptyState
+            icon={<UserIcon className="h-6 w-6" />}
+            title="해당하는 멘티가 없습니다"
+          />
         )}
       </section>
 
@@ -438,7 +427,7 @@ function MenteeCard({
         </Link>
         <Link
           to={`/mentor/mentees/${mentee.id}`}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-slate-900 py-2 text-xs font-medium text-white transition-all hover:bg-slate-800"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-foreground py-2 text-xs font-medium text-white transition-all hover:bg-foreground/90"
         >
           상세 보기
           <ArrowRight className="h-3.5 w-3.5" />

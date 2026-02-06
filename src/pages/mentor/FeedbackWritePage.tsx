@@ -251,8 +251,8 @@ export function FeedbackWritePage() {
   if (!menteeId || !assignmentId) {
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center">
-        <p className="text-slate-500">잘못된 경로입니다.</p>
-        <Link to="/mentor/feedback" className="mt-4 text-sm text-slate-600 underline">
+        <p className="text-muted-foreground">잘못된 경로입니다.</p>
+        <Link to="/mentor/feedback" className="mt-4 text-sm text-foreground/70 underline">
           피드백 관리로 돌아가기
         </Link>
       </div>
@@ -265,21 +265,21 @@ export function FeedbackWritePage() {
   const dayName = dayNames[dateObj.getDay()];
 
   return (
-    <div className="-m-4 flex h-[calc(100vh-4rem)] flex-col bg-slate-50 sm:-m-6">
-      <div className="flex shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-6 py-3">
+    <div className="-m-4 flex h-[calc(100vh-4rem)] flex-col bg-secondary/30 sm:-m-6">
+      <div className="flex shrink-0 items-center gap-4 border-b border-border/50 bg-white px-6 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200">
-            <span className="text-sm font-medium text-slate-600">{mentee?.name?.[0] ?? '?'}</span>
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary">
+            <span className="text-sm font-medium text-foreground/70">{mentee?.name?.[0] ?? '?'}</span>
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-900">{mentee?.name ?? '멘티'}</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-sm font-semibold text-foreground">{mentee?.name ?? '멘티'}</p>
+            <p className="text-xs text-muted-foreground">
               {mentee?.grade ?? '고3'} · {mentee?.track ?? '이과'}
             </p>
           </div>
         </div>
 
-        <div className="h-8 w-px bg-slate-200" />
+        <div className="h-8 w-px bg-border" />
 
         <div className="relative">
           <button
@@ -288,8 +288,8 @@ export function FeedbackWritePage() {
             className={cn(
               'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
               datePickerOpen
-                ? 'bg-slate-200 text-slate-900'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+                ? 'bg-secondary text-foreground'
+                : 'bg-secondary text-foreground/80 hover:bg-secondary/80',
             )}
           >
             <Calendar className="h-4 w-4" />
@@ -302,7 +302,7 @@ export function FeedbackWritePage() {
                 onClick={() => setDatePickerOpen(false)}
                 aria-hidden
               />
-              <div className="absolute left-0 top-full z-50 mt-2 rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
+              <div className="absolute left-0 top-full z-50 mt-2 rounded-lg border border-border/50 bg-white p-3 shadow-lg">
                 <CalendarComponent
                   year={calendarView.year}
                   month={calendarView.month}
@@ -318,7 +318,7 @@ export function FeedbackWritePage() {
           )}
         </div>
 
-        <div className="h-8 w-px bg-slate-200" />
+        <div className="h-8 w-px bg-border" />
 
         <div className="relative flex-1">
           <button
@@ -327,8 +327,8 @@ export function FeedbackWritePage() {
             className={cn(
               'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
               assignmentDropdownOpen
-                ? 'bg-slate-200 text-slate-900'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+                ? 'bg-secondary text-foreground'
+                : 'bg-secondary text-foreground/80 hover:bg-secondary/80',
             )}
           >
             <FileText className="h-4 w-4" />
@@ -344,9 +344,9 @@ export function FeedbackWritePage() {
                 onClick={() => setAssignmentDropdownOpen(false)}
                 aria-hidden
               />
-              <div className="absolute left-0 top-full z-50 mt-1 max-h-60 min-w-[280px] overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+              <div className="absolute left-0 top-full z-50 mt-1 max-h-60 min-w-[280px] overflow-y-auto rounded-lg border border-border/50 bg-white py-1 shadow-lg">
                 {assignmentsForDate.length === 0 ? (
-                  <p className="px-3 py-4 text-center text-sm text-slate-500">
+                  <p className="px-3 py-4 text-center text-sm text-muted-foreground">
                     해당 날짜에 제출된 과제가 없습니다
                   </p>
                 ) : (
@@ -363,12 +363,12 @@ export function FeedbackWritePage() {
                       className={cn(
                         'w-full px-3 py-2 text-left text-sm transition-colors',
                         a.id === assignmentId
-                          ? 'bg-slate-100 font-medium text-slate-900'
-                          : 'text-slate-700 hover:bg-slate-50',
+                          ? 'bg-secondary font-medium text-foreground'
+                          : 'text-foreground/80 hover:bg-secondary/50',
                       )}
                     >
                       <span className="block truncate">{a.title}</span>
-                      <span className="block truncate text-xs text-slate-500">
+                      <span className="block truncate text-xs text-muted-foreground">
                         {a.subject} · {a.submittedAt}
                       </span>
                     </button>
@@ -388,7 +388,7 @@ export function FeedbackWritePage() {
                 ? 'bg-red-100 text-red-700'
                 : getDeadlineStatus(assignmentFromList.submittedAt) === 'urgent'
                   ? 'bg-amber-100 text-amber-700'
-                  : 'bg-slate-100 text-slate-600',
+                  : 'bg-secondary text-foreground/70',
             )}
           >
             <Clock className="h-3.5 w-3.5" />
@@ -400,7 +400,7 @@ export function FeedbackWritePage() {
       </div>
 
       <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
-        <div className="flex w-1/2 min-w-[400px] flex-col border-r border-slate-200 bg-slate-800">
+        <div className="flex w-1/2 min-w-[400px] flex-col border-r border-border/50 bg-slate-800">
           <div className="flex shrink-0 items-center justify-between border-b border-slate-700 bg-slate-900 px-4 py-2">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-slate-300">인증 사진 뷰어</span>
@@ -455,12 +455,12 @@ export function FeedbackWritePage() {
         {/* 우측: 피드백 작성 영역 */}
         <div className="flex min-h-0 w-1/2 min-w-[400px] flex-1 flex-col bg-white">
           {/* 피드백 작성 헤더 */}
-          <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-3">
-            <h2 className="text-base font-semibold text-slate-900">피드백 등록</h2>
+          <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-5 py-3">
+            <h2 className="text-base font-semibold text-foreground">피드백 등록</h2>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50"
+                className="flex items-center gap-1.5 rounded-lg border border-border/50 px-3 py-1.5 text-sm text-foreground/70 transition-colors hover:bg-secondary/50"
               >
                 <RotateCcw className="h-4 w-4" />
                 이전 피드백 보기
@@ -468,7 +468,7 @@ export function FeedbackWritePage() {
               <button
                 type="button"
                 onClick={() => setTemplateModalOpen(true)}
-                className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50"
+                className="flex items-center gap-1.5 rounded-lg border border-border/50 px-3 py-1.5 text-sm text-foreground/70 transition-colors hover:bg-secondary/50"
               >
                 <FileText className="h-4 w-4" />
                 템플릿 불러오기
@@ -482,31 +482,31 @@ export function FeedbackWritePage() {
               {/* 과목 + 날짜 헤더 */}
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-800">
-                    <span className="flex h-5 w-5 items-center justify-center rounded bg-slate-200 text-xs">
+                  <span className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-sm font-medium text-foreground">
+                    <span className="flex h-5 w-5 items-center justify-center rounded bg-secondary/80 text-xs">
                       📚
                     </span>
                     {subject || '국어'}
                   </span>
                 </div>
-                <span className="text-sm text-slate-500">{displayDateFormatted}</span>
+                <span className="text-sm text-muted-foreground">{displayDateFormatted}</span>
               </div>
 
               <div className="space-y-4">
                 {feedbackItems.map((item, index) => (
                   <div
                     key={item.id}
-                    className="rounded-xl border border-slate-200 bg-white p-4 transition-shadow hover:shadow-sm"
+                    className="rounded-xl border border-border/50 bg-white p-4 transition-shadow hover:shadow-sm"
                   >
                     <div className="mb-3 flex items-center justify-between">
-                      <label className="text-sm font-medium text-slate-700">
+                      <label className="text-sm font-medium text-foreground/80">
                         피드백 항목 {index + 1}
                       </label>
                       {feedbackItems.length > 1 && (
                         <button
                           type="button"
                           onClick={() => handleRemoveFeedbackItem(item.id)}
-                          className="rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                          className="rounded p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground/70"
                           title="삭제"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -519,7 +519,7 @@ export function FeedbackWritePage() {
                       placeholder="구체적이고 건설적인 피드백을 작성해주세요..."
                       className="mb-3"
                     />
-                    <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                    <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground/70">
                       <input
                         type="checkbox"
                         checked={item.isImportant}
@@ -528,12 +528,12 @@ export function FeedbackWritePage() {
                             isImportant: e.target.checked,
                           })
                         }
-                        className="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
+                        className="h-4 w-4 rounded border-border text-amber-500 focus:ring-amber-500"
                       />
                       <Star
                         className={cn(
                           'h-4 w-4',
-                          item.isImportant ? 'fill-amber-400 text-amber-400' : 'text-slate-400',
+                          item.isImportant ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground',
                         )}
                       />
                       <span>중요 피드백 (멘티 요약 카드 전송)</span>
@@ -545,7 +545,7 @@ export function FeedbackWritePage() {
               <button
                 type="button"
                 onClick={handleAddFeedbackItem}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 py-3 text-sm font-medium text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/50 py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-border hover:bg-secondary/50 hover:text-foreground/70"
               >
                 <Plus className="h-4 w-4" />
                 피드백 항목 추가
@@ -553,7 +553,7 @@ export function FeedbackWritePage() {
             </div>
 
             {/* 하단 버튼 */}
-            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-4">
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border/50 bg-secondary/30 px-5 py-4">
               <Button type="button" variant="outline" onClick={handleTempSave} disabled={saving}>
                 임시 저장
               </Button>
@@ -583,15 +583,15 @@ export function FeedbackWritePage() {
             className="max-h-[80vh] w-full max-w-md overflow-hidden rounded-xl bg-white shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-b border-slate-200 p-4">
-              <h3 className="font-semibold text-slate-900">피드백 템플릿 불러오기</h3>
-              <p className="mt-1 text-sm text-slate-500">
+            <div className="border-b border-border/50 p-4">
+              <h3 className="font-semibold text-foreground">피드백 템플릿 불러오기</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
                 잘한 점, 보완할 점 등 템플릿을 선택하세요
               </p>
             </div>
             <div className="max-h-96 overflow-y-auto p-4">
               {templates.length === 0 ? (
-                <p className="py-8 text-center text-sm text-slate-500">
+                <p className="py-8 text-center text-sm text-muted-foreground">
                   해당 과목 템플릿이 없습니다
                 </p>
               ) : (
@@ -601,10 +601,10 @@ export function FeedbackWritePage() {
                       key={t.id}
                       type="button"
                       onClick={() => handleLoadTemplate(t.content)}
-                      className="w-full rounded-lg border border-slate-200 bg-white p-3 text-left text-sm hover:bg-slate-50"
+                      className="w-full rounded-lg border border-border/50 bg-white p-3 text-left text-sm hover:bg-secondary/50"
                     >
-                      <p className="font-medium text-slate-800">{t.name}</p>
-                      <p className="mt-1 line-clamp-2 text-xs text-slate-500">
+                      <p className="font-medium text-foreground">{t.name}</p>
+                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                         {t.content.slice(0, 80)}...
                       </p>
                     </button>
@@ -612,7 +612,7 @@ export function FeedbackWritePage() {
                 </div>
               )}
             </div>
-            <div className="border-t border-slate-200 p-4">
+            <div className="border-t border-border/50 p-4">
               <Button
                 variant="outline"
                 onClick={() => setTemplateModalOpen(false)}

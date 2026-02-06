@@ -13,15 +13,17 @@ import {
   Image,
   Layers,
   Plus,
-  Search,
   Target,
   Trash2,
   Upload,
-  X,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/Dialog';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { FilterTabs } from '@/components/ui/FilterTabs';
+import { SearchInput } from '@/components/ui/SearchInput';
 import { DefaultSelect } from '@/components/ui/select';
 import { Tabs } from '@/components/ui/tabs';
 import { SUBJECT_SUBCATEGORIES } from '@/data/assignmentRegisterMock';
@@ -458,30 +460,17 @@ export function AssignmentManagePage() {
         {activeTab === 'materials' && (
           <div className="space-y-4 p-5">
             <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex h-9 items-center rounded-lg bg-secondary p-0.5">
-              {['전체', '국어', '영어', '수학'].map((subject) => (
-                <button
-                  key={subject}
-                  type="button"
-                  onClick={() =>
-                    setMaterialFilter((prev) => ({ ...prev, subject, subCategory: '전체' }))
-                  }
-                  className={`h-8 rounded-md px-3 text-sm font-medium transition-colors ${materialFilter.subject === subject ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                >
-                  {subject}
-                </button>
-              ))}
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="자료 검색..."
-                value={materialFilter.search}
-                onChange={(e) => setMaterialFilter((prev) => ({ ...prev, search: e.target.value }))}
-                className="h-9 w-48 rounded-lg border border-border/60 bg-secondary/30 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/20"
-              />
-            </div>
+            <FilterTabs
+              items={['전체', '국어', '영어', '수학'].map((s) => ({ id: s, label: s }))}
+              value={materialFilter.subject}
+              onChange={(subject) => setMaterialFilter((prev) => ({ ...prev, subject, subCategory: '전체' }))}
+            />
+            <SearchInput
+              value={materialFilter.search}
+              onChange={(search) => setMaterialFilter((prev) => ({ ...prev, search }))}
+              placeholder="자료 검색..."
+              className="w-48"
+            />
             <p className="ml-auto text-xs text-muted-foreground">
               {filteredMaterials.length}개의 자료
             </p>
@@ -534,16 +523,12 @@ export function AssignmentManagePage() {
         {activeTab === 'goals' && (
           <div className="space-y-4 p-5">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="과제 목표 검색..."
-                  value={goalSearch}
-                  onChange={(e) => setGoalSearch(e.target.value)}
-                  className="h-9 w-48 rounded-lg border border-border/60 bg-secondary/30 pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/20"
-                />
-              </div>
+              <SearchInput
+                value={goalSearch}
+                onChange={setGoalSearch}
+                placeholder="과제 목표 검색..."
+                className="w-48"
+              />
               <p className="ml-auto text-xs text-muted-foreground">
                 {filteredGoals.length}개의 목표
             </p>
@@ -674,195 +659,121 @@ export function AssignmentManagePage() {
             ))}
           </div>
 
-          {templateModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div
-                className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
-                onClick={() => setTemplateModalOpen(false)}
-                aria-hidden
-              />
-              <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-xl border border-border bg-white shadow-xl">
-                <div className="flex items-center justify-between border-b border-border/50 p-5">
-                  <h2 className="text-lg font-semibold text-foreground">템플릿 추가</h2>
-                  <button
-                    type="button"
-                    onClick={() => setTemplateModalOpen(false)}
-                    className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                    aria-label="닫기"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <div className="space-y-4 p-5">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground/80">제목</label>
-                    <input
-                      value={templateDraft.title}
-                      onChange={(e) => setTemplateDraft((p) => ({ ...p, title: e.target.value }))}
-                      placeholder="예: 영어단어 암기 Day {DAY}"
-                      className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground/80">설명</label>
-                    <input
-                      value={templateDraft.description}
-                      onChange={(e) =>
-                        setTemplateDraft((p) => ({ ...p, description: e.target.value }))
-                      }
-                      placeholder="예: Day별 단어 학습 + 테스트 + 오답 정리"
-                      className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground/80">
-                      변수(쉼표로 구분)
-                    </label>
-                    <input
-                      value={templateDraft.variables}
-                      onChange={(e) =>
-                        setTemplateDraft((p) => ({ ...p, variables: e.target.value }))
-                      }
-                      placeholder="{DAY}, {WEEK}"
-                      className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground/80">
-                      체크리스트(줄바꿈으로 항목 추가)
-                    </label>
-                    <textarea
-                      value={templateDraft.checklist}
-                      onChange={(e) =>
-                        setTemplateDraft((p) => ({ ...p, checklist: e.target.value }))
-                      }
-                      placeholder={'예: 단어 1회독\\n테스트 1회\\n오답노트 작성'}
-                      rows={6}
-                      className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground/80">
-                      제출 기준
-                    </label>
-                    <input
-                      value={templateDraft.submitRule}
-                      onChange={(e) =>
-                        setTemplateDraft((p) => ({ ...p, submitRule: e.target.value }))
-                      }
-                      placeholder="예: 점수 + 오답 10개"
-                      className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-2">
-                    <Button variant="outline" onClick={() => setTemplateModalOpen(false)}>
-                      취소
-                    </Button>
-                    <Button onClick={handleAddTemplate}>추가</Button>
-                  </div>
-                </div>
+          <Dialog open={templateModalOpen} onClose={() => setTemplateModalOpen(false)}>
+            <DialogHeader onClose={() => setTemplateModalOpen(false)}>
+              <h2 className="text-lg font-semibold text-foreground">템플릿 추가</h2>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-foreground/80">제목</label>
+                <input
+                  value={templateDraft.title}
+                  onChange={(e) => setTemplateDraft((p) => ({ ...p, title: e.target.value }))}
+                  placeholder="예: 영어단어 암기 Day {DAY}"
+                  className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
+                />
               </div>
-            </div>
-          )}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-foreground/80">설명</label>
+                <input
+                  value={templateDraft.description}
+                  onChange={(e) => setTemplateDraft((p) => ({ ...p, description: e.target.value }))}
+                  placeholder="예: Day별 단어 학습 + 테스트 + 오답 정리"
+                  className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-foreground/80">변수(쉼표로 구분)</label>
+                <input
+                  value={templateDraft.variables}
+                  onChange={(e) => setTemplateDraft((p) => ({ ...p, variables: e.target.value }))}
+                  placeholder="{DAY}, {WEEK}"
+                  className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-foreground/80">체크리스트(줄바꿈으로 항목 추가)</label>
+                <textarea
+                  value={templateDraft.checklist}
+                  onChange={(e) => setTemplateDraft((p) => ({ ...p, checklist: e.target.value }))}
+                  placeholder={'예: 단어 1회독\\n테스트 1회\\n오답노트 작성'}
+                  rows={6}
+                  className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-foreground/80">제출 기준</label>
+                <input
+                  value={templateDraft.submitRule}
+                  onChange={(e) => setTemplateDraft((p) => ({ ...p, submitRule: e.target.value }))}
+                  placeholder="예: 점수 + 오답 10개"
+                  className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
+                />
+              </div>
+            </DialogBody>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setTemplateModalOpen(false)}>취소</Button>
+              <Button onClick={handleAddTemplate}>추가</Button>
+            </DialogFooter>
+          </Dialog>
         </div>
       )}
       </div>{/* 흰색 카드 닫기 */}
 
       {/* 학습자료 미리보기 모달 */}
-      {previewOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={closePreview} aria-hidden />
-          <div className="relative z-10 flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-border bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-border/50 p-5">
-              <div className="min-w-0">
-                <h2 className="truncate text-base font-semibold text-foreground">
-                  학습 자료 미리보기
-                </h2>
-                <p className="mt-0.5 truncate text-sm text-foreground/60">{previewMeta?.title ?? ''}</p>
-              </div>
-              <button
-                type="button"
-                onClick={closePreview}
-                className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                aria-label="닫기"
-              >
-                <X className="h-5 w-5" />
-              </button>
+      <Dialog open={previewOpen} onClose={closePreview} maxWidth="max-w-5xl">
+        <DialogHeader onClose={closePreview}>
+          <h2 className="truncate text-base font-semibold text-foreground">
+            학습 자료 미리보기
+          </h2>
+          <p className="mt-0.5 truncate text-sm text-foreground/60">{previewMeta?.title ?? ''}</p>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto bg-secondary/50 p-4">
+          {previewLoading && (
+            <div className="flex min-h-[320px] items-center justify-center text-sm text-foreground/60">
+              미리보기를 불러오는 중...
             </div>
-
-            <div className="flex-1 overflow-y-auto bg-secondary/50 p-4">
-              {previewLoading && (
-                <div className="flex min-h-[320px] items-center justify-center text-sm text-foreground/60">
-                  미리보기를 불러오는 중...
+          )}
+          {!previewLoading && previewError && (
+            <div className="flex min-h-[320px] flex-col items-center justify-center gap-2 text-sm text-foreground/60">
+              <p>{previewError}</p>
+              <p className="text-xs text-muted-foreground">
+                설스터디 제공 자료는 목데이터만 있을 수 있어요.
+              </p>
+            </div>
+          )}
+          {!previewLoading && !previewError && previewMeta && previewUrl && (
+            <div className="rounded-xl border border-border/50 bg-white p-3">
+              {previewMeta.fileType === 'pdf' ? (
+                <iframe title="pdf-preview" src={previewUrl} className="h-[70vh] w-full" />
+              ) : previewMeta.fileType === 'image' ? (
+                <div className="flex justify-center">
+                  <img
+                    src={previewUrl}
+                    alt={previewMeta.title}
+                    className="max-h-[70vh] object-contain"
+                  />
                 </div>
-              )}
-              {!previewLoading && previewError && (
-                <div className="flex min-h-[320px] flex-col items-center justify-center gap-2 text-sm text-foreground/60">
-                  <p>{previewError}</p>
-                  <p className="text-xs text-muted-foreground">
-                    설스터디 제공 자료는 목데이터만 있을 수 있어요.
-                  </p>
-                </div>
-              )}
-              {!previewLoading && !previewError && previewMeta && previewUrl && (
-                <div className="rounded-xl border border-border/50 bg-white p-3">
-                  {previewMeta.fileType === 'pdf' ? (
-                    <iframe title="pdf-preview" src={previewUrl} className="h-[70vh] w-full" />
-                  ) : previewMeta.fileType === 'image' ? (
-                    <div className="flex justify-center">
-                      <img
-                        src={previewUrl}
-                        alt={previewMeta.title}
-                        className="max-h-[70vh] object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-sm text-foreground/60">
-                      <p>이 파일 형식은 미리보기를 지원하지 않습니다.</p>
-                      <a
-                        href={previewUrl}
-                        download={previewMeta.fileName}
-                        className="rounded-lg border border-border bg-white px-4 py-2 text-sm text-foreground/80 hover:bg-secondary"
-                      >
-                        다운로드
-                      </a>
-                    </div>
-                  )}
+              ) : (
+                <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-sm text-foreground/60">
+                  <p>이 파일 형식은 미리보기를 지원하지 않습니다.</p>
+                  <a
+                    href={previewUrl}
+                    download={previewMeta.fileName}
+                    className="rounded-lg border border-border bg-white px-4 py-2 text-sm text-foreground/80 hover:bg-secondary"
+                  >
+                    다운로드
+                  </a>
                 </div>
               )}
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </Dialog>
     </div>
   );
 }
 
-// 빈 상태 컴포넌트
-function EmptyState({
-  icon,
-  title,
-  description,
-  action,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description?: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex min-h-[280px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-border/50 p-12">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary text-muted-foreground/50">
-        {icon}
-      </div>
-      <p className="mt-4 text-sm font-medium text-foreground/70">{title}</p>
-      {description && <p className="mt-1.5 text-xs text-muted-foreground">{description}</p>}
-      {action && <div className="mt-4">{action}</div>}
-    </div>
-  );
-}
 
 // 학습 자료 카드
 function MaterialCard({
@@ -977,55 +888,50 @@ function MaterialUploadModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-white shadow-xl">
-        <div className="border-b border-border/50 p-4">
-          <h2 className="text-lg font-semibold text-foreground">학습 자료 업로드</h2>
-          <p className="mt-1 text-sm text-foreground/60">
-            각 파일의 과목과 세부 분류를 선택한 후 업로드하세요.
-          </p>
-        </div>
-        <div className="flex-1 space-y-4 overflow-y-auto p-4">
-          {items.map((item, index) => (
-            <div key={index} className="rounded-lg border border-border/50 p-4">
-              <p className="mb-3 truncate text-sm font-medium text-foreground">{item.file.name}</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground/70">과목</label>
-                  <DefaultSelect
-                    value={item.meta.subject || '국어'}
-                    onValueChange={(subject) =>
-                      updateItem(index, {
-                        subject,
-                        subCategory: SUBJECT_SUBCATEGORIES[subject]?.[0] ?? '기타',
-                      })
-                    }
-                    options={['국어', '영어', '수학', '과학', '사회']}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-foreground/70">세부 분류</label>
-                  <DefaultSelect
-                    value={item.meta.subCategory || '비문학'}
-                    onValueChange={(v) => updateItem(index, { subCategory: v })}
-                    options={SUBJECT_SUBCATEGORIES[item.meta.subject || '국어'] ?? ['기타']}
-                  />
-                </div>
+    <Dialog open onClose={onClose} maxWidth="max-w-2xl">
+      <DialogHeader onClose={onClose}>
+        <h2 className="text-lg font-semibold text-foreground">학습 자료 업로드</h2>
+        <p className="mt-1 text-sm text-foreground/60">
+          각 파일의 과목과 세부 분류를 선택한 후 업로드하세요.
+        </p>
+      </DialogHeader>
+      <DialogBody className="space-y-4">
+        {items.map((item, index) => (
+          <div key={index} className="rounded-lg border border-border/50 p-4">
+            <p className="mb-3 truncate text-sm font-medium text-foreground">{item.file.name}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-foreground/70">과목</label>
+                <DefaultSelect
+                  value={item.meta.subject || '국어'}
+                  onValueChange={(subject) =>
+                    updateItem(index, {
+                      subject,
+                      subCategory: SUBJECT_SUBCATEGORIES[subject]?.[0] ?? '기타',
+                    })
+                  }
+                  options={['국어', '영어', '수학', '과학', '사회']}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-foreground/70">세부 분류</label>
+                <DefaultSelect
+                  value={item.meta.subCategory || '비문학'}
+                  onValueChange={(v) => updateItem(index, { subCategory: v })}
+                  options={SUBJECT_SUBCATEGORIES[item.meta.subject || '국어'] ?? ['기타']}
+                />
               </div>
             </div>
-          ))}
-        </div>
-        <div className="flex justify-end gap-2 border-t border-border/50 p-4">
-          <Button type="button" variant="outline" onClick={onClose}>
-            취소
-          </Button>
-          <Button type="button" onClick={handleConfirm} disabled={saving}>
-            {saving ? '업로드 중...' : '업로드'}
-          </Button>
-        </div>
-      </div>
-    </div>
+          </div>
+        ))}
+      </DialogBody>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onClose}>취소</Button>
+        <Button type="button" onClick={handleConfirm} disabled={saving}>
+          {saving ? '업로드 중...' : '업로드'}
+        </Button>
+      </DialogFooter>
+    </Dialog>
   );
 }
 
@@ -1137,22 +1043,14 @@ function LearningGoalModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg rounded-xl border border-border bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-border/50 p-5">
-          <h2 className="text-lg font-semibold text-foreground">
-            {goal ? '과제 목표 수정' : '새 과제 목표 추가'}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-5 p-5">
+    <Dialog open onClose={onClose}>
+      <DialogHeader onClose={onClose}>
+        <h2 className="text-lg font-semibold text-foreground">
+          {goal ? '과제 목표 수정' : '새 과제 목표 추가'}
+        </h2>
+      </DialogHeader>
+      <form onSubmit={handleSubmit}>
+        <DialogBody className="space-y-5">
           <div>
             <label className="mb-2 block text-sm font-medium text-foreground/80">과제 목표 이름</label>
             <input
@@ -1217,14 +1115,12 @@ function LearningGoalModal({
               )}
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              취소
-            </Button>
-            <Button type="submit">{goal ? '수정' : '추가'}</Button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </DialogBody>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>취소</Button>
+          <Button type="submit">{goal ? '수정' : '추가'}</Button>
+        </DialogFooter>
+      </form>
+    </Dialog>
   );
 }

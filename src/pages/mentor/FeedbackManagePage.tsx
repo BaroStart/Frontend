@@ -15,15 +15,16 @@ import {
   List,
   Plus,
   RotateCcw,
-  Search,
   Trash2,
   Upload,
-  X,
 } from 'lucide-react';
 
 import { LearningAnalyticsSection } from '@/components/mentor/LearningAnalyticsSection';
 import { Button } from '@/components/ui/Button';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/Dialog';
+import { FilterTabs } from '@/components/ui/FilterTabs';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
+import { SearchInput } from '@/components/ui/SearchInput';
 import { Tabs } from '@/components/ui/tabs';
 import { useMentees } from '@/hooks/useMentees';
 import { useSubmittedAssignments } from '@/hooks/useSubmittedAssignments';
@@ -184,32 +185,15 @@ export function FeedbackManagePage() {
         {activeTab === 'feedback' && (
           <div className="space-y-4 p-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="inline-flex h-9 items-center rounded-lg bg-secondary p-0.5">
-                {(
-                  [
-                    {
-                      value: 'all',
-                      label: '전체',
-                      count: pendingFeedback.length + completedStoredFeedback.length,
-                    },
-                    { value: 'pending', label: '작성 대기', count: pendingFeedback.length },
-                    { value: 'completed', label: '완료', count: completedStoredFeedback.length },
-                  ] as const
-                ).map(({ value, label, count }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setFeedbackStatusFilter(value)}
-                    className={`h-8 rounded-md px-3 text-sm font-medium transition-colors ${
-                      feedbackStatusFilter === value
-                        ? 'bg-white text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {label} ({count})
-                  </button>
-                ))}
-              </div>
+              <FilterTabs
+                items={[
+                  { id: 'all' as const, label: `전체 (${pendingFeedback.length + completedStoredFeedback.length})` },
+                  { id: 'pending' as const, label: `작성 대기 (${pendingFeedback.length})` },
+                  { id: 'completed' as const, label: `완료 (${completedStoredFeedback.length})` },
+                ]}
+                value={feedbackStatusFilter}
+                onChange={setFeedbackStatusFilter}
+              />
               {overdueCount > 0 && (
                 <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">
                   마감 초과 {overdueCount}건
@@ -366,39 +350,18 @@ export function FeedbackManagePage() {
           <div className="space-y-4 p-5">
             {/* 상단 툴바 */}
             <div className="flex flex-wrap items-center gap-3">
-              <div className="inline-flex h-9 items-center rounded-lg bg-secondary p-0.5">
-                {['전체', '국어', '영어', '수학', '공통'].map((sub) => (
-                  <button
-                    key={sub}
-                    type="button"
-                    onClick={() => {
-                      setSubjectFilter(sub);
-                      setCurrentPage(1);
-                    }}
-                    className={`h-8 rounded-md px-3 text-sm font-medium transition-colors ${
-                      subjectFilter === sub
-                        ? 'bg-white text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {sub}
-                  </button>
-                ))}
-              </div>
+              <FilterTabs
+                items={['전체', '국어', '영어', '수학', '공통'].map((sub) => ({ id: sub, label: sub }))}
+                value={subjectFilter}
+                onChange={(v) => { setSubjectFilter(v); setCurrentPage(1); }}
+              />
 
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="템플릿 검색..."
-                  value={templateSearch}
-                  onChange={(e) => {
-                    setTemplateSearch(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="h-9 w-56 rounded-lg border border-border/60 bg-secondary/30 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/20"
-                />
-              </div>
+              <SearchInput
+                value={templateSearch}
+                onChange={(v) => { setTemplateSearch(v); setCurrentPage(1); }}
+                placeholder="템플릿 검색..."
+                className="w-56"
+              />
 
               <div className="ml-auto flex items-center gap-2">
                 {selectedIds.size > 0 && (
@@ -652,136 +615,112 @@ function TemplateEditModal({
   const templatesToLoad = existingTemplates.filter((t) => t.id !== template?.id);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-white shadow-xl">
-        {/* 헤더 */}
-        <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">
-            {template ? '템플릿 수정' : '템플릿 추가'}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
-            aria-label="닫기"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <Dialog open onClose={onClose} maxWidth="max-w-2xl">
+      <DialogHeader onClose={onClose}>
+        <h2 className="text-lg font-semibold text-foreground">
+          {template ? '템플릿 수정' : '템플릿 추가'}
+        </h2>
+      </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-y-auto">
-          <div className="space-y-5 px-6 py-4">
-            {/* 템플릿 명칭 */}
-            <div>
-              <label className="mb-1 block text-sm font-medium text-foreground/80">
-                템플릿 명칭 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="템플릿 이름을 입력해주세요"
-                className="w-full rounded-lg border border-border px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
-                required
-              />
-            </div>
+      <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-y-auto">
+        <div className="space-y-5 px-6 py-4">
+          {/* 템플릿 명칭 */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground/80">
+              템플릿 명칭 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="템플릿 이름을 입력해주세요"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
+              required
+            />
+          </div>
 
-            {/* 과목 선택 */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-foreground/80">
-                과목 선택 <span className="text-red-500">*</span>
-              </label>
-              <div className="inline-flex rounded-lg bg-secondary p-1">
-                {(['국어', '영어', '수학', '공통'] as const).map((sub) => (
-                  <button
-                    key={sub}
-                    type="button"
-                    onClick={() => setSubject(sub)}
-                    className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                      subject === sub
-                        ? 'bg-white text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {sub}
-                  </button>
-                ))}
-              </div>
-            </div>
+          {/* 과목 선택 */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-foreground/80">
+              과목 선택 <span className="text-red-500">*</span>
+            </label>
+            <FilterTabs
+              items={(['국어', '영어', '수학', '공통'] as const).map((sub) => ({ id: sub, label: sub }))}
+              value={subject}
+              onChange={setSubject}
+            />
+          </div>
 
-            {/* 템플릿 본문 */}
-            <div>
-              <label className="mb-1 block text-sm font-medium text-foreground/80">
-                템플릿 본문 <span className="text-red-500">*</span>
-              </label>
-              <div className="mb-2 flex gap-2">
-                <div className="relative">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    icon={Upload}
-                    onClick={() => setLoadTemplateOpen((v) => !v)}
-                  >
-                    템플릿 불러오기
-                  </Button>
-                  {loadTemplateOpen && templatesToLoad.length > 0 && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setLoadTemplateOpen(false)}
-                        aria-hidden
-                      />
-                      <div className="absolute left-0 top-full z-20 mt-1 max-h-48 w-72 overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-lg">
-                        {templatesToLoad.map((t) => (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => handleLoadTemplate(t)}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground/80 hover:bg-secondary/50"
-                          >
-                            <span className="rounded bg-secondary px-1.5 py-0.5 text-xs font-medium text-foreground/60">
-                              {t.subject}
-                            </span>
-                            <span className="truncate">{t.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
+          {/* 템플릿 본문 */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground/80">
+              템플릿 본문 <span className="text-red-500">*</span>
+            </label>
+            <div className="mb-2 flex gap-2">
+              <div className="relative">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  icon={RotateCcw}
-                  onClick={handleReset}
+                  icon={Upload}
+                  onClick={() => setLoadTemplateOpen((v) => !v)}
                 >
-                  초기화
+                  템플릿 불러오기
                 </Button>
+                {loadTemplateOpen && templatesToLoad.length > 0 && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setLoadTemplateOpen(false)}
+                      aria-hidden
+                    />
+                    <div className="absolute left-0 top-full z-20 mt-1 max-h-48 w-72 overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-lg">
+                      {templatesToLoad.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => handleLoadTemplate(t)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground/80 hover:bg-secondary/50"
+                        >
+                          <span className="rounded bg-secondary px-1.5 py-0.5 text-xs font-medium text-foreground/60">
+                            {t.subject}
+                          </span>
+                          <span className="truncate">{t.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
-              <RichTextEditor
-                content={content}
-                onChange={setContent}
-                placeholder="피드백 템플릿 내용을 작성하세요..."
-                className="min-h-[300px]"
-              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                icon={RotateCcw}
+                onClick={handleReset}
+              >
+                초기화
+              </Button>
             </div>
+            <RichTextEditor
+              content={content}
+              onChange={setContent}
+              placeholder="피드백 템플릿 내용을 작성하세요..."
+              className="min-h-[300px]"
+            />
           </div>
+        </div>
 
-          {/* 하단 버튼 */}
-          <div className="flex justify-end gap-2 border-t border-border/50 px-6 py-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              취소
-            </Button>
-            <Button type="submit" disabled={!name.trim() || !content.trim()}>
-              저장하기
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            취소
+          </Button>
+          <Button type="submit" disabled={!name.trim() || !content.trim()}>
+            저장하기
+          </Button>
+        </DialogFooter>
+      </form>
+    </Dialog>
   );
 }
 
@@ -795,38 +734,28 @@ function TemplateViewModal({
   const SubjectIcon = SUBJECT_ICONS[template.subject] ?? Hexagon;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative z-10 w-full max-w-lg rounded-xl border border-border bg-white p-6 shadow-xl">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">{template.name}</h2>
-            <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
-              <SubjectIcon className="h-3.5 w-3.5" />
-              {template.subject}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-          >
-            ×
-          </button>
-        </div>
-        <div className="mt-4 rounded-lg bg-secondary/50 p-4">
+    <Dialog open onClose={onClose}>
+      <DialogHeader onClose={onClose}>
+        <h2 className="text-lg font-semibold text-foreground">{template.name}</h2>
+        <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
+          <SubjectIcon className="h-3.5 w-3.5" />
+          {template.subject}
+        </span>
+      </DialogHeader>
+      <DialogBody>
+        <div className="rounded-lg bg-secondary/50 p-4">
           <p className="whitespace-pre-wrap text-sm text-foreground/80">{template.content}</p>
         </div>
         <div className="mt-4 flex justify-between text-xs text-foreground/50">
           <span>생성일: {template.createdAt.replace(/-/g, '.')}</span>
           <span>사용 횟수: {template.useCount}회</span>
         </div>
-        <div className="mt-4 flex justify-end">
-          <Button variant="outline" onClick={onClose}>
-            닫기
-          </Button>
-        </div>
-      </div>
-    </div>
+      </DialogBody>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>
+          닫기
+        </Button>
+      </DialogFooter>
+    </Dialog>
   );
 }
