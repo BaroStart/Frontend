@@ -118,16 +118,16 @@ export function TodoCard({
 
           <div className="min-w-0 flex-1">
             <div className="mb-2 flex items-center gap-2">
-              <span className="inline-flex items-center rounded-lg bg-gray-900 px-2 py-0.5 text-xs font-bold text-white">
+              <span className="inline-flex items-center rounded-lg bg-[#0E9ABE] px-2 py-0.5 text-xs font-bold text-white">
                 할 일
               </span>
 
               {isDone ? (
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-700">
+                <span className="rounded-lg bg-gray-900 text-white px-2 py-0.5 text-xs font-bold text-gray-700">
                   완료
                 </span>
               ) : (
-                <span className="rounded-full bg-gray-50 px-2 py-0.5 text-xs font-bold text-gray-700">
+                <span className="rounded-lg bg-gray-50 px-2 py-0.5 text-xs font-bold text-gray-700">
                   미완료
                 </span>
               )}

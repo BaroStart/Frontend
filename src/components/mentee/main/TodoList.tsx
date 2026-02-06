@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TodoCard, type TodoItem } from "./TodoCard";
+import { PlusIcon } from "@/components/icons";
 
 const schema = z.object({
   title: z.string().trim().min(1, "할 일을 입력해주세요.").max(40, "40자 이내로 입력해주세요."),
@@ -62,7 +63,7 @@ export function TodoList({ items, onAddAtTop, onToggleDone, onUpdateTitle, onDel
           className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black text-white shadow-sm active:scale-[0.98]"
           aria-label="할 일 추가"
         >
-          <span className="text-xl leading-none">+</span>
+          <PlusIcon className="h-5 w-5" />
         </button>
       </div>
 
@@ -77,10 +78,10 @@ export function TodoList({ items, onAddAtTop, onToggleDone, onUpdateTitle, onDel
 
                 <div className="min-w-0 flex-1">
                   <div className="mb-2 flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-lg bg-gray-900 px-2 py-0.5 text-xs font-bold text-white">
+                    <span className="inline-flex items-center rounded-lg bg-[#0E9ABE] px-2 py-0.5 text-xs font-bold text-white">
                       할 일
                     </span>
-                    <span className="rounded-full bg-gray-50 px-2 py-0.5 text-xs font-bold text-gray-700">
+                    <span className="rounded-lg bg-gray-50 rounded-lg bg-gray-50 px-2 py-0.5 text-xs font-bold text-gray-700px-2 py-0.5 text-xs font-bold text-gray-700">
                       신규
                     </span>
                   </div>

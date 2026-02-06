@@ -2,15 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
-  BookOpen,
-  Calculator,
   CalendarDays,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   ChevronRight as ChevronRightSmall,
-  PenTool,
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
+import { EnglishIcon, KoreanIcon, MathIcon } from '@/components/icons';
 
 // --- Types ---
 type Subject = '국어' | '영어' | '수학';
@@ -70,13 +69,13 @@ export function AssignmentListPage() {
   const getSubjectIcon = (subject: Subject) => {
     switch (subject) {
       case '수학':
-        return <Calculator className="w-6 h-6 text-[#0E9ABE]" />;
+        return <MathIcon className="h-6 w-6 text-[#0E9ABE]" />;
       case '영어':
-        return <BookOpen className="w-6 h-6 text-[#0E9ABE]" />;
+        return <EnglishIcon className="h-6 w-6 text-[#0E9ABE]" />;
       case '국어':
-        return <PenTool className="w-6 h-6 text-[#0E9ABE]" />;
+        return <KoreanIcon className="h-6 w-6 text-[#0E9ABE]" />;
       default:
-        return <BookOpen className="w-6 h-6 text-[#0E9ABE]" />;
+        return <KoreanIcon className="h-6 w-6 text-[#0E9ABE]" />;
     }
   };
 
