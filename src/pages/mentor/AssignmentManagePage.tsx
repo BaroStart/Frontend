@@ -3,9 +3,10 @@ import { useSearchParams } from 'react-router-dom';
 
 import {
   BookOpen,
+  Check,
   Copy,
-  Eye,
   Edit2,
+  Eye,
   File,
   FileText,
   FolderOpen,
@@ -77,12 +78,7 @@ const ASSIGNMENT_TEMPLATES: AssignmentTemplate[] = [
     title: '단어 복습 루틴 (D+1 / D+3 / D+7) Day {DAY}',
     description: '스페이싱 복습으로 장기 기억을 유지하는 반복 과제.',
     variables: ['{DAY}'],
-    checklist: [
-      'D+1 복습(전날) 10분',
-      'D+3 복습 10분',
-      'D+7 복습 10분',
-      '최종 오답 5개만 남기기',
-    ],
+    checklist: ['D+1 복습(전날) 10분', 'D+3 복습 10분', 'D+7 복습 10분', '최종 오답 5개만 남기기'],
     submitRule: '각 복습 세트 오답 개수 기록(예: 3/2/1)',
     source: 'example',
   },
@@ -403,19 +399,66 @@ export function AssignmentManagePage() {
     [customTemplates],
   );
 
-  return (
-    <div className="min-w-0 space-y-6">
-      <Tabs
-        items={TABS}
-        value={activeTab}
-        onChange={setActiveTab}
-      />
-
-      {/* 학습 자료 탭 */}
+  const tabRightContent = (
+    <div className="flex items-center gap-2">
       {activeTab === 'materials' && (
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx"
+            multiple
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+          <Button
+            type="button"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="h-3.5 w-3.5" />
+            파일 업로드
+          </Button>
+        </>
+      )}
+      {activeTab === 'goals' && (
+        <Button
+          size="sm"
+          className="gap-1.5"
+          onClick={() => setGoalModal({ open: true, editing: null })}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          새 과제 목표
+        </Button>
+      )}
+      {activeTab === 'templates' && (
+        <Button
+          size="sm"
+          className="gap-1.5"
+          onClick={() => setTemplateModalOpen(true)}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          템플릿 추가
+        </Button>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="min-w-0">
+      {/* 흰색 카드: 탭 + 콘텐츠 */}
+      <div className="rounded-xl border border-border/50 bg-white">
+        {/* 탭 네비게이션 */}
+        <div className="px-5 pt-1">
+          <Tabs items={TABS} value={activeTab} onChange={setActiveTab} rightContent={tabRightContent} />
+        </div>
+
+        {/* 학습 자료 탭 */}
+        {activeTab === 'materials' && (
+          <div className="space-y-4 p-5">
+            <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex h-9 items-center rounded-lg bg-secondary p-0.5">
               {['전체', '국어', '영어', '수학'].map((subject) => (
                 <button
                   key={subject}
@@ -423,35 +466,25 @@ export function AssignmentManagePage() {
                   onClick={() =>
                     setMaterialFilter((prev) => ({ ...prev, subject, subCategory: '전체' }))
                   }
-                  className={`h-8 rounded-md px-3 text-sm font-medium transition-colors ${materialFilter.subject === subject ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                  className={`h-8 rounded-md px-3 text-sm font-medium transition-colors ${materialFilter.subject === subject ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                 >
                   {subject}
                 </button>
               ))}
             </div>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="자료 검색..."
                 value={materialFilter.search}
                 onChange={(e) => setMaterialFilter((prev) => ({ ...prev, search: e.target.value }))}
-                className="h-9 w-48 rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm focus:border-slate-400 focus:outline-none"
+                className="h-9 w-48 rounded-lg border border-border/60 bg-secondary/30 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/20"
               />
             </div>
-            <div className="ml-auto">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx"
-                multiple
-                className="hidden"
-                onChange={handleFileSelect}
-              />
-              <Button type="button" icon={Upload} onClick={() => fileInputRef.current?.click()}>
-                파일 업로드
-              </Button>
-            </div>
+            <p className="ml-auto text-xs text-muted-foreground">
+              {filteredMaterials.length}개의 자료
+            </p>
           </div>
 
           {uploadModal.open && (
@@ -465,10 +498,21 @@ export function AssignmentManagePage() {
           {filteredMaterials.length === 0 ? (
             <EmptyState
               icon={<FolderOpen className="h-12 w-12" />}
-              message={
+              title={
                 materialFilter.search || materialFilter.subject !== '전체'
-                  ? '검색 결과가 없습니다.'
-                  : '등록된 학습 자료가 없습니다.'
+                  ? '검색 결과가 없습니다'
+                  : '등록된 학습 자료가 없습니다'
+              }
+              description="파일을 업로드하여 과제에 활용하세요"
+              action={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={Upload}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  파일 업로드
+                </Button>
               }
             />
           ) : (
@@ -486,39 +530,41 @@ export function AssignmentManagePage() {
         </div>
       )}
 
-      {/* 과제 목표 탭 */}
-      {activeTab === 'goals' && (
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="과제 목표 검색..."
-                value={goalSearch}
-                onChange={(e) => setGoalSearch(e.target.value)}
-                className="h-9 w-48 rounded-lg border border-slate-200 bg-white pl-9 pr-4 text-sm focus:border-slate-400 focus:outline-none"
-              />
-            </div>
-            <Button
-              icon={Plus}
-              onClick={() => setGoalModal({ open: true, editing: null })}
-              className="ml-auto"
-            >
-              새 과제 목표 추가
-            </Button>
+        {/* 과제 목표 탭 */}
+        {activeTab === 'goals' && (
+          <div className="space-y-4 p-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="과제 목표 검색..."
+                  value={goalSearch}
+                  onChange={(e) => setGoalSearch(e.target.value)}
+                  className="h-9 w-48 rounded-lg border border-border/60 bg-secondary/30 pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/20"
+                />
+              </div>
+              <p className="ml-auto text-xs text-muted-foreground">
+                {filteredGoals.length}개의 목표
+            </p>
           </div>
 
           {filteredGoals.length === 0 ? (
-            <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-12">
-              <BookOpen className="h-12 w-12 text-slate-300" />
-              <p className="mt-4 text-sm text-slate-500">
-                {goalSearch ? '검색 결과가 없습니다' : '등록된 과제 목표가 없습니다'}
-              </p>
-              <p className="mt-2 text-xs text-slate-400">
-                과제 목표를 추가하여 과제 등록 시 활용하세요
-              </p>
-            </div>
+            <EmptyState
+              icon={<Target className="h-12 w-12" />}
+              title={goalSearch ? '검색 결과가 없습니다' : '등록된 과제 목표가 없습니다'}
+              description="과제 목표를 추가하여 과제 등록 시 활용하세요"
+              action={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={Plus}
+                  onClick={() => setGoalModal({ open: true, editing: null })}
+                >
+                  과제 목표 추가
+                </Button>
+              }
+            />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filteredGoals.map((goal) => (
@@ -542,79 +588,87 @@ export function AssignmentManagePage() {
               mentorId={CURRENT_MENTOR_ID}
             />
           )}
-        </div>
-      )}
-
-      {/* 과제 템플릿 탭 */}
-      {activeTab === 'templates' && (
-        <div className="space-y-6">
-          {/* 상단 툴바 (다른 탭과 스타일 통일) */}
-          <div className="flex flex-wrap items-center gap-3">
-            <Button icon={Plus} onClick={() => setTemplateModalOpen(true)} className="ml-auto">
-              템플릿 추가
-            </Button>
           </div>
+        )}
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {allTemplates.map((tpl) => (
-              <div
-                key={tpl.id}
-                className="rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-slate-300 hover:shadow-sm"
+        {/* 과제 템플릿 탭 */}
+        {activeTab === 'templates' && (
+          <div className="space-y-4 p-5">
+            <div className="flex items-center">
+              <p className="text-xs text-muted-foreground">
+                {allTemplates.length}개의 템플릿
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {allTemplates.map((tpl) => (
+                <div
+                  key={tpl.id}
+                  className="rounded-xl border border-border/50 bg-secondary/30 p-5 transition-all hover:shadow-soft"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="mb-1 flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-2 flex items-center gap-2">
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                        tpl.source === 'custom' ? 'bg-emerald-50 text-emerald-600' : 'bg-secondary text-foreground/50'
+                      }`}>
+                        <Layers className="h-4 w-4" />
+                      </div>
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
                           tpl.source === 'custom'
                             ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-slate-100 text-slate-600'
+                            : 'bg-secondary text-foreground/60'
                         }`}
                       >
                         {tpl.source === 'custom' ? '커스텀' : '예시'}
                       </span>
                     </div>
-                    <p className="text-sm font-semibold text-slate-900">{tpl.title}</p>
-                    <p className="mt-1 text-xs text-slate-500">{tpl.description}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {tpl.source === 'custom' && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteCustomTemplate(tpl.id)}
-                        className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                        title="삭제"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      icon={Copy}
-                      onClick={() => handleCopyTemplate(tpl)}
-                    >
-                      복사
-                    </Button>
+                    <p className="text-sm font-semibold text-foreground">{tpl.title}</p>
+                    <p className="mt-1 text-xs text-foreground/60 line-clamp-2">{tpl.description}</p>
                   </div>
                 </div>
 
-                <div className="mt-3 border-t border-slate-100 pt-3">
-                  <p className="mb-2 text-xs font-medium text-slate-500">체크리스트</p>
-                  <ul className="space-y-1 text-sm text-slate-700">
+                <div className="mt-3 border-t border-border/50 pt-3">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/40">체크리스트</p>
+                  <ul className="space-y-1.5">
                     {tpl.checklist.map((c, idx) => (
-                      <li key={idx} className="flex gap-2">
-                        <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
+                      <li key={idx} className="flex items-start gap-2 text-sm text-foreground/80">
+                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
                         <span className="leading-5">{c}</span>
                       </li>
                     ))}
                   </ul>
-                  {tpl.submitRule ? (
-                    <p className="mt-3 text-xs text-slate-500">
-                      <span className="font-medium text-slate-600">제출 기준:</span> {tpl.submitRule}
-                    </p>
-                  ) : null}
+                  {tpl.submitRule && (
+                    <div className="mt-3 rounded-md bg-secondary/70 px-2.5 py-2">
+                      <p className="text-xs text-foreground/60">
+                        <span className="font-medium text-foreground/70">제출 기준</span>{' '}
+                        {tpl.submitRule}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3 flex items-center justify-end gap-2 border-t border-border/50 pt-3">
+                  {tpl.source === 'custom' && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCustomTemplate(tpl.id)}
+                      className="rounded-lg p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                      title="삭제"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    icon={Copy}
+                    onClick={() => handleCopyTemplate(tpl)}
+                  >
+                    복사
+                  </Button>
                 </div>
               </div>
             ))}
@@ -623,17 +677,17 @@ export function AssignmentManagePage() {
           {templateModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div
-                className="absolute inset-0 bg-black/50"
+                className="absolute inset-0 bg-foreground/20 backdrop-blur-sm"
                 onClick={() => setTemplateModalOpen(false)}
                 aria-hidden
               />
-              <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-                <div className="flex items-center justify-between border-b border-slate-100 p-5">
-                  <h2 className="text-lg font-semibold text-slate-900">템플릿 추가</h2>
+              <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-xl border border-border bg-white shadow-xl">
+                <div className="flex items-center justify-between border-b border-border/50 p-5">
+                  <h2 className="text-lg font-semibold text-foreground">템플릿 추가</h2>
                   <button
                     type="button"
                     onClick={() => setTemplateModalOpen(false)}
-                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                    className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
                     aria-label="닫기"
                   >
                     <X className="h-5 w-5" />
@@ -642,27 +696,27 @@ export function AssignmentManagePage() {
 
                 <div className="space-y-4 p-5">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">제목</label>
+                    <label className="mb-2 block text-sm font-medium text-foreground/80">제목</label>
                     <input
                       value={templateDraft.title}
                       onChange={(e) => setTemplateDraft((p) => ({ ...p, title: e.target.value }))}
                       placeholder="예: 영어단어 암기 Day {DAY}"
-                      className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+                      className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">설명</label>
+                    <label className="mb-2 block text-sm font-medium text-foreground/80">설명</label>
                     <input
                       value={templateDraft.description}
                       onChange={(e) =>
                         setTemplateDraft((p) => ({ ...p, description: e.target.value }))
                       }
                       placeholder="예: Day별 단어 학습 + 테스트 + 오답 정리"
-                      className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+                      className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                    <label className="mb-2 block text-sm font-medium text-foreground/80">
                       변수(쉼표로 구분)
                     </label>
                     <input
@@ -671,11 +725,11 @@ export function AssignmentManagePage() {
                         setTemplateDraft((p) => ({ ...p, variables: e.target.value }))
                       }
                       placeholder="{DAY}, {WEEK}"
-                      className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+                      className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                    <label className="mb-2 block text-sm font-medium text-foreground/80">
                       체크리스트(줄바꿈으로 항목 추가)
                     </label>
                     <textarea
@@ -685,18 +739,20 @@ export function AssignmentManagePage() {
                       }
                       placeholder={'예: 단어 1회독\\n테스트 1회\\n오답노트 작성'}
                       rows={6}
-                      className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+                      className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">제출 기준</label>
+                    <label className="mb-2 block text-sm font-medium text-foreground/80">
+                      제출 기준
+                    </label>
                     <input
                       value={templateDraft.submitRule}
                       onChange={(e) =>
                         setTemplateDraft((p) => ({ ...p, submitRule: e.target.value }))
                       }
                       placeholder="예: 점수 + 오답 10개"
-                      className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+                      className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
                     />
                   </div>
 
@@ -712,58 +768,63 @@ export function AssignmentManagePage() {
           )}
         </div>
       )}
+      </div>{/* 흰색 카드 닫기 */}
 
       {/* 학습자료 미리보기 모달 */}
       {previewOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={closePreview} aria-hidden />
-          <div className="relative z-10 flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 p-5">
+          <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={closePreview} aria-hidden />
+          <div className="relative z-10 flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-border bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-border/50 p-5">
               <div className="min-w-0">
-                <h2 className="truncate text-base font-semibold text-slate-900">학습 자료 미리보기</h2>
-                <p className="mt-0.5 truncate text-sm text-slate-500">
-                  {previewMeta?.title ?? ''}
-                </p>
+                <h2 className="truncate text-base font-semibold text-foreground">
+                  학습 자료 미리보기
+                </h2>
+                <p className="mt-0.5 truncate text-sm text-foreground/60">{previewMeta?.title ?? ''}</p>
               </div>
               <button
                 type="button"
                 onClick={closePreview}
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
                 aria-label="닫기"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto bg-slate-50 p-4">
+            <div className="flex-1 overflow-y-auto bg-secondary/50 p-4">
               {previewLoading && (
-                <div className="flex min-h-[320px] items-center justify-center text-sm text-slate-500">
+                <div className="flex min-h-[320px] items-center justify-center text-sm text-foreground/60">
                   미리보기를 불러오는 중...
                 </div>
               )}
               {!previewLoading && previewError && (
-                <div className="flex min-h-[320px] flex-col items-center justify-center gap-2 text-sm text-slate-500">
+                <div className="flex min-h-[320px] flex-col items-center justify-center gap-2 text-sm text-foreground/60">
                   <p>{previewError}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     설스터디 제공 자료는 목데이터만 있을 수 있어요.
                   </p>
                 </div>
               )}
               {!previewLoading && !previewError && previewMeta && previewUrl && (
-                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <div className="rounded-xl border border-border/50 bg-white p-3">
                   {previewMeta.fileType === 'pdf' ? (
                     <iframe title="pdf-preview" src={previewUrl} className="h-[70vh] w-full" />
                   ) : previewMeta.fileType === 'image' ? (
                     <div className="flex justify-center">
-                      <img src={previewUrl} alt={previewMeta.title} className="max-h-[70vh] object-contain" />
+                      <img
+                        src={previewUrl}
+                        alt={previewMeta.title}
+                        className="max-h-[70vh] object-contain"
+                      />
                     </div>
                   ) : (
-                    <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-sm text-slate-500">
+                    <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-sm text-foreground/60">
                       <p>이 파일 형식은 미리보기를 지원하지 않습니다.</p>
                       <a
                         href={previewUrl}
                         download={previewMeta.fileName}
-                        className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        className="rounded-lg border border-border bg-white px-4 py-2 text-sm text-foreground/80 hover:bg-secondary"
                       >
                         다운로드
                       </a>
@@ -780,11 +841,25 @@ export function AssignmentManagePage() {
 }
 
 // 빈 상태 컴포넌트
-function EmptyState({ icon, message }: { icon: React.ReactNode; message: string }) {
+function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+}) {
   return (
-    <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12">
-      <div className="text-slate-300">{icon}</div>
-      <p className="mt-4 text-sm text-slate-500">{message}</p>
+    <div className="flex min-h-[280px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-border/50 p-12">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary text-muted-foreground/50">
+        {icon}
+      </div>
+      <p className="mt-4 text-sm font-medium text-foreground/70">{title}</p>
+      {description && <p className="mt-1.5 text-xs text-muted-foreground">{description}</p>}
+      {action && <div className="mt-4">{action}</div>}
     </div>
   );
 }
@@ -805,51 +880,55 @@ function MaterialCard({
 
   return (
     <div
-      className={`group relative rounded-xl border p-4 ${isSeolstudy ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 bg-white'}`}
+      className={`group relative rounded-xl border p-5 transition-all ${isSeolstudy ? 'border-blue-200 bg-blue-50/30 hover:shadow-soft' : 'border-border/50 bg-secondary/30 hover:shadow-soft'}`}
     >
       <div className="flex items-start gap-3">
         <div
-          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${isSeolstudy ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'}`}
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${isSeolstudy ? 'bg-blue-100 text-blue-600' : 'bg-secondary text-foreground/50'}`}
         >
-          <FileIcon className="h-6 w-6" />
+          <FileIcon className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="truncate font-semibold text-slate-900">{material.title}</h3>
+            <h3 className="truncate text-sm font-semibold text-foreground">{material.title}</h3>
             {isSeolstudy && (
-              <span className="shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700">
+              <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700">
                 설스터디
               </span>
             )}
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            <span className="rounded-full bg-slate-100 px-2 py-0.5">{material.subject}</span>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span className="rounded-md border border-border/60 bg-secondary/50 px-2 py-0.5 text-[11px] font-medium text-foreground/60">{material.subject}</span>
             {material.subCategory && material.subCategory !== '기타' && (
-              <span className="rounded-full bg-slate-100 px-2 py-0.5">{material.subCategory}</span>
+              <span className="rounded-md border border-border/60 bg-secondary/50 px-2 py-0.5 text-[11px] font-medium text-foreground/60">{material.subCategory}</span>
             )}
+          </div>
+          <div className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <span>{material.fileSize}</span>
-            <span>•</span>
+            <span>·</span>
             <span>{material.uploadedAt}</span>
           </div>
         </div>
-        <div className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 flex items-center gap-1">
-          <button
-            type="button"
-            onClick={onPreview}
-            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            title="미리보기"
-          >
-            <Eye className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
-            title="삭제"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
+      </div>
+      <div className="mt-3 flex items-center justify-end gap-1 border-t border-border/50 pt-3 opacity-0 transition-opacity group-hover:opacity-100">
+        <button
+          type="button"
+          onClick={onPreview}
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
+          title="미리보기"
+        >
+          <Eye className="h-3.5 w-3.5" />
+          미리보기
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-red-50 hover:text-red-600"
+          title="삭제"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          삭제
+        </button>
       </div>
     </div>
   );
@@ -899,21 +978,21 @@ function MaterialUploadModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
-      <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-        <div className="border-b border-slate-200 p-4">
-          <h2 className="text-lg font-semibold text-slate-900">학습 자료 업로드</h2>
-          <p className="mt-1 text-sm text-slate-500">
+      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-white shadow-xl">
+        <div className="border-b border-border/50 p-4">
+          <h2 className="text-lg font-semibold text-foreground">학습 자료 업로드</h2>
+          <p className="mt-1 text-sm text-foreground/60">
             각 파일의 과목과 세부 분류를 선택한 후 업로드하세요.
           </p>
         </div>
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
           {items.map((item, index) => (
-            <div key={index} className="rounded-lg border border-slate-200 p-4">
-              <p className="mb-3 truncate text-sm font-medium text-slate-900">{item.file.name}</p>
+            <div key={index} className="rounded-lg border border-border/50 p-4">
+              <p className="mb-3 truncate text-sm font-medium text-foreground">{item.file.name}</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">과목</label>
+                  <label className="mb-1 block text-xs font-medium text-foreground/70">과목</label>
                   <DefaultSelect
                     value={item.meta.subject || '국어'}
                     onValueChange={(subject) =>
@@ -926,7 +1005,7 @@ function MaterialUploadModal({
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">세부 분류</label>
+                  <label className="mb-1 block text-xs font-medium text-foreground/70">세부 분류</label>
                   <DefaultSelect
                     value={item.meta.subCategory || '비문학'}
                     onValueChange={(v) => updateItem(index, { subCategory: v })}
@@ -937,7 +1016,7 @@ function MaterialUploadModal({
             </div>
           ))}
         </div>
-        <div className="flex justify-end gap-2 border-t border-slate-200 p-4">
+        <div className="flex justify-end gap-2 border-t border-border/50 p-4">
           <Button type="button" variant="outline" onClick={onClose}>
             취소
           </Button>
@@ -963,47 +1042,50 @@ function LearningGoalCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="group rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-slate-300 hover:shadow-sm">
-      <div className="flex items-start justify-between">
+    <div className="group rounded-xl border border-border/50 bg-secondary/30 p-5 transition-all hover:shadow-soft">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
+          <Target className="h-5 w-5" />
+        </div>
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-slate-900">{goal.name}</h3>
+          <h3 className="text-sm font-semibold text-foreground">{goal.name}</h3>
           {goal.description && (
-            <p className="mt-1 line-clamp-2 text-sm text-slate-500">{goal.description}</p>
+            <p className="mt-1 line-clamp-2 text-xs text-foreground/60">{goal.description}</p>
           )}
         </div>
-        <div className="ml-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="ml-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
           <button
             type="button"
             onClick={onEdit}
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
           >
-            <Edit2 className="h-4 w-4" />
+            <Edit2 className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
             onClick={onDelete}
-            className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500"
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-500"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
       {(goal.weakness || materials.length > 0) && (
-        <div className="mt-3 border-t border-slate-100 pt-3 space-y-2">
+        <div className="mt-3 space-y-2.5 border-t border-border/50 pt-3">
           {goal.weakness && (
-            <div>
-              <p className="mb-1 text-xs font-medium text-slate-500">약점</p>
-              <p className="text-sm text-slate-700">{goal.weakness}</p>
+            <div className="rounded-md bg-secondary/70 px-2.5 py-2">
+              <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/40">보완점</p>
+              <p className="text-xs text-foreground/70">{goal.weakness}</p>
             </div>
           )}
           {materials.length > 0 && (
             <div>
-              <p className="mb-1.5 text-xs font-medium text-slate-500">약점 관련 PDF</p>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/40">추가자료</p>
               <div className="flex flex-wrap gap-1.5">
                 {materials.map((mat) => (
                   <span
                     key={mat.id}
-                    className={`inline-flex items-center rounded-md px-2 py-1 text-xs ${mat.source === 'seolstudy' ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-600'}`}
+                    className={`inline-flex items-center rounded-md border px-2 py-1 text-[11px] ${mat.source === 'seolstudy' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-border/60 bg-secondary/50 text-foreground/60'}`}
                   >
                     {mat.title}
                   </span>
@@ -1056,63 +1138,63 @@ function LearningGoalModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-100 p-5">
-          <h2 className="text-lg font-semibold text-slate-900">
+      <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg rounded-xl border border-border bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-border/50 p-5">
+          <h2 className="text-lg font-semibold text-foreground">
             {goal ? '과제 목표 수정' : '새 과제 목표 추가'}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-5 p-5">
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">과제 목표 이름</label>
+            <label className="mb-2 block text-sm font-medium text-foreground/80">과제 목표 이름</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="예: 비문학 지문 구조 파악"
-              className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+              className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
               required
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">설명 (선택)</label>
+            <label className="mb-2 block text-sm font-medium text-foreground/80">설명 (선택)</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="과제 목표에 대한 간단한 설명"
               rows={2}
-              className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+              className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">약점</label>
+            <label className="mb-2 block text-sm font-medium text-foreground/80">보완점</label>
             <input
               type="text"
               value={weakness}
               onChange={(e) => setWeakness(e.target.value)}
               placeholder="예: 비문학 구조 파악, 어휘력 부족 (쉼표로 구분)"
-              className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+              className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">약점 관련 PDF</label>
-            <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-200">
+            <label className="mb-2 block text-sm font-medium text-foreground/80">추가자료</label>
+            <div className="max-h-40 overflow-y-auto rounded-lg border border-border">
               {materials.length === 0 ? (
-                <p className="p-4 text-center text-sm text-slate-500">등록된 학습자료가 없습니다</p>
+                <p className="p-4 text-center text-sm text-foreground/60">등록된 학습자료가 없습니다</p>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-border/50">
                   {materials.map((mat) => (
                     <label
                       key={mat.id}
-                      className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-slate-50"
+                      className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-secondary/50"
                     >
                       <Checkbox
                         checked={selectedIds.includes(mat.id)}
@@ -1120,7 +1202,7 @@ function LearningGoalModal({
                       />
                       <div className="flex flex-1 items-center gap-2">
                         <span className="text-sm">{mat.title}</span>
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">
+                        <span className="rounded bg-secondary px-1.5 py-0.5 text-xs text-foreground/60">
                           {mat.subject}
                         </span>
                         {mat.source === 'seolstudy' && (

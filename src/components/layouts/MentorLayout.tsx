@@ -37,7 +37,7 @@ export function MentorLayout() {
       />
 
       <div
-        className={`min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-64'}`}
+        className={`min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-56'}`}
       >
         <Header onMenuClick={handleMobileSidebarToggle} />
 

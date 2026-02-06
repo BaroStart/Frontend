@@ -90,7 +90,7 @@ export function Sidebar({
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-20 flex h-screen w-64 flex-col bg-white/90 backdrop-blur-xl transition-all duration-300
+      className={`fixed left-0 top-0 z-20 flex h-screen w-56 flex-col bg-white/90 backdrop-blur-xl transition-all duration-300
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         md:translate-x-0
         ${collapsed ? 'md:w-[72px]' : ''}`}
