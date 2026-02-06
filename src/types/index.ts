@@ -3,7 +3,13 @@ export type { AssignmentDetail } from './assignmentDetail';
 export type { ChatMessage } from './chat';
 export type { FeedbackItem, FeedbackItemData } from './feedback';
 export type { DailyStudyPattern, SubjectStudyTime } from './learning';
-export type { MenteeScores, MenteeSummary, SubjectScores } from './mentee';
+export type {
+  MenteeScores,
+  MenteeSummary,
+  MockExamPeriodScores,
+  NaesinPeriodScores,
+  SubjectScores,
+} from './mentee';
 export type {
   AssignmentSelection,
   LearningOverrides,

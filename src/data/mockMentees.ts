@@ -20,6 +20,18 @@ export const MOCK_MENTEES: MenteeSummary[] = [
     lastActive: '2시간 전',
     mentoringStart: '2026년 1월 5일',
     desiredMajor: '의학계열',
+    scores: {
+      naesin: {
+        korean: { midterm1: 85, final1: 88, midterm2: 90, final2: 92 },
+        english: { midterm1: 90, final1: 92, midterm2: 91, final2: 94 },
+        math: { midterm1: 82, final1: 85, midterm2: 86, final2: 88 },
+      },
+      mockExam: {
+        korean: { march: 82, june: 85, september: 88, november: 90 },
+        english: { march: 88, june: 90, september: 91, november: 93 },
+        math: { march: 80, june: 84, september: 88, november: 92 },
+      },
+    },
   },
   {
     id: 's2',
@@ -40,6 +52,18 @@ export const MOCK_MENTEES: MenteeSummary[] = [
     lastActive: '5시간 전',
     mentoringStart: '2026년 1월 8일',
     desiredMajor: '공학계열',
+    scores: {
+      naesin: {
+        korean: { midterm1: 88, final1: 90, midterm2: 91, final2: 93 },
+        english: { midterm1: 85, final1: 87, midterm2: 86, final2: 90 },
+        math: { midterm1: 92, final1: 95, midterm2: 94, final2: 96 },
+      },
+      mockExam: {
+        korean: { march: 85, june: 87, september: 89, november: 91 },
+        english: { march: 83, june: 85, september: 86, november: 88 },
+        math: { march: 89, june: 91, september: 92, november: 94 },
+      },
+    },
   },
 ];
 

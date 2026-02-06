@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 
 import { ArrowRight, BarChart3, Calendar, Download, Info } from 'lucide-react';
 
+import { SubjectScoresChart, SUBJECT_TO_KEY } from '@/components/mentor/SubjectScoresChart';
 import { Button } from '@/components/ui/Button';
-import { useSubjectStudyTimes } from '@/hooks/useLearningAnalysis';
-import { useWeeklyPatterns } from '@/hooks/useLearningAnalysis';
+import { useMentee } from '@/hooks/useMentee';
+import { useSubjectStudyTimes, useWeeklyPatterns } from '@/hooks/useLearningAnalysis';
+import { useAuthStore } from '@/stores/useAuthStore';
 import type { DailyStudyPattern, SubjectStudyTime } from '@/types';
 
 interface LearningAnalysisModalProps {
@@ -23,9 +25,22 @@ export function LearningAnalysisModal({
 }: LearningAnalysisModalProps) {
   const [period, setPeriod] = useState<'week' | 'month'>('week');
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
+  const { data: mentee } = useMentee(menteeId);
   const { data: subjectStudyTimes = [] } = useSubjectStudyTimes(menteeId);
   const { data: weeklyPatterns = [] } = useWeeklyPatterns(menteeId);
+
+  const mentorSubject =
+    user?.role === 'mentor' ? (user.subject ?? '국어') : '국어';
+  const subjectKey = SUBJECT_TO_KEY[mentorSubject];
+  const scores = mentee?.scores;
+  const n = scores?.naesin?.[subjectKey];
+  const m = scores?.mockExam?.[subjectKey];
+  const hasScores =
+    !!scores &&
+    (Object.values(n || {}).some((v) => typeof v === 'number') ||
+      Object.values(m || {}).some((v) => typeof v === 'number'));
 
   const baseSubjectData: SubjectStudyTime[] = subjectStudyTimes;
   const baseWeeklyData: DailyStudyPattern[] = weeklyPatterns;
@@ -39,8 +54,23 @@ export function LearningAnalysisModal({
   const maxHours = Math.max(...subjectData.map((s) => s.hours), 1);
 
   const handleDownloadReport = () => {
-    const report =
-      `${menteeName} 학습 분석 리포트 (${period === 'week' ? '이번 주' : '이번 달'})\n\n` +
+    let report =
+      `${menteeName} 학습 분석 리포트 (${period === 'week' ? '이번 주' : '이번 달'})\n\n`;
+
+    if (hasScores && scores) {
+      const n = scores.naesin?.[subjectKey];
+      const m = scores.mockExam?.[subjectKey];
+      report += `성적 상세 통계 (${mentorSubject}):\n`;
+      if (n && typeof n === 'object') {
+        report += `  내신: 1학기중간 ${n.midterm1 ?? '-'}, 1학기기말 ${n.final1 ?? '-'}, 2학기중간 ${n.midterm2 ?? '-'}, 2학기기말 ${n.final2 ?? '-'}\n`;
+      }
+      if (m && typeof m === 'object') {
+        report += `  모의고사: 3월 ${m.march ?? '-'}, 6월 ${m.june ?? '-'}, 9월 ${m.september ?? '-'}, 11월 ${m.november ?? '-'}\n`;
+      }
+      report += '\n';
+    }
+
+    report +=
       `과목별 학습 시간:\n` +
       subjectData.map((s) => `  ${s.subject}: ${s.hours}h`).join('\n') +
       `\n\n주간 학습 패턴:\n` +
@@ -59,13 +89,13 @@ export function LearningAnalysisModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
-      <div className="relative z-10 flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+      <div className="relative z-10 flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
         <div className="flex flex-col gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
             <BarChart3 className="h-5 w-5 text-slate-600" />
             학습 분석 대시보드
           </h2>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={() => setPeriod('week')}
@@ -110,7 +140,7 @@ export function LearningAnalysisModal({
         </div>
 
         <div className="flex-1 overflow-y-auto p-5">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {/* 과목별 학습 시간 */}
             <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
               <div className="mb-3 flex items-center gap-2">
@@ -162,6 +192,20 @@ export function LearningAnalysisModal({
                 ))}
               </div>
             </div>
+
+            {/* 성적 (그래프) */}
+            {hasScores && scores ? (
+              <SubjectScoresChart
+                scores={scores}
+                subjectKey={subjectKey}
+                subjectLabel={mentorSubject}
+                variant="dashboard"
+              />
+            ) : (
+              <div className="flex min-h-[140px] items-center justify-center rounded-xl border border-slate-200 bg-slate-50/50 p-4 text-sm text-slate-400">
+                성적 데이터 없음
+              </div>
+            )}
           </div>
         </div>
 

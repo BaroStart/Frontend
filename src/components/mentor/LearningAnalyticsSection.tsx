@@ -291,7 +291,7 @@ function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex min-h-[400px] flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12">
       <BarChart3 className="h-12 w-12 text-slate-300" />
-      <h3 className="mt-4 text-lg font-semibold text-slate-800">통계 분석</h3>
+      <h3 className="mt-4 text-lg font-semibold text-slate-800">학습 리포트</h3>
       <p className="mt-2 max-w-md text-center text-sm text-slate-500">{message}</p>
     </div>
   );
@@ -313,7 +313,7 @@ interface KpiData {
 function KpiSummary({ kpi }: { kpi: KpiData | null | undefined }) {
   if (!kpi) return null;
   return (
-    <div className="mb-6 grid grid-cols-4 gap-3">
+    <div className="mb-6 grid grid-cols-2 gap-3">
       <KpiCard
         title="총 학습 시간"
         value={`${kpi.totalStudyHours}시간`}
@@ -324,18 +324,6 @@ function KpiSummary({ kpi }: { kpi: KpiData | null | undefined }) {
         title="과제 완료율"
         value={`${kpi.assignmentCompletionRate}%`}
         change={kpi.completionRateChange}
-        suffix="%p"
-      />
-      <KpiCard
-        title="평균 점수"
-        value={`${kpi.averageScore}점`}
-        change={kpi.scoreChange}
-        suffix="점"
-      />
-      <KpiCard
-        title="출석률"
-        value={`${kpi.attendanceRate}%`}
-        change={kpi.attendanceChange}
         suffix="%p"
       />
     </div>

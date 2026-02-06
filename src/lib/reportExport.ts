@@ -118,9 +118,42 @@ export async function exportToWord({
       spacing: { before: 200, after: 200 },
     });
     children.push({
-      text: `총 학습 시간: ${kpi.totalStudyHours}시간 | 과제 완료율: ${kpi.assignmentCompletionRate}% | 평균 점수: ${kpi.averageScore}점 | 출석률: ${kpi.attendanceRate}%`,
+      text: `총 학습 시간: ${kpi.totalStudyHours}시간 | 과제 완료율: ${kpi.assignmentCompletionRate}%`,
       spacing: { after: 300 },
     });
+  }
+
+  if (mentee.scores?.naesin || mentee.scores?.mockExam) {
+    children.push({
+      text: '과목별 성적 (내신/모의고사)',
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: 200, after: 200 },
+    });
+    const labels: Record<string, string> = { korean: '국어', english: '영어', math: '수학' };
+    const subjKeys = ['korean', 'english', 'math'] as const;
+    if (mentee.scores.naesin) {
+      subjKeys.forEach((k) => {
+        const subj = mentee.scores!.naesin![k];
+        if (subj && typeof subj === 'object') {
+          const vals = [subj.midterm1, subj.final1, subj.midterm2, subj.final2]
+            .map((v) => (v != null ? String(v) : '-'))
+            .join(', ');
+          children.push({ text: `${labels[k]} 내신: ${vals}`, spacing: { after: 100 } });
+        }
+      });
+    }
+    if (mentee.scores.mockExam) {
+      subjKeys.forEach((k) => {
+        const subj = mentee.scores!.mockExam![k];
+        if (subj && typeof subj === 'object') {
+          const vals = [subj.march, subj.june, subj.september, subj.november]
+            .map((v) => (v != null ? String(v) : '-'))
+            .join(', ');
+          children.push({ text: `${labels[k]} 모의고사: ${vals}`, spacing: { after: 100 } });
+        }
+      });
+      children.push({ text: '', spacing: { after: 200 } });
+    }
   }
 
   if (weeklyPatterns.length > 0) {

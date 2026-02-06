@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 import {
   BookOpen,
-  Calendar,
+  Copy,
+  Eye,
   Edit2,
   File,
   FileText,
@@ -23,39 +24,145 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DefaultSelect } from '@/components/ui/select';
 import { Tabs } from '@/components/ui/tabs';
 import { SUBJECT_SUBCATEGORIES } from '@/data/assignmentRegisterMock';
-import {
-  formatPlannerDuration,
-  getPlannerRecordsByMenteeAndDate,
-  type PlannerRecord,
-} from '@/data/plannerMock';
-import { useMentees } from '@/hooks/useMentees';
 import { getTodayDateStr } from '@/lib/dateUtils';
 import {
   deleteMaterial,
+  getMaterialBlob,
   getMaterialsMeta,
   initializeSeolstudyMaterials,
   type MaterialMeta,
   saveMaterial,
 } from '@/lib/materialStorage';
-import { getPlannerFeedback, savePlannerFeedback } from '@/lib/plannerFeedbackStorage';
 import {
   getMaterialsByIds,
   type LearningGoal,
   useLearningGoalStore,
 } from '@/stores/useLearningGoalStore';
 
-type TabType = 'materials' | 'goals' | 'planner' | 'templates';
+type TabType = 'materials' | 'goals' | 'templates';
 const CURRENT_MENTOR_ID = 'mentor1';
 const TABS = [
   { id: 'materials' as TabType, label: '학습 자료', icon: FolderOpen },
   { id: 'goals' as TabType, label: '과제 목표', icon: Target },
-  { id: 'planner' as TabType, label: '플래너 관리', icon: Calendar },
   { id: 'templates' as TabType, label: '과제 템플릿', icon: Layers },
 ];
 
+type AssignmentTemplate = {
+  id: string;
+  title: string;
+  description: string;
+  variables?: string[];
+  checklist: string[];
+  submitRule?: string;
+  source?: 'example' | 'custom';
+};
+
+const ASSIGNMENT_TEMPLATES: AssignmentTemplate[] = [
+  {
+    id: 'tpl-vocab-memo',
+    title: '영어단어 암기 Day {DAY}',
+    description: 'Day별 단어 학습 + 테스트 + 오답 정리까지 한 번에.',
+    variables: ['{DAY}'],
+    checklist: [
+      '단어 1회독(뜻/품사) 완료',
+      '예문 10개 소리내어 읽기',
+      '테스트(한→영 / 영→한) 각 1회',
+      '오답 10개 오답노트 작성',
+    ],
+    submitRule: '테스트 점수(또는 오답 개수) + 오답 10개 기록/캡처',
+    source: 'example',
+  },
+  {
+    id: 'tpl-vocab-review',
+    title: '단어 복습 루틴 (D+1 / D+3 / D+7) Day {DAY}',
+    description: '스페이싱 복습으로 장기 기억을 유지하는 반복 과제.',
+    variables: ['{DAY}'],
+    checklist: [
+      'D+1 복습(전날) 10분',
+      'D+3 복습 10분',
+      'D+7 복습 10분',
+      '최종 오답 5개만 남기기',
+    ],
+    submitRule: '각 복습 세트 오답 개수 기록(예: 3/2/1)',
+    source: 'example',
+  },
+  {
+    id: 'tpl-vocab-sentences',
+    title: '단어 → 문장 적용 Day {DAY}',
+    description: '오늘 외운 단어를 “내 문장”으로 고정해서 실전 적용.',
+    variables: ['{DAY}'],
+    checklist: [
+      '핵심 단어 15개 선정',
+      '단어당 문장 1개씩(총 15문장)',
+      '틀린 문장 5개만 교정(왜 틀렸는지 1줄)',
+    ],
+    submitRule: '15문장 텍스트 + 교정 5개 표시',
+    source: 'example',
+  },
+  {
+    id: 'tpl-vocab-cumulative-quiz',
+    title: '누적 단어 퀴즈 (Day 1~{DAY})',
+    description: '누적 범위 랜덤 테스트로 “기억 유지”를 확인.',
+    variables: ['{DAY}'],
+    checklist: [
+      '누적 50문항 퀴즈(앱/자체)',
+      '오답 10개 추려 재시험',
+      '오답 원인 분류(뜻/철자/혼동/예문)',
+    ],
+    submitRule: '점수 + 오답 원인 분류 결과',
+    source: 'example',
+  },
+  {
+    id: 'tpl-shadowing',
+    title: '쉐도잉 15분 (매일 루틴)',
+    description: '짧게라도 매일 유지하는 루틴형 과제 템플릿.',
+    checklist: [
+      '1회: 듣기만(스크립트 X)',
+      '2회: 스크립트 보며 쉐도잉',
+      '3회: 스크립트 없이 쉐도잉',
+      '어려웠던 표현 3개 기록',
+    ],
+    submitRule: '표현 3개 + 오늘 난이도(1~5)',
+    source: 'example',
+  },
+];
+
+const STORAGE_KEY_TEMPLATES = 'assignment-template-storage-v1';
+
+function loadCustomTemplates(): AssignmentTemplate[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_TEMPLATES);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((t) => t && typeof t === 'object')
+      .map((t) => t as Partial<AssignmentTemplate>)
+      .map((t) => ({
+        id: String(t.id ?? `tpl-custom-${Date.now()}`),
+        title: String(t.title ?? ''),
+        description: String(t.description ?? ''),
+        variables: Array.isArray(t.variables) ? (t.variables as string[]).map(String) : undefined,
+        checklist: Array.isArray(t.checklist) ? (t.checklist as string[]).map(String) : [],
+        submitRule: t.submitRule != null ? String(t.submitRule) : undefined,
+        source: 'custom' as const,
+      }))
+      .filter((t) => t.title.trim().length > 0 && t.checklist.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomTemplates(templates: AssignmentTemplate[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY_TEMPLATES, JSON.stringify(templates));
+  } catch {
+    // ignore
+  }
+}
+
 export function AssignmentManagePage() {
   const [searchParams] = useSearchParams();
-  const { data: mentees = [] } = useMentees();
   const { getGoalsByMentor, addGoal, updateGoal, deleteGoal, initialize } = useLearningGoalStore();
 
   // 탭 상태
@@ -77,6 +184,13 @@ export function AssignmentManagePage() {
   }>({ open: false, files: [] });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 학습자료 미리보기 상태
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewMeta, setPreviewMeta] = useState<MaterialMeta | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
   // 과제 목표 상태
   const [goalSearch, setGoalSearch] = useState('');
   const [goalModal, setGoalModal] = useState<{ open: boolean; editing: LearningGoal | null }>({
@@ -84,8 +198,18 @@ export function AssignmentManagePage() {
     editing: null,
   });
 
-  // 플래너 상태
-  const [planner, setPlanner] = useState({ menteeId: '', date: getTodayDateStr(), feedback: '' });
+  // 템플릿(커스텀) 상태
+  const [customTemplates, setCustomTemplates] = useState<AssignmentTemplate[]>(() =>
+    loadCustomTemplates(),
+  );
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [templateDraft, setTemplateDraft] = useState({
+    title: '',
+    description: '',
+    variables: '{DAY}',
+    checklist: '',
+    submitRule: '',
+  });
 
   // 초기화 + URL 탭 동기화 (마운트 시 1회)
   useEffect(() => {
@@ -96,14 +220,6 @@ export function AssignmentManagePage() {
     if (tab && TABS.some((t) => t.id === tab)) setActiveTab(tab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // 플래너 피드백 로드 (mentee/date 변경 시)
-  useEffect(() => {
-    if (planner.menteeId && planner.date) {
-      const saved = getPlannerFeedback(planner.menteeId, planner.date);
-      setPlanner((prev) => ({ ...prev, feedback: saved?.feedbackText ?? '' }));
-    }
-  }, [planner.menteeId, planner.date]);
 
   // 파생 데이터
   const goals = useMemo(() => getGoalsByMentor(CURRENT_MENTOR_ID), [getGoalsByMentor]);
@@ -184,17 +300,108 @@ export function AssignmentManagePage() {
     if (window.confirm('이 과제 목표를 삭제하시겠습니까?')) deleteGoal(id);
   };
 
-  const handleSavePlannerFeedback = () => {
-    if (!planner.menteeId || !planner.date) return;
-    savePlannerFeedback({
-      id: `pf-${planner.menteeId}-${planner.date}`,
-      menteeId: planner.menteeId,
-      date: planner.date,
-      feedbackText: planner.feedback,
-      createdAt: new Date().toISOString(),
-    });
-    alert('피드백이 저장되었습니다.');
+  const closePreview = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setPreviewMeta(null);
+    setPreviewError(null);
+    setPreviewLoading(false);
+    setPreviewOpen(false);
   };
+
+  const openPreview = async (meta: MaterialMeta) => {
+    // reset
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setPreviewError(null);
+    setPreviewMeta(meta);
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+
+    try {
+      const blob = await getMaterialBlob(meta.id);
+      if (!blob) {
+        setPreviewError('파일 데이터가 없어 미리보기를 할 수 없습니다.');
+        return;
+      }
+      // 타입이 없는 경우가 있어도 objectURL로 대부분 렌더링 가능
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+    } catch {
+      setPreviewError('미리보기를 불러오지 못했습니다.');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleCopyTemplate = async (tpl: AssignmentTemplate) => {
+    const header = `# ${tpl.title}\n\n${tpl.description}\n`;
+    const vars = tpl.variables?.length ? `\n[변수] ${tpl.variables.join(', ')}\n` : '';
+    const checklist = `\n[체크리스트]\n${tpl.checklist.map((c) => `- ${c}`).join('\n')}\n`;
+    const submit = tpl.submitRule ? `\n[제출 기준]\n- ${tpl.submitRule}\n` : '';
+    const text = `${header}${vars}${checklist}${submit}`;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('템플릿 내용이 복사되었습니다.');
+    } catch {
+      // clipboard 권한 실패 시 안내
+      alert('복사에 실패했습니다. 브라우저 권한을 확인해주세요.');
+    }
+  };
+
+  const handleAddTemplate = () => {
+    const title = templateDraft.title.trim();
+    const description = templateDraft.description.trim();
+    const checklist = templateDraft.checklist
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const variables = templateDraft.variables
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const submitRule = templateDraft.submitRule.trim();
+
+    if (!title || checklist.length === 0) {
+      alert('제목과 체크리스트(최소 1개)는 필수입니다.');
+      return;
+    }
+
+    const tpl: AssignmentTemplate = {
+      id: `tpl-custom-${Date.now()}`,
+      title,
+      description,
+      variables: variables.length ? variables : undefined,
+      checklist,
+      submitRule: submitRule || undefined,
+      source: 'custom',
+    };
+
+    const next = [tpl, ...customTemplates];
+    setCustomTemplates(next);
+    saveCustomTemplates(next);
+    setTemplateModalOpen(false);
+    setTemplateDraft({
+      title: '',
+      description: '',
+      variables: '{DAY}',
+      checklist: '',
+      submitRule: '',
+    });
+  };
+
+  const handleDeleteCustomTemplate = (id: string) => {
+    if (!window.confirm('이 템플릿을 삭제하시겠습니까?')) return;
+    const next = customTemplates.filter((t) => t.id !== id);
+    setCustomTemplates(next);
+    saveCustomTemplates(next);
+  };
+
+  const allTemplates = useMemo<AssignmentTemplate[]>(
+    () => [...customTemplates, ...ASSIGNMENT_TEMPLATES],
+    [customTemplates],
+  );
 
   return (
     <div className="min-w-0 space-y-6">
@@ -202,11 +409,6 @@ export function AssignmentManagePage() {
         items={TABS}
         value={activeTab}
         onChange={setActiveTab}
-        rightContent={
-          <Link to="/mentor/assignments/new">
-            <Button icon={Plus}>새 과제 등록</Button>
-          </Link>
-        }
       />
 
       {/* 학습 자료 탭 */}
@@ -275,6 +477,7 @@ export function AssignmentManagePage() {
                 <MaterialCard
                   key={material.id}
                   material={material}
+                  onPreview={() => openPreview(material)}
                   onDelete={() => handleDeleteMaterial(material)}
                 />
               ))}
@@ -342,64 +545,234 @@ export function AssignmentManagePage() {
         </div>
       )}
 
-      {/* 플래너 관리 탭 */}
-      {activeTab === 'planner' && (
+      {/* 과제 템플릿 탭 */}
+      {activeTab === 'templates' && (
         <div className="space-y-6">
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
-              <div className="flex-1">
-                <label className="mb-1 block text-sm font-medium text-slate-700">멘티 선택</label>
-                <DefaultSelect
-                  value={planner.menteeId}
-                  onValueChange={(v) => setPlanner((prev) => ({ ...prev, menteeId: v }))}
-                  placeholder="멘티를 선택하세요"
-                  options={mentees.map((m) => ({
-                    value: m.id,
-                    label: `${m.name} (${m.grade} · ${m.track})`,
-                  }))}
-                />
-              </div>
-              <div className="flex-1">
-                <label className="mb-1 block text-sm font-medium text-slate-700">날짜 선택</label>
-                <input
-                  type="date"
-                  value={planner.date}
-                  onChange={(e) => setPlanner((prev) => ({ ...prev, date: e.target.value }))}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400"
-                />
-              </div>
-            </div>
+          {/* 상단 툴바 (다른 탭과 스타일 통일) */}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button icon={Plus} onClick={() => setTemplateModalOpen(true)} className="ml-auto">
+              템플릿 추가
+            </Button>
           </div>
 
-          {planner.menteeId ? (
-            <PlannerContent
-              menteeId={planner.menteeId}
-              date={planner.date}
-              feedback={planner.feedback}
-              menteeName={mentees.find((m) => m.id === planner.menteeId)?.name ?? ''}
-              onFeedbackChange={(v) => setPlanner((prev) => ({ ...prev, feedback: v }))}
-              onSaveFeedback={handleSavePlannerFeedback}
-            />
-          ) : (
-            <EmptyState
-              icon={<Calendar className="h-12 w-12" />}
-              message="멘티를 선택하면 플래너를 확인하고 피드백을 작성할 수 있습니다."
-            />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {allTemplates.map((tpl) => (
+              <div
+                key={tpl.id}
+                className="rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-slate-300 hover:shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="mb-1 flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                          tpl.source === 'custom'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {tpl.source === 'custom' ? '커스텀' : '예시'}
+                      </span>
+                    </div>
+                    <p className="text-sm font-semibold text-slate-900">{tpl.title}</p>
+                    <p className="mt-1 text-xs text-slate-500">{tpl.description}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {tpl.source === 'custom' && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCustomTemplate(tpl.id)}
+                        className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                        title="삭제"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      icon={Copy}
+                      onClick={() => handleCopyTemplate(tpl)}
+                    >
+                      복사
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="mt-3 border-t border-slate-100 pt-3">
+                  <p className="mb-2 text-xs font-medium text-slate-500">체크리스트</p>
+                  <ul className="space-y-1 text-sm text-slate-700">
+                    {tpl.checklist.map((c, idx) => (
+                      <li key={idx} className="flex gap-2">
+                        <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
+                        <span className="leading-5">{c}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {tpl.submitRule ? (
+                    <p className="mt-3 text-xs text-slate-500">
+                      <span className="font-medium text-slate-600">제출 기준:</span> {tpl.submitRule}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {templateModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div
+                className="absolute inset-0 bg-black/50"
+                onClick={() => setTemplateModalOpen(false)}
+                aria-hidden
+              />
+              <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                <div className="flex items-center justify-between border-b border-slate-100 p-5">
+                  <h2 className="text-lg font-semibold text-slate-900">템플릿 추가</h2>
+                  <button
+                    type="button"
+                    onClick={() => setTemplateModalOpen(false)}
+                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                    aria-label="닫기"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4 p-5">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">제목</label>
+                    <input
+                      value={templateDraft.title}
+                      onChange={(e) => setTemplateDraft((p) => ({ ...p, title: e.target.value }))}
+                      placeholder="예: 영어단어 암기 Day {DAY}"
+                      className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">설명</label>
+                    <input
+                      value={templateDraft.description}
+                      onChange={(e) =>
+                        setTemplateDraft((p) => ({ ...p, description: e.target.value }))
+                      }
+                      placeholder="예: Day별 단어 학습 + 테스트 + 오답 정리"
+                      className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      변수(쉼표로 구분)
+                    </label>
+                    <input
+                      value={templateDraft.variables}
+                      onChange={(e) =>
+                        setTemplateDraft((p) => ({ ...p, variables: e.target.value }))
+                      }
+                      placeholder="{DAY}, {WEEK}"
+                      className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      체크리스트(줄바꿈으로 항목 추가)
+                    </label>
+                    <textarea
+                      value={templateDraft.checklist}
+                      onChange={(e) =>
+                        setTemplateDraft((p) => ({ ...p, checklist: e.target.value }))
+                      }
+                      placeholder={'예: 단어 1회독\\n테스트 1회\\n오답노트 작성'}
+                      rows={6}
+                      className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">제출 기준</label>
+                    <input
+                      value={templateDraft.submitRule}
+                      onChange={(e) =>
+                        setTemplateDraft((p) => ({ ...p, submitRule: e.target.value }))
+                      }
+                      placeholder="예: 점수 + 오답 10개"
+                      className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button variant="outline" onClick={() => setTemplateModalOpen(false)}>
+                      취소
+                    </Button>
+                    <Button onClick={handleAddTemplate}>추가</Button>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       )}
 
-      {/* 과제 템플릿 탭 */}
-      {activeTab === 'templates' && (
-        <div className="flex min-h-[400px] flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-            <Layers className="h-8 w-8" />
+      {/* 학습자료 미리보기 모달 */}
+      {previewOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={closePreview} aria-hidden />
+          <div className="relative z-10 flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 p-5">
+              <div className="min-w-0">
+                <h2 className="truncate text-base font-semibold text-slate-900">학습 자료 미리보기</h2>
+                <p className="mt-0.5 truncate text-sm text-slate-500">
+                  {previewMeta?.title ?? ''}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closePreview}
+                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                aria-label="닫기"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto bg-slate-50 p-4">
+              {previewLoading && (
+                <div className="flex min-h-[320px] items-center justify-center text-sm text-slate-500">
+                  미리보기를 불러오는 중...
+                </div>
+              )}
+              {!previewLoading && previewError && (
+                <div className="flex min-h-[320px] flex-col items-center justify-center gap-2 text-sm text-slate-500">
+                  <p>{previewError}</p>
+                  <p className="text-xs text-slate-400">
+                    설스터디 제공 자료는 목데이터만 있을 수 있어요.
+                  </p>
+                </div>
+              )}
+              {!previewLoading && !previewError && previewMeta && previewUrl && (
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  {previewMeta.fileType === 'pdf' ? (
+                    <iframe title="pdf-preview" src={previewUrl} className="h-[70vh] w-full" />
+                  ) : previewMeta.fileType === 'image' ? (
+                    <div className="flex justify-center">
+                      <img src={previewUrl} alt={previewMeta.title} className="max-h-[70vh] object-contain" />
+                    </div>
+                  ) : (
+                    <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-sm text-slate-500">
+                      <p>이 파일 형식은 미리보기를 지원하지 않습니다.</p>
+                      <a
+                        href={previewUrl}
+                        download={previewMeta.fileName}
+                        className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        다운로드
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-          <h3 className="mt-4 text-lg font-semibold text-slate-800">과제 템플릿</h3>
-          <p className="mt-2 max-w-md text-center text-sm text-slate-500">
-            자주 사용하는 과제 템플릿을 저장하고 재사용할 수 있습니다.
-          </p>
-          <p className="mt-6 text-xs text-slate-400">준비 중입니다.</p>
         </div>
       )}
     </div>
@@ -417,7 +790,15 @@ function EmptyState({ icon, message }: { icon: React.ReactNode; message: string 
 }
 
 // 학습 자료 카드
-function MaterialCard({ material, onDelete }: { material: MaterialMeta; onDelete: () => void }) {
+function MaterialCard({
+  material,
+  onPreview,
+  onDelete,
+}: {
+  material: MaterialMeta;
+  onPreview: () => void;
+  onDelete: () => void;
+}) {
   const FileIcon =
     material.fileType === 'pdf' ? FileText : material.fileType === 'image' ? Image : File;
   const isSeolstudy = material.source === 'seolstudy';
@@ -451,142 +832,25 @@ function MaterialCard({ material, onDelete }: { material: MaterialMeta; onDelete
             <span>{material.uploadedAt}</span>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="shrink-0 rounded p-1 text-slate-400 opacity-0 transition-opacity hover:text-red-600 group-hover:opacity-100"
-          title="삭제"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// 플래너 콘텐츠
-function PlannerContent({
-  menteeId,
-  date,
-  feedback,
-  menteeName,
-  onFeedbackChange,
-  onSaveFeedback,
-}: {
-  menteeId: string;
-  date: string;
-  feedback: string;
-  menteeName: string;
-  onFeedbackChange: (v: string) => void;
-  onSaveFeedback: () => void;
-}) {
-  const records = getPlannerRecordsByMenteeAndDate(menteeId, date);
-  const totalHours = (records.reduce((sum, r) => sum + r.durationMinutes, 0) / 60).toFixed(1);
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <div className="space-y-6">
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <h3 className="mb-3 text-base font-semibold text-slate-900">과제 (학습 기록)</h3>
-          {records.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500">
-              해당 날짜에 기록된 학습이 없습니다.
-            </p>
-          ) : (
-            <>
-              <div className="mb-3 text-sm text-slate-600">총 학습 시간: {totalHours}시간</div>
-              <div className="space-y-2">
-                {records
-                  .sort((a, b) => b.durationMinutes - a.durationMinutes)
-                  .map((r) => (
-                    <div
-                      key={r.id}
-                      className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2"
-                    >
-                      <span className="font-medium text-slate-900">{r.subject}</span>
-                      <span className="font-mono text-sm text-slate-600">
-                        {formatPlannerDuration(r.durationMinutes)}
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <h3 className="mb-3 text-base font-semibold text-slate-900">플래너 피드백</h3>
-          <p className="mb-3 text-sm text-slate-500">
-            {menteeName}님의 학습 기록을 확인하고 피드백을 작성해주세요.
-          </p>
-          <textarea
-            value={feedback}
-            onChange={(e) => onFeedbackChange(e.target.value)}
-            placeholder="예: 오늘 수학 학습 시간이 가장 많았네요. 내일은 영어 독해 비중을 늘려보면 좋겠습니다."
-            rows={5}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400"
-          />
-          <div className="mt-3 flex justify-end">
-            <Button type="button" onClick={onSaveFeedback}>
-              피드백 저장
-            </Button>
-          </div>
+        <div className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onPreview}
+            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            title="미리보기"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
+            title="삭제"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
       </div>
-
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="mb-3 text-base font-semibold text-slate-900">타임라인</h3>
-        {records.length === 0 ? (
-          <p className="py-12 text-center text-sm text-slate-500">
-            타임라인을 표시할 학습 기록이 없습니다.
-          </p>
-        ) : (
-          <PlannerTimeline records={records} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// 타임라인
-function PlannerTimeline({ records }: { records: PlannerRecord[] }) {
-  const COLORS: Record<string, string> = {
-    수학: 'bg-rose-200',
-    영어: 'bg-violet-200',
-    국어: 'bg-amber-200',
-    문학: 'bg-amber-100',
-    사탐: 'bg-emerald-200',
-    한국사: 'bg-emerald-100',
-    과탐: 'bg-sky-200',
-    과학: 'bg-sky-200',
-  };
-  const hours = Array.from({ length: 15 }, (_, i) => i + 6);
-  const sorted = [...records].sort((a, b) => (a.startHour ?? 0) - (b.startHour ?? 0));
-
-  return (
-    <div className="space-y-1">
-      {hours.map((hour) => {
-        const blocks = sorted.filter((r) => {
-          const start = r.startHour ?? 0;
-          const end = start + Math.ceil(r.durationMinutes / 60);
-          return hour >= start && hour < end;
-        });
-        return (
-          <div key={hour} className="flex items-center gap-2">
-            <span className="w-8 shrink-0 text-xs text-slate-500">{hour}시</span>
-            <div className="flex flex-1 gap-1">
-              {blocks.map((r) => (
-                <div
-                  key={r.id}
-                  className={`h-6 flex-1 rounded ${COLORS[r.subject] ?? 'bg-slate-200'}`}
-                  title={`${r.subject} ${formatPlannerDuration(r.durationMinutes)}`}
-                />
-              ))}
-              {blocks.length === 0 && <div className="h-6 flex-1 rounded bg-slate-50" />}
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -724,19 +988,29 @@ function LearningGoalCard({
           </button>
         </div>
       </div>
-      {materials.length > 0 && (
-        <div className="mt-3 border-t border-slate-100 pt-3">
-          <p className="mb-1.5 text-xs font-medium text-slate-500">연결된 학습자료</p>
-          <div className="flex flex-wrap gap-1.5">
-            {materials.map((mat) => (
-              <span
-                key={mat.id}
-                className={`inline-flex items-center rounded-md px-2 py-1 text-xs ${mat.source === 'seolstudy' ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-600'}`}
-              >
-                {mat.title}
-              </span>
-            ))}
-          </div>
+      {(goal.weakness || materials.length > 0) && (
+        <div className="mt-3 border-t border-slate-100 pt-3 space-y-2">
+          {goal.weakness && (
+            <div>
+              <p className="mb-1 text-xs font-medium text-slate-500">약점</p>
+              <p className="text-sm text-slate-700">{goal.weakness}</p>
+            </div>
+          )}
+          {materials.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-slate-500">약점 관련 PDF</p>
+              <div className="flex flex-wrap gap-1.5">
+                {materials.map((mat) => (
+                  <span
+                    key={mat.id}
+                    className={`inline-flex items-center rounded-md px-2 py-1 text-xs ${mat.source === 'seolstudy' ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-600'}`}
+                  >
+                    {mat.title}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -759,6 +1033,7 @@ function LearningGoalModal({
 }) {
   const [name, setName] = useState(goal?.name || '');
   const [description, setDescription] = useState(goal?.description || '');
+  const [weakness, setWeakness] = useState(goal?.weakness || '');
   const [selectedIds, setSelectedIds] = useState<string[]>(goal?.materialIds || []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -768,6 +1043,7 @@ function LearningGoalModal({
       mentorId,
       name: name.trim(),
       description: description.trim() || undefined,
+      weakness: weakness.trim() || undefined,
       materialIds: selectedIds,
     });
   };
@@ -817,7 +1093,17 @@ function LearningGoalModal({
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">연결 학습자료</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700">약점</label>
+            <input
+              type="text"
+              value={weakness}
+              onChange={(e) => setWeakness(e.target.value)}
+              placeholder="예: 비문학 구조 파악, 어휘력 부족 (쉼표로 구분)"
+              className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-400 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">약점 관련 PDF</label>
             <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-200">
               {materials.length === 0 ? (
                 <p className="p-4 text-center text-sm text-slate-500">등록된 학습자료가 없습니다</p>
