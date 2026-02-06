@@ -11,7 +11,7 @@ export default function AssignmentDetailTabs({
 }: AssignmentDetailTabsProps) {
   return (
     <>
-      <div className="sticky z-10 flex px-6 bg-white top-14">
+      <div className="sticky top-0 z-10 flex bg-white px-6">
         <button
           onClick={() => setActiveTab('info')}
           className={cn(

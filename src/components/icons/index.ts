@@ -1,5 +1,12 @@
 export { AssignmentIcon } from './AssignmentIcon';
+export { CommentIcon } from './CommentIcon';
+export { EnglishIcon } from './EnglishIcon'
 export { FeedbackIcon } from './FeedbackIcon';
 export { HomeIcon } from './HomeIcon';
 export { NotificationIcon } from './NotificationIcon';
 export { UserIcon } from './UserIcon';
+export { KoreanIcon } from './KoreanIcon'
+export { MathIcon } from './MathIcon';
+export { ListIcon } from './ListIcon';
+export { TimeIcon } from './TimeIcon';
+export { PlusIcon } from './PlusIcon';

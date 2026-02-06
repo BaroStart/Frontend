@@ -22,10 +22,10 @@ export function AssignmentList({ items, onOpen }: Props) {
     <section className="mt-4">
       <div className="mb-3 flex items-end justify-between">
         <div>
-          <h2 className="text-base font-extrabold text-gray-900">
+          <h2 className="text-base font-extrabold text-slate-900">
             과제
           </h2>
-          <p className="mt-0.5 text-xs font-semibold text-gray-500">
+          <p className="mt-0.5 text-xs font-semibold text-slate-500">
             미완료 {pendingCount}개 / 전체 {sorted.length}개
           </p>
         </div>
@@ -33,7 +33,7 @@ export function AssignmentList({ items, onOpen }: Props) {
 
       <div className="space-y-2">
         {sorted.length === 0 ? (
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 text-sm font-semibold text-gray-500">
+          <div className="rounded-2xl border border-[#E2F1F6] bg-white p-4 text-sm font-semibold text-slate-500">
             해당 날짜에 과제가 없습니다.
           </div>
         ) : (
