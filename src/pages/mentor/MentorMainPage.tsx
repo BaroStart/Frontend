@@ -22,6 +22,7 @@ import { FeedbackWriteModal } from '@/components/mentor/FeedbackWriteModal';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterTabs } from '@/components/ui/FilterTabs';
+import { toast } from '@/components/ui/Toast';
 import { useMentees } from '@/hooks/useMentees';
 import { useSubmittedAssignments } from '@/hooks/useSubmittedAssignments';
 import { getDeadlineStatus } from '@/lib/feedbackDeadline';
@@ -74,10 +75,9 @@ export function MentorMainPage() {
       window.confirm(`"${menteeName}" 멘티를 삭제하시겠습니까?\n삭제된 멘티는 목록에서 제거됩니다.`)
     ) {
       setDeletedMenteeIds((prev) => new Set(prev).add(menteeId));
-      alert('멘티가 삭제되었습니다.');
+      toast.success('멘티가 삭제되었습니다.');
     }
   };
-
 
   return (
     <div className="min-w-0 space-y-5">
@@ -94,8 +94,8 @@ export function MentorMainPage() {
               {user?.name ?? '멘토'}님, 안녕하세요!
             </h2>
             <p className="mt-1.5 text-sm text-foreground/60">
-              오늘 <span className="font-bold text-brand">{totalPendingFeedback}개</span>의
-              피드백이 기다리고 있어요
+              오늘 <span className="font-bold text-brand">{totalPendingFeedback}개</span>의 피드백이
+              기다리고 있어요
             </p>
           </div>
 
@@ -105,8 +105,7 @@ export function MentorMainPage() {
               to={`/mentor/mentees/${mentees[0]?.id}/assignments/new`}
               className="flex h-8 items-center gap-1.5 rounded-md border border-foreground/15 bg-white px-4 text-xs font-semibold text-foreground shadow-sm transition-all hover:border-foreground/30 hover:shadow-md"
             >
-              <Plus className="h-3.5 w-3.5" />
-              새 과제
+              <Plus className="h-3.5 w-3.5" />새 과제
             </Link>
             <Button
               variant="brand-soft"
@@ -149,9 +148,7 @@ export function MentorMainPage() {
           <div className="rounded-lg border border-border/60 bg-white px-3 py-3 text-center">
             <p className="text-lg font-bold text-foreground">
               {completedAssignments}
-              <span className="text-xs font-normal text-foreground/50">
-                /{totalAssignments}
-              </span>
+              <span className="text-xs font-normal text-foreground/50">/{totalAssignments}</span>
             </p>
             <p className="mt-0.5 text-[11px] text-foreground/60">오늘의 과제</p>
           </div>
@@ -190,10 +187,7 @@ export function MentorMainPage() {
         </div>
 
         {filteredMentees.length === 0 && (
-          <EmptyState
-            icon={<UserIcon className="h-6 w-6" />}
-            title="해당하는 멘티가 없습니다"
-          />
+          <EmptyState icon={<UserIcon className="h-6 w-6" />} title="해당하는 멘티가 없습니다" />
         )}
       </section>
 
@@ -239,7 +233,9 @@ function RecentAssignmentItem({
         </Button>
       ) : getDeadlineStatus(assignment.submittedAt) === 'overdue' ? (
         <div className="flex shrink-0 items-center gap-1.5">
-          <span className="rounded bg-red-100 px-1 py-px text-[9px] font-semibold text-red-600">마감 초과</span>
+          <span className="rounded bg-red-100 px-1 py-px text-[9px] font-semibold text-red-600">
+            마감 초과
+          </span>
           <Button variant="brand-soft" size="xs" onClick={onFeedbackClick}>
             피드백 작성하기
           </Button>

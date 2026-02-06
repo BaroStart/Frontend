@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import {
-  BookOpen,
   Check,
   Copy,
   Edit2,
@@ -26,6 +25,7 @@ import { FilterTabs } from '@/components/ui/FilterTabs';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { DefaultSelect } from '@/components/ui/select';
 import { Tabs } from '@/components/ui/tabs';
+import { toast } from '@/components/ui/Toast';
 import { SUBJECT_SUBCATEGORIES } from '@/data/assignmentRegisterMock';
 import { getTodayDateStr } from '@/lib/dateUtils';
 import {
@@ -341,10 +341,10 @@ export function AssignmentManagePage() {
 
     try {
       await navigator.clipboard.writeText(text);
-      alert('템플릿 내용이 복사되었습니다.');
+      toast.success('템플릿 내용이 복사되었습니다.');
     } catch {
       // clipboard 권한 실패 시 안내
-      alert('복사에 실패했습니다. 브라우저 권한을 확인해주세요.');
+      toast.error('복사에 실패했습니다. 브라우저 권한을 확인해주세요.');
     }
   };
 
@@ -362,7 +362,7 @@ export function AssignmentManagePage() {
     const submitRule = templateDraft.submitRule.trim();
 
     if (!title || checklist.length === 0) {
-      alert('제목과 체크리스트(최소 1개)는 필수입니다.');
+      toast.warning('제목과 체크리스트(최소 1개)는 필수입니다.');
       return;
     }
 
@@ -430,16 +430,11 @@ export function AssignmentManagePage() {
           className="gap-1.5"
           onClick={() => setGoalModal({ open: true, editing: null })}
         >
-          <Plus className="h-3.5 w-3.5" />
-          새 과제 목표
+          <Plus className="h-3.5 w-3.5" />새 과제 목표
         </Button>
       )}
       {activeTab === 'templates' && (
-        <Button
-          size="sm"
-          className="gap-1.5"
-          onClick={() => setTemplateModalOpen(true)}
-        >
+        <Button size="sm" className="gap-1.5" onClick={() => setTemplateModalOpen(true)}>
           <Plus className="h-3.5 w-3.5" />
           템플릿 추가
         </Button>
@@ -453,71 +448,78 @@ export function AssignmentManagePage() {
       <div className="rounded-xl border border-border/50 bg-white">
         {/* 탭 네비게이션 */}
         <div className="px-5 pt-1">
-          <Tabs items={TABS} value={activeTab} onChange={setActiveTab} rightContent={tabRightContent} />
+          <Tabs
+            items={TABS}
+            value={activeTab}
+            onChange={setActiveTab}
+            rightContent={tabRightContent}
+          />
         </div>
 
         {/* 학습 자료 탭 */}
         {activeTab === 'materials' && (
           <div className="space-y-4 p-5">
             <div className="flex flex-wrap items-center gap-3">
-            <FilterTabs
-              items={['전체', '국어', '영어', '수학'].map((s) => ({ id: s, label: s }))}
-              value={materialFilter.subject}
-              onChange={(subject) => setMaterialFilter((prev) => ({ ...prev, subject, subCategory: '전체' }))}
-            />
-            <SearchInput
-              value={materialFilter.search}
-              onChange={(search) => setMaterialFilter((prev) => ({ ...prev, search }))}
-              placeholder="자료 검색..."
-              className="w-48"
-            />
-            <p className="ml-auto text-xs text-muted-foreground">
-              {filteredMaterials.length}개의 자료
-            </p>
-          </div>
-
-          {uploadModal.open && (
-            <MaterialUploadModal
-              pendingFiles={uploadModal.files}
-              onClose={() => setUploadModal({ open: false, files: [] })}
-              onConfirm={handleUploadConfirm}
-            />
-          )}
-
-          {filteredMaterials.length === 0 ? (
-            <EmptyState
-              icon={<FolderOpen className="h-12 w-12" />}
-              title={
-                materialFilter.search || materialFilter.subject !== '전체'
-                  ? '검색 결과가 없습니다'
-                  : '등록된 학습 자료가 없습니다'
-              }
-              description="파일을 업로드하여 과제에 활용하세요"
-              action={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={Upload}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  파일 업로드
-                </Button>
-              }
-            />
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredMaterials.map((material) => (
-                <MaterialCard
-                  key={material.id}
-                  material={material}
-                  onPreview={() => openPreview(material)}
-                  onDelete={() => handleDeleteMaterial(material)}
-                />
-              ))}
+              <FilterTabs
+                items={['전체', '국어', '영어', '수학'].map((s) => ({ id: s, label: s }))}
+                value={materialFilter.subject}
+                onChange={(subject) =>
+                  setMaterialFilter((prev) => ({ ...prev, subject, subCategory: '전체' }))
+                }
+              />
+              <SearchInput
+                value={materialFilter.search}
+                onChange={(search) => setMaterialFilter((prev) => ({ ...prev, search }))}
+                placeholder="자료 검색..."
+                className="w-48"
+              />
+              <p className="ml-auto text-xs text-muted-foreground">
+                {filteredMaterials.length}개의 자료
+              </p>
             </div>
-          )}
-        </div>
-      )}
+
+            {uploadModal.open && (
+              <MaterialUploadModal
+                pendingFiles={uploadModal.files}
+                onClose={() => setUploadModal({ open: false, files: [] })}
+                onConfirm={handleUploadConfirm}
+              />
+            )}
+
+            {filteredMaterials.length === 0 ? (
+              <EmptyState
+                icon={<FolderOpen className="h-12 w-12" />}
+                title={
+                  materialFilter.search || materialFilter.subject !== '전체'
+                    ? '검색 결과가 없습니다'
+                    : '등록된 학습 자료가 없습니다'
+                }
+                description="파일을 업로드하여 과제에 활용하세요"
+                action={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={Upload}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    파일 업로드
+                  </Button>
+                }
+              />
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredMaterials.map((material) => (
+                  <MaterialCard
+                    key={material.id}
+                    material={material}
+                    onPreview={() => openPreview(material)}
+                    onDelete={() => handleDeleteMaterial(material)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 과제 목표 탭 */}
         {activeTab === 'goals' && (
@@ -531,48 +533,48 @@ export function AssignmentManagePage() {
               />
               <p className="ml-auto text-xs text-muted-foreground">
                 {filteredGoals.length}개의 목표
-            </p>
-          </div>
-
-          {filteredGoals.length === 0 ? (
-            <EmptyState
-              icon={<Target className="h-12 w-12" />}
-              title={goalSearch ? '검색 결과가 없습니다' : '등록된 과제 목표가 없습니다'}
-              description="과제 목표를 추가하여 과제 등록 시 활용하세요"
-              action={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={Plus}
-                  onClick={() => setGoalModal({ open: true, editing: null })}
-                >
-                  과제 목표 추가
-                </Button>
-              }
-            />
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredGoals.map((goal) => (
-                <LearningGoalCard
-                  key={goal.id}
-                  goal={goal}
-                  materials={getMaterialsByIds(goal.materialIds || [])}
-                  onEdit={() => setGoalModal({ open: true, editing: goal })}
-                  onDelete={() => handleDeleteGoal(goal.id)}
-                />
-              ))}
+              </p>
             </div>
-          )}
 
-          {goalModal.open && (
-            <LearningGoalModal
-              goal={goalModal.editing}
-              materials={materials}
-              onSave={handleSaveGoal}
-              onClose={() => setGoalModal({ open: false, editing: null })}
-              mentorId={CURRENT_MENTOR_ID}
-            />
-          )}
+            {filteredGoals.length === 0 ? (
+              <EmptyState
+                icon={<Target className="h-12 w-12" />}
+                title={goalSearch ? '검색 결과가 없습니다' : '등록된 과제 목표가 없습니다'}
+                description="과제 목표를 추가하여 과제 등록 시 활용하세요"
+                action={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={Plus}
+                    onClick={() => setGoalModal({ open: true, editing: null })}
+                  >
+                    과제 목표 추가
+                  </Button>
+                }
+              />
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredGoals.map((goal) => (
+                  <LearningGoalCard
+                    key={goal.id}
+                    goal={goal}
+                    materials={getMaterialsByIds(goal.materialIds || [])}
+                    onEdit={() => setGoalModal({ open: true, editing: goal })}
+                    onDelete={() => handleDeleteGoal(goal.id)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {goalModal.open && (
+              <LearningGoalModal
+                goal={goalModal.editing}
+                materials={materials}
+                onSave={handleSaveGoal}
+                onClose={() => setGoalModal({ open: false, editing: null })}
+                mentorId={CURRENT_MENTOR_ID}
+              />
+            )}
           </div>
         )}
 
@@ -580,9 +582,7 @@ export function AssignmentManagePage() {
         {activeTab === 'templates' && (
           <div className="space-y-4 p-5">
             <div className="flex items-center">
-              <p className="text-xs text-muted-foreground">
-                {allTemplates.length}개의 템플릿
-              </p>
+              <p className="text-xs text-muted-foreground">{allTemplates.length}개의 템플릿</p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -590,142 +590,161 @@ export function AssignmentManagePage() {
                 <div
                   key={tpl.id}
                   className="rounded-xl border border-border/50 bg-secondary/30 p-5 transition-all hover:shadow-soft"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-2 flex items-center gap-2">
-                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                        tpl.source === 'custom' ? 'bg-emerald-50 text-emerald-600' : 'bg-secondary text-foreground/50'
-                      }`}>
-                        <Layers className="h-4 w-4" />
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex items-center gap-2">
+                        <div
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                            tpl.source === 'custom'
+                              ? 'bg-emerald-50 text-emerald-600'
+                              : 'bg-secondary text-foreground/50'
+                          }`}
+                        >
+                          <Layers className="h-4 w-4" />
+                        </div>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                            tpl.source === 'custom'
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : 'bg-secondary text-foreground/60'
+                          }`}
+                        >
+                          {tpl.source === 'custom' ? '커스텀' : '예시'}
+                        </span>
                       </div>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                          tpl.source === 'custom'
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-secondary text-foreground/60'
-                        }`}
-                      >
-                        {tpl.source === 'custom' ? '커스텀' : '예시'}
-                      </span>
-                    </div>
-                    <p className="text-sm font-semibold text-foreground">{tpl.title}</p>
-                    <p className="mt-1 text-xs text-foreground/60 line-clamp-2">{tpl.description}</p>
-                  </div>
-                </div>
-
-                <div className="mt-3 border-t border-border/50 pt-3">
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/40">체크리스트</p>
-                  <ul className="space-y-1.5">
-                    {tpl.checklist.map((c, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm text-foreground/80">
-                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
-                        <span className="leading-5">{c}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  {tpl.submitRule && (
-                    <div className="mt-3 rounded-md bg-secondary/70 px-2.5 py-2">
-                      <p className="text-xs text-foreground/60">
-                        <span className="font-medium text-foreground/70">제출 기준</span>{' '}
-                        {tpl.submitRule}
+                      <p className="text-sm font-semibold text-foreground">{tpl.title}</p>
+                      <p className="mt-1 text-xs text-foreground/60 line-clamp-2">
+                        {tpl.description}
                       </p>
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                <div className="mt-3 flex items-center justify-end gap-2 border-t border-border/50 pt-3">
-                  {tpl.source === 'custom' && (
-                    <button
+                  <div className="mt-3 border-t border-border/50 pt-3">
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-foreground/40">
+                      체크리스트
+                    </p>
+                    <ul className="space-y-1.5">
+                      {tpl.checklist.map((c, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm text-foreground/80">
+                          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
+                          <span className="leading-5">{c}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {tpl.submitRule && (
+                      <div className="mt-3 rounded-md bg-secondary/70 px-2.5 py-2">
+                        <p className="text-xs text-foreground/60">
+                          <span className="font-medium text-foreground/70">제출 기준</span>{' '}
+                          {tpl.submitRule}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-end gap-2 border-t border-border/50 pt-3">
+                    {tpl.source === 'custom' && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCustomTemplate(tpl.id)}
+                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                        title="삭제"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    <Button
                       type="button"
-                      onClick={() => handleDeleteCustomTemplate(tpl.id)}
-                      className="rounded-lg p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
-                      title="삭제"
+                      variant="outline"
+                      size="sm"
+                      icon={Copy}
+                      onClick={() => handleCopyTemplate(tpl)}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    icon={Copy}
-                    onClick={() => handleCopyTemplate(tpl)}
-                  >
-                    복사
-                  </Button>
+                      복사
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <Dialog open={templateModalOpen} onClose={() => setTemplateModalOpen(false)}>
-            <DialogHeader onClose={() => setTemplateModalOpen(false)}>
-              <h2 className="text-lg font-semibold text-foreground">템플릿 추가</h2>
-            </DialogHeader>
-            <DialogBody className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground/80">제목</label>
-                <input
-                  value={templateDraft.title}
-                  onChange={(e) => setTemplateDraft((p) => ({ ...p, title: e.target.value }))}
-                  placeholder="예: 영어단어 암기 Day {DAY}"
-                  className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground/80">설명</label>
-                <input
-                  value={templateDraft.description}
-                  onChange={(e) => setTemplateDraft((p) => ({ ...p, description: e.target.value }))}
-                  placeholder="예: Day별 단어 학습 + 테스트 + 오답 정리"
-                  className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground/80">변수(쉼표로 구분)</label>
-                <input
-                  value={templateDraft.variables}
-                  onChange={(e) => setTemplateDraft((p) => ({ ...p, variables: e.target.value }))}
-                  placeholder="{DAY}, {WEEK}"
-                  className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground/80">체크리스트(줄바꿈으로 항목 추가)</label>
-                <textarea
-                  value={templateDraft.checklist}
-                  onChange={(e) => setTemplateDraft((p) => ({ ...p, checklist: e.target.value }))}
-                  placeholder={'예: 단어 1회독\\n테스트 1회\\n오답노트 작성'}
-                  rows={6}
-                  className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-foreground/80">제출 기준</label>
-                <input
-                  value={templateDraft.submitRule}
-                  onChange={(e) => setTemplateDraft((p) => ({ ...p, submitRule: e.target.value }))}
-                  placeholder="예: 점수 + 오답 10개"
-                  className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
-                />
-              </div>
-            </DialogBody>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setTemplateModalOpen(false)}>취소</Button>
-              <Button onClick={handleAddTemplate}>추가</Button>
-            </DialogFooter>
-          </Dialog>
-        </div>
-      )}
-      </div>{/* 흰색 카드 닫기 */}
+            <Dialog open={templateModalOpen} onClose={() => setTemplateModalOpen(false)}>
+              <DialogHeader onClose={() => setTemplateModalOpen(false)}>
+                <h2 className="text-lg font-semibold text-foreground">템플릿 추가</h2>
+              </DialogHeader>
+              <DialogBody className="space-y-4">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-foreground/80">제목</label>
+                  <input
+                    value={templateDraft.title}
+                    onChange={(e) => setTemplateDraft((p) => ({ ...p, title: e.target.value }))}
+                    placeholder="예: 영어단어 암기 Day {DAY}"
+                    className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-foreground/80">설명</label>
+                  <input
+                    value={templateDraft.description}
+                    onChange={(e) =>
+                      setTemplateDraft((p) => ({ ...p, description: e.target.value }))
+                    }
+                    placeholder="예: Day별 단어 학습 + 테스트 + 오답 정리"
+                    className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-foreground/80">
+                    변수(쉼표로 구분)
+                  </label>
+                  <input
+                    value={templateDraft.variables}
+                    onChange={(e) => setTemplateDraft((p) => ({ ...p, variables: e.target.value }))}
+                    placeholder="{DAY}, {WEEK}"
+                    className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-foreground/80">
+                    체크리스트(줄바꿈으로 항목 추가)
+                  </label>
+                  <textarea
+                    value={templateDraft.checklist}
+                    onChange={(e) => setTemplateDraft((p) => ({ ...p, checklist: e.target.value }))}
+                    placeholder={'예: 단어 1회독\\n테스트 1회\\n오답노트 작성'}
+                    rows={6}
+                    className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-foreground/80">
+                    제출 기준
+                  </label>
+                  <input
+                    value={templateDraft.submitRule}
+                    onChange={(e) =>
+                      setTemplateDraft((p) => ({ ...p, submitRule: e.target.value }))
+                    }
+                    placeholder="예: 점수 + 오답 10개"
+                    className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  />
+                </div>
+              </DialogBody>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setTemplateModalOpen(false)}>
+                  취소
+                </Button>
+                <Button onClick={handleAddTemplate}>추가</Button>
+              </DialogFooter>
+            </Dialog>
+          </div>
+        )}
+      </div>
+      {/* 흰색 카드 닫기 */}
 
       {/* 학습자료 미리보기 모달 */}
       <Dialog open={previewOpen} onClose={closePreview} maxWidth="max-w-5xl">
         <DialogHeader onClose={closePreview}>
-          <h2 className="truncate text-base font-semibold text-foreground">
-            학습 자료 미리보기
-          </h2>
+          <h2 className="truncate text-base font-semibold text-foreground">학습 자료 미리보기</h2>
           <p className="mt-0.5 truncate text-sm text-foreground/60">{previewMeta?.title ?? ''}</p>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto bg-secondary/50 p-4">
@@ -774,7 +793,6 @@ export function AssignmentManagePage() {
   );
 }
 
-
 // 학습 자료 카드
 function MaterialCard({
   material,
@@ -809,9 +827,13 @@ function MaterialCard({
             )}
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <span className="rounded-md border border-border/60 bg-secondary/50 px-2 py-0.5 text-[11px] font-medium text-foreground/60">{material.subject}</span>
+            <span className="rounded-md border border-border/60 bg-secondary/50 px-2 py-0.5 text-[11px] font-medium text-foreground/60">
+              {material.subject}
+            </span>
             {material.subCategory && material.subCategory !== '기타' && (
-              <span className="rounded-md border border-border/60 bg-secondary/50 px-2 py-0.5 text-[11px] font-medium text-foreground/60">{material.subCategory}</span>
+              <span className="rounded-md border border-border/60 bg-secondary/50 px-2 py-0.5 text-[11px] font-medium text-foreground/60">
+                {material.subCategory}
+              </span>
             )}
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -914,7 +936,9 @@ function MaterialUploadModal({
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-foreground/70">세부 분류</label>
+                <label className="mb-1 block text-xs font-medium text-foreground/70">
+                  세부 분류
+                </label>
                 <DefaultSelect
                   value={item.meta.subCategory || '비문학'}
                   onValueChange={(v) => updateItem(index, { subCategory: v })}
@@ -926,7 +950,9 @@ function MaterialUploadModal({
         ))}
       </DialogBody>
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={onClose}>취소</Button>
+        <Button type="button" variant="outline" onClick={onClose}>
+          취소
+        </Button>
         <Button type="button" onClick={handleConfirm} disabled={saving}>
           {saving ? '업로드 중...' : '업로드'}
         </Button>
@@ -980,13 +1006,17 @@ function LearningGoalCard({
         <div className="mt-3 space-y-2.5 border-t border-border/50 pt-3">
           {goal.weakness && (
             <div className="rounded-md bg-secondary/70 px-2.5 py-2">
-              <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/40">보완점</p>
+              <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/40">
+                보완점
+              </p>
               <p className="text-xs text-foreground/70">{goal.weakness}</p>
             </div>
           )}
           {materials.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/40">추가자료</p>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/40">
+                추가자료
+              </p>
               <div className="flex flex-wrap gap-1.5">
                 {materials.map((mat) => (
                   <span
@@ -1052,7 +1082,9 @@ function LearningGoalModal({
       <form onSubmit={handleSubmit}>
         <DialogBody className="space-y-5">
           <div>
-            <label className="mb-2 block text-sm font-medium text-foreground/80">과제 목표 이름</label>
+            <label className="mb-2 block text-sm font-medium text-foreground/80">
+              과제 목표 이름
+            </label>
             <input
               type="text"
               value={name}
@@ -1086,7 +1118,9 @@ function LearningGoalModal({
             <label className="mb-2 block text-sm font-medium text-foreground/80">추가자료</label>
             <div className="max-h-40 overflow-y-auto rounded-lg border border-border">
               {materials.length === 0 ? (
-                <p className="p-4 text-center text-sm text-foreground/60">등록된 학습자료가 없습니다</p>
+                <p className="p-4 text-center text-sm text-foreground/60">
+                  등록된 학습자료가 없습니다
+                </p>
               ) : (
                 <div className="divide-y divide-border/50">
                   {materials.map((mat) => (
@@ -1117,7 +1151,9 @@ function LearningGoalModal({
           </div>
         </DialogBody>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>취소</Button>
+          <Button type="button" variant="outline" onClick={onClose}>
+            취소
+          </Button>
           <Button type="submit">{goal ? '수정' : '추가'}</Button>
         </DialogFooter>
       </form>

@@ -5,6 +5,7 @@ import { Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DatePicker } from '@/components/ui/date-picker';
 import { DefaultSelect } from '@/components/ui/select';
+import { toast } from '@/components/ui/Toast';
 import {
   formatPlannerDuration,
   getPlannerCompletedItemsByMenteeAndDate,
@@ -40,7 +41,7 @@ export function PlannerManagePage() {
       feedbackText: planner.feedback,
       createdAt: new Date().toISOString(),
     });
-    alert('피드백이 저장되었습니다.');
+    toast.success('피드백이 저장되었습니다.');
   };
 
   return (
@@ -244,15 +245,15 @@ function PlannerTimeline({ records }: { records: PlannerRecord[] }) {
 
 function CompletedItemRow({ item }: { item: PlannerCompletedItem }) {
   const badgeClass =
-    item.type === 'todo'
-      ? 'bg-violet-50 text-violet-700'
-      : 'bg-emerald-50 text-emerald-700';
+    item.type === 'todo' ? 'bg-violet-50 text-violet-700' : 'bg-emerald-50 text-emerald-700';
   const badgeText = item.type === 'todo' ? '자기주도 TO-DO' : '과제';
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-white px-3 py-2">
       <div className="min-w-0">
         <div className="mb-0.5 flex items-center gap-2">
-          <span className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${badgeClass}`}>
+          <span
+            className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${badgeClass}`}
+          >
             {badgeText}
           </span>
           {item.subject && (

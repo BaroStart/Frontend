@@ -22,6 +22,7 @@ import { AuthPhotoViewer } from '@/components/mentor/AuthPhotoViewer';
 import { Button } from '@/components/ui/Button';
 import { Calendar as CalendarComponent } from '@/components/ui/Calendar';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
+import { toast } from '@/components/ui/Toast';
 import { useAssignmentDetail } from '@/hooks/useAssignmentDetail';
 import { useMentee } from '@/hooks/useMentee';
 import { useSubmittedAssignments } from '@/hooks/useSubmittedAssignments';
@@ -183,7 +184,7 @@ export function FeedbackWritePage() {
         isDraft: true,
       });
       queryClient.invalidateQueries({ queryKey: ['feedbackItems', menteeId] });
-      alert('임시 저장되었습니다.');
+      toast.success('임시 저장되었습니다.');
     } finally {
       setSaving(false);
     }
@@ -194,7 +195,7 @@ export function FeedbackWritePage() {
     if (!menteeId || !assignmentId) return;
     const hasContent = feedbackItems.some((item) => item.text.trim());
     if (!hasContent) {
-      alert('피드백 내용을 입력해 주세요.');
+      toast.warning('피드백 내용을 입력해 주세요.');
       return;
     }
     setSaving(true);
@@ -221,7 +222,7 @@ export function FeedbackWritePage() {
         queryClient.invalidateQueries({ queryKey: ['submittedAssignments'] });
         queryClient.invalidateQueries({ queryKey: ['feedbackItems', menteeId] });
         queryClient.invalidateQueries({ queryKey: ['mentees'] });
-        alert('피드백이 저장되었습니다. 멘티에게 알림이 발송됩니다.');
+        toast.success('피드백이 저장되었습니다. 멘티에게 알림이 발송됩니다.');
         window.history.back();
       } else {
         const { submitFeedback } = await import('@/api/feedback');
@@ -233,12 +234,12 @@ export function FeedbackWritePage() {
         queryClient.invalidateQueries({ queryKey: ['submittedAssignments'] });
         queryClient.invalidateQueries({ queryKey: ['feedbackItems', menteeId] });
         queryClient.invalidateQueries({ queryKey: ['mentees'] });
-        alert('피드백이 저장되었습니다.');
+        toast.success('피드백이 저장되었습니다.');
         window.history.back();
       }
     } catch (err) {
       console.error(err);
-      alert('저장 중 오류가 발생했습니다.');
+      toast.error('저장 중 오류가 발생했습니다.');
     } finally {
       setSaving(false);
     }
@@ -269,7 +270,9 @@ export function FeedbackWritePage() {
       <div className="flex shrink-0 items-center gap-4 border-b border-border/50 bg-white px-6 py-3">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary">
-            <span className="text-sm font-medium text-foreground/70">{mentee?.name?.[0] ?? '?'}</span>
+            <span className="text-sm font-medium text-foreground/70">
+              {mentee?.name?.[0] ?? '?'}
+            </span>
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">{mentee?.name ?? '멘티'}</p>
@@ -533,7 +536,9 @@ export function FeedbackWritePage() {
                       <Star
                         className={cn(
                           'h-4 w-4',
-                          item.isImportant ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground',
+                          item.isImportant
+                            ? 'fill-amber-400 text-amber-400'
+                            : 'text-muted-foreground',
                         )}
                       />
                       <span>중요 피드백 (멘티 요약 카드 전송)</span>
