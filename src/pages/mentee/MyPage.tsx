@@ -88,7 +88,7 @@ export function MyPage() {
   );
 
   return (
-    <div className="relative px-4 pt-4 pb-24">
+    <div className="relative px-4 pt-4 pb-4">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <p className="text-xs text-gray-400">안녕하세요</p>
