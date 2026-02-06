@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+import { Eye, EyeOff } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { STORAGE_KEYS } from '@/constants';
 import { useAuthStore } from '@/stores/useAuthStore';
 import type { UserRole } from '@/types/auth';
 
@@ -13,16 +14,8 @@ export function LoginPage() {
   const [role, setRole] = useState<UserRole>('mentee');
   const [id, setId] = useState('mentee01');
   const [password, setPassword] = useState('test1234');
-  const [rememberId, setRememberId] = useState(() => !!localStorage.getItem(STORAGE_KEYS.SAVED_ID));
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (rememberId && id) {
-      localStorage.setItem(STORAGE_KEYS.SAVED_ID, id);
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.SAVED_ID);
-    }
-  }, [rememberId, id]);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleRoleChange = (newRole: UserRole) => {
     setRole(newRole);
@@ -42,12 +35,47 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-white px-4 py-8 sm:px-6 sm:py-12">
-      <img src="/logo.svg" alt="설스터디" className="h-14 sm:h-16" />
-      <h1 className="mt-3 text-xl font-bold text-slate-800 sm:text-2xl">설스터디</h1>
-      <p className="mt-2 mb-8 text-slate-500 sm:mb-10">오늘도 당신의 꿈을 응원합니다</p>
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-8 sm:px-6 sm:py-12">
+      {/* 부드러운 그라데이션 배경 — 과하지 않게 */}
+      <div
+        className="absolute inset-0 -z-10"
+        style={{
+          background: 'linear-gradient(165deg, #f8fafc 0%, #ffffff 35%, #f0f9ff 70%, #e0f2fe 100%)',
+        }}
+      />
+      <div
+        className="absolute -right-[20%] -top-[20%] h-[60%] w-[60%] -z-10 rounded-full opacity-30 blur-3xl"
+        style={{ background: 'radial-gradient(circle, hsl(193 70% 85%) 0%, transparent 70%)' }}
+      />
+      <div
+        className="absolute -bottom-[15%] -left-[15%] h-[50%] w-[50%] -z-10 rounded-full opacity-25 blur-3xl"
+        style={{ background: 'radial-gradient(circle, hsl(193 60% 90%) 0%, transparent 70%)' }}
+      />
 
-      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      {/* 로고 + SeolStudy (Plus Jakarta Sans) */}
+      <div className="flex flex-col items-center">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <img src="/logo.svg" alt="" className="h-14 w-14 shrink-0 sm:h-16 sm:w-16" />
+          <span
+            className="font-plus-jakarta text-4xl font-black tracking-tight text-slate-800 sm:text-5xl"
+            style={{
+              WebkitTextStroke: '1px hsl(222 47% 11% / 0.08)',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            SeolStudy
+          </span>
+        </div>
+        <p className="mt-3 text-center text-sm text-slate-500 sm:text-base">
+          습관으로 쌓는 오늘, 목표로 가는 내일
+          <br />
+          오늘도 당신의 꿈을 응원합니다
+        </p>
+      </div>
+
+      <div className="mb-8 mt-8 sm:mb-10 sm:mt-10" />
+
+      <div className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-soft backdrop-blur-sm sm:p-8">
         <div className="mb-6 flex rounded-lg bg-slate-100 p-1">
           <button
             type="button"
@@ -82,27 +110,36 @@ export function LoginPage() {
             onChange={(e) => setId(e.target.value)}
             placeholder="아이디를 입력하세요"
             autoComplete="username"
+            className="h-10 rounded-lg bg-white text-sm"
+            labelClassName="text-xs font-medium text-slate-500"
           />
 
           <Input
             id="password"
             label="비밀번호"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="비밀번호를 입력하세요"
             autoComplete="current-password"
+            className="h-10 rounded-lg bg-white pr-10 text-sm"
+            labelClassName="text-xs font-medium text-slate-500"
+            endAdornment={
+              <button
+                type="button"
+                onClick={() => setShowPassword((p) => !p)}
+                className="rounded p-1 text-slate-400 transition-colors hover:text-slate-600"
+                aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden />
+                )}
+              </button>
+            }
           />
-
-          <label className="flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              checked={rememberId}
-              onChange={(e) => setRememberId(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-slate-600 focus:ring-slate-400"
-            />
-            <span className="text-sm text-slate-700">아이디 저장하기</span>
-          </label>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
@@ -112,7 +149,7 @@ export function LoginPage() {
         </form>
       </div>
 
-      <p className="mt-12 text-center text-xs text-slate-400">
+      <p className="mt-12 text-center text-xs text-slate-500/80">
         계정 문의는 운영자에게 문의해주세요
       </p>
     </div>
