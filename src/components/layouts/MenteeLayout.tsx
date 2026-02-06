@@ -1,11 +1,14 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+
 import { TabBar } from '@/components/mentee/TabBar';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export function MenteeLayout() {
+  useDocumentTitle('설스터디 | 멘티 페이지');
   const { pathname } = useLocation();
 
   const hideHeader =
-    /^\/mentee\/assignments\/[^/]+$/.test(pathname); 
+    /^\/mentee\/assignments\/[^/]+$/.test(pathname);
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-md bg-white shadow-sm sm:max-w-lg md:shadow-lg">
