@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { RoleTabs } from '@/components/ui/RoleTabs';
 import { STORAGE_KEYS } from '@/constants';
 import { useAuthStore } from '@/stores/useAuthStore';
 import type { UserRole } from '@/types/auth';
@@ -49,7 +48,30 @@ export function LoginPage() {
       <p className="mt-2 mb-8 text-slate-500 sm:mb-10">오늘도 당신의 꿈을 응원합니다</p>
 
       <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <RoleTabs value={role} onChange={handleRoleChange} />
+        <div className="mb-6 flex rounded-lg bg-slate-100 p-1">
+          <button
+            type="button"
+            onClick={() => handleRoleChange('mentee')}
+            className={`flex-1 rounded-md py-2.5 text-sm font-medium transition ${
+              role === 'mentee'
+                ? 'bg-white text-slate-800 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            멘티로 시작하기
+          </button>
+          <button
+            type="button"
+            onClick={() => handleRoleChange('mentor')}
+            className={`flex-1 rounded-md py-2.5 text-sm font-medium transition ${
+              role === 'mentor'
+                ? 'bg-white text-slate-800 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            멘토로 관리하기
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input

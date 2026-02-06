@@ -3,8 +3,10 @@ import { Outlet } from 'react-router-dom';
 
 import { Header } from '@/components/mentor/Header';
 import { Sidebar } from '@/components/mentor/Sidebar';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export function MentorLayout() {
+  useDocumentTitle('설스터디 | 멘토 대시보드');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -26,7 +28,6 @@ export function MentorLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* 모바일: 오버레이 / 데스크톱: 고정 사이드바 */}
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={handleToggleSidebar}
@@ -34,7 +35,6 @@ export function MentorLayout() {
         onMobileClose={() => setSidebarOpen(false)}
       />
 
-      {/* 모바일: 전체 너비 / 데스크톱: 사이드바 너비만큼 margin */}
       <div
         className={`min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-60'}`}
       >

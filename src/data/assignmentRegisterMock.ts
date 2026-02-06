@@ -1,4 +1,3 @@
-/** 보완점 (설스터디 정의) - 선택 시 학습지 자동 매칭 */
 export interface ImprovementPoint {
   id: string;
   subject: '국어' | '영어' | '수학';
@@ -18,6 +17,8 @@ export interface LearningMaterial {
   fileSize?: string;
   improvementPointId?: string;
   subject?: string;
+  source: 'seolstudy' | 'mentor';
+  url?: string;
 }
 
 /** 임시저장된 과제 초안 */
@@ -156,7 +157,6 @@ export const MOTIVATIONAL_COLUMN_TEMPLATES: MotivationalColumnTemplate[] = [
   },
 ];
 
-/** 과목별 칼럼 기본 템플릿 (보완점 미선택 시) */
 export const SUBJECT_COLUMN_TEMPLATES: Record<string, string> = {
   국어: `<h3>국어 학습 가이드</h3>
 <p>이번 과제의 학습 목표를 확인하고 단계별로 진행해 보세요.</p>
@@ -189,7 +189,6 @@ export const SUBJECT_COLUMN_TEMPLATES: Record<string, string> = {
 </ul>`,
 };
 
-/** 보완점별 칼럼 템플릿 (선택 시 에디터에 자동 채움) */
 const COLUMN_TEMPLATES: Record<string, string> = {
   ip1: `<h3>비문학 지문 구조 파악</h3>
 <p>주제문·핵심문장의 위치를 파악하는 연습을 해 보세요.</p>
@@ -230,32 +229,183 @@ const COLUMN_TEMPLATES: Record<string, string> = {
 };
 
 export const MOCK_IMPROVEMENT_POINTS: ImprovementPoint[] = [
-  { id: 'ip1', subject: '국어', subCategory: '비문학', label: '지문 구조 파악', description: '주제문·핵심문장 위치 파악', materialIds: ['mat1'], columnTemplate: COLUMN_TEMPLATES.ip1 },
-  { id: 'ip2', subject: '국어', subCategory: '문학', label: '시 감상 분석', description: '시적 화자와 표현 기법 이해', materialIds: ['mat2'] },
-  { id: 'ip2-1', subject: '국어', subCategory: '문학', label: '문학 문풀', description: '문학 작품 문제 풀이', materialIds: ['mat2'] },
-  { id: 'ip2-2', subject: '국어', subCategory: '문법', label: '문법 강의/오답노트', description: '문법 개념 정리 및 오답 분석', materialIds: ['mat2'] },
-  { id: 'ip3', subject: '영어', subCategory: '독해/듣기/어휘', label: '독해 지문 구조 분석', description: '토픽 센텐스 위치 파악, 단락 구조 분석', materialIds: ['mat3', 'mat4'], columnTemplate: COLUMN_TEMPLATES.ip3 },
-  { id: 'ip4', subject: '영어', subCategory: '독해/듣기/어휘', label: '핵심 어휘 암기', description: '수능 필수 어휘 50개', materialIds: ['mat5'], columnTemplate: COLUMN_TEMPLATES.ip4 },
-  { id: 'ip4-1', subject: '영어', subCategory: '독해/듣기/어휘', label: '단어 시험', description: '어휘 암기 확인 테스트', materialIds: ['mat5'] },
-  { id: 'ip4-2', subject: '영어', subCategory: '독해/듣기/어휘', label: '단어 암기', description: 'Vocabulary Memorization', materialIds: ['mat5'] },
-  { id: 'ip4-3', subject: '영어', subCategory: '독해/듣기/어휘', label: '유형별 문제', description: 'Problem by Type', materialIds: ['mat3', 'mat4'] },
-  { id: 'ip5', subject: '수학', subCategory: '미적분', label: '미분 기본 개념', description: '미분의 정의와 기본 공식', materialIds: ['mat6'], columnTemplate: COLUMN_TEMPLATES.ip5 },
-  { id: 'ip6', subject: '수학', subCategory: '기하', label: '벡터 연산', description: '벡터의 덧셈, 뺄셈, 스칼라배', materialIds: ['mat7'] },
-  { id: 'ip6-1', subject: '수학', subCategory: '확률과 통계', label: '모의고사', description: 'Mock Exam 문제풀이', materialIds: ['mat6'] },
-  { id: 'ip6-2', subject: '수학', subCategory: '수학1', label: '플래너 업로드', description: '학습 플래너 기반 과제', materialIds: ['mat6'] },
+  {
+    id: 'ip1',
+    subject: '국어',
+    subCategory: '비문학',
+    label: '지문 구조 파악',
+    description: '주제문·핵심문장 위치 파악',
+    materialIds: ['mat1'],
+    columnTemplate: COLUMN_TEMPLATES.ip1,
+  },
+  {
+    id: 'ip2',
+    subject: '국어',
+    subCategory: '문학',
+    label: '시 감상 분석',
+    description: '시적 화자와 표현 기법 이해',
+    materialIds: ['mat2'],
+  },
+  {
+    id: 'ip2-1',
+    subject: '국어',
+    subCategory: '문학',
+    label: '문학 문풀',
+    description: '문학 작품 문제 풀이',
+    materialIds: ['mat2'],
+  },
+  {
+    id: 'ip2-2',
+    subject: '국어',
+    subCategory: '문법',
+    label: '문법 강의/오답노트',
+    description: '문법 개념 정리 및 오답 분석',
+    materialIds: ['mat2'],
+  },
+  {
+    id: 'ip3',
+    subject: '영어',
+    subCategory: '독해/듣기/어휘',
+    label: '독해 지문 구조 분석',
+    description: '토픽 센텐스 위치 파악, 단락 구조 분석',
+    materialIds: ['mat3', 'mat4'],
+    columnTemplate: COLUMN_TEMPLATES.ip3,
+  },
+  {
+    id: 'ip4',
+    subject: '영어',
+    subCategory: '독해/듣기/어휘',
+    label: '핵심 어휘 암기',
+    description: '수능 필수 어휘 50개',
+    materialIds: ['mat5'],
+    columnTemplate: COLUMN_TEMPLATES.ip4,
+  },
+  {
+    id: 'ip4-1',
+    subject: '영어',
+    subCategory: '독해/듣기/어휘',
+    label: '단어 시험',
+    description: '어휘 암기 확인 테스트',
+    materialIds: ['mat5'],
+  },
+  {
+    id: 'ip4-2',
+    subject: '영어',
+    subCategory: '독해/듣기/어휘',
+    label: '단어 암기',
+    description: 'Vocabulary Memorization',
+    materialIds: ['mat5'],
+  },
+  {
+    id: 'ip4-3',
+    subject: '영어',
+    subCategory: '독해/듣기/어휘',
+    label: '유형별 문제',
+    description: 'Problem by Type',
+    materialIds: ['mat3', 'mat4'],
+  },
+  {
+    id: 'ip5',
+    subject: '수학',
+    subCategory: '미적분',
+    label: '미분 기본 개념',
+    description: '미분의 정의와 기본 공식',
+    materialIds: ['mat6'],
+    columnTemplate: COLUMN_TEMPLATES.ip5,
+  },
+  {
+    id: 'ip6',
+    subject: '수학',
+    subCategory: '기하',
+    label: '벡터 연산',
+    description: '벡터의 덧셈, 뺄셈, 스칼라배',
+    materialIds: ['mat7'],
+  },
+  {
+    id: 'ip6-1',
+    subject: '수학',
+    subCategory: '확률과 통계',
+    label: '모의고사',
+    description: 'Mock Exam 문제풀이',
+    materialIds: ['mat6'],
+  },
+  {
+    id: 'ip6-2',
+    subject: '수학',
+    subCategory: '수학1',
+    label: '플래너 업로드',
+    description: '학습 플래너 기반 과제',
+    materialIds: ['mat6'],
+  },
 ];
 
 export const MOCK_LEARNING_MATERIALS: LearningMaterial[] = [
-  { id: 'mat1', title: '2026 수능특강 비문학.pdf', fileSize: '2.4 MB', improvementPointId: 'ip1', subject: '국어' },
-  { id: 'mat2', title: '문학 감상문 작성법.pdf', fileSize: '1.2 MB', improvementPointId: 'ip2', subject: '국어' },
-  { id: 'mat3', title: '2026 수능특강 영어독해.pdf', fileSize: '2.4 MB', improvementPointId: 'ip3', subject: '영어' },
-  { id: 'mat4', title: '영어 독해 학습 가이드.pdf', fileSize: '0.8 MB', improvementPointId: 'ip3', subject: '영어' },
-  { id: 'mat5', title: '수능 필수 영단어 50.pdf', fileSize: '0.5 MB', improvementPointId: 'ip4', subject: '영어' },
-  { id: 'mat6', title: 'EBS 수능완성 수학.pdf', fileSize: '3.1 MB', improvementPointId: 'ip5', subject: '수학' },
-  { id: 'mat7', title: '기하 벡터 연습문제.pdf', fileSize: '1.5 MB', improvementPointId: 'ip6', subject: '수학' },
+  // 설스터디 기본 학습지
+  {
+    id: 'mat1',
+    title: '2025 수능특강 비문학.pdf',
+    fileSize: '2.4 MB',
+    improvementPointId: 'ip1',
+    subject: '국어',
+    source: 'seolstudy',
+    url: '/materials/korean/2025-수능특강-비문학.pdf',
+  },
+  {
+    id: 'mat2',
+    title: '문학 감상문 작성법.pdf',
+    fileSize: '1.2 MB',
+    improvementPointId: 'ip2',
+    subject: '국어',
+    source: 'seolstudy',
+    url: '/materials/korean/문학-감상문-작성법.pdf',
+  },
+  {
+    id: 'mat3',
+    title: '2025 수능특강 영어독해.pdf',
+    fileSize: '2.4 MB',
+    improvementPointId: 'ip3',
+    subject: '영어',
+    source: 'seolstudy',
+    url: '/materials/english/2025-수능특강-영어독해.pdf',
+  },
+  {
+    id: 'mat4',
+    title: '영어 독해 학습 가이드.pdf',
+    fileSize: '0.8 MB',
+    improvementPointId: 'ip3',
+    subject: '영어',
+    source: 'seolstudy',
+    url: '/materials/english/영어-독해-학습-가이드.pdf',
+  },
+  {
+    id: 'mat5',
+    title: '수능 필수 영단어 50.pdf',
+    fileSize: '0.5 MB',
+    improvementPointId: 'ip4',
+    subject: '영어',
+    source: 'seolstudy',
+    url: '/materials/english/수능-필수-영단어-50.pdf',
+  },
+  {
+    id: 'mat6',
+    title: 'EBS 수능완성 수학.pdf',
+    fileSize: '3.1 MB',
+    improvementPointId: 'ip5',
+    subject: '수학',
+    source: 'seolstudy',
+    url: '/materials/math/EBS-수능완성-수학.pdf',
+  },
+  {
+    id: 'mat7',
+    title: '기하 벡터 연습문제.pdf',
+    fileSize: '1.5 MB',
+    improvementPointId: 'ip6',
+    subject: '수학',
+    source: 'seolstudy',
+    url: '/materials/math/기하-벡터-연습문제.pdf',
+  },
 ];
 
-/** 임시저장 목록 (mock) */
 export const MOCK_DRAFT_ASSIGNMENTS: DraftAssignment[] = [
   {
     id: 'draft1',

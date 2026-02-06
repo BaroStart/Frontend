@@ -36,9 +36,16 @@ export const useAssignmentStore = create<AssignmentStoreState>()(
           registeredTasks: [...s.registeredTasks, ...tasks],
         })),
       addIncomplete: (assignments) =>
-        set((s) => ({
-          registeredIncomplete: [...s.registeredIncomplete, ...assignments],
-        })),
+        set((s) => {
+          const updated = s.registeredIncomplete.map((a) => {
+            const replacement = assignments.find((na) => na.id === a.id);
+            return replacement ?? a;
+          });
+          const newOnes = assignments.filter((a) => !s.registeredIncomplete.some((ea) => ea.id === a.id));
+          return {
+            registeredIncomplete: [...updated, ...newOnes],
+          };
+        }),
       removeIncomplete: (id) =>
         set((s) => {
           const inRegistered = s.registeredIncomplete.some((a) => a.id === id);

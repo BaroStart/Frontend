@@ -19,21 +19,16 @@ const SUBJECT_LABELS: Record<(typeof SUBJECTS)[number], string> = {
   math: '수학',
 };
 
-function toStr(v: number | undefined): string {
+function numberToString(v: number | undefined): string {
   return v != null ? String(v) : '';
 }
 
-function toNum(s: string): number | undefined {
+function stringToNumber(s: string): number | undefined {
   const n = parseFloat(s);
   return s.trim() && !Number.isNaN(n) ? n : undefined;
 }
 
-export function ProfileEditModal({
-  isOpen,
-  onClose,
-  mentee,
-  onSave,
-}: ProfileEditModalProps) {
+export function ProfileEditModal({ isOpen, onClose, mentee, onSave }: ProfileEditModalProps) {
   const [name, setName] = useState(mentee?.name ?? '');
   const [school, setSchool] = useState(mentee?.school ?? '');
   const [grade, setGrade] = useState(mentee?.grade ?? '');
@@ -44,10 +39,10 @@ export function ProfileEditModal({
   const [mockExam, setMockExam] = useState<SubjectScores>({});
 
   const setNaesinScore = (subject: keyof SubjectScores, value: string) => {
-    setNaesin((prev) => ({ ...prev, [subject]: toNum(value) }));
+    setNaesin((prev) => ({ ...prev, [subject]: stringToNumber(value) }));
   };
   const setMockExamScore = (subject: keyof SubjectScores, value: string) => {
-    setMockExam((prev) => ({ ...prev, [subject]: toNum(value) }));
+    setMockExam((prev) => ({ ...prev, [subject]: stringToNumber(value) }));
   };
 
   const handleReset = () => {
@@ -102,57 +97,45 @@ export function ProfileEditModal({
       <div className="relative z-10 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
         <h3 className="mb-4 text-lg font-semibold text-slate-900">프로필 수정</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="profile-name">이름</Label>
-            <Input
-              id="profile-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="profile-school">학교</Label>
-            <Input
-              id="profile-school"
-              value={school}
-              onChange={(e) => setSchool(e.target.value)}
-              placeholder="예: 서울 소재 일반고"
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="profile-grade">학년</Label>
-            <Input
-              id="profile-grade"
-              value={grade}
-              onChange={(e) => setGrade(e.target.value)}
-              placeholder="예: 고3"
-              className="mt-1"
-            />
-          </div>
-          <div>
+          <Input
+            id="profile-name"
+            label="이름"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Input
+            id="profile-school"
+            label="학교"
+            value={school}
+            onChange={(e) => setSchool(e.target.value)}
+            placeholder="예: 서울 소재 일반고"
+          />
+          <Input
+            id="profile-grade"
+            label="학년"
+            value={grade}
+            onChange={(e) => setGrade(e.target.value)}
+            placeholder="예: 고3"
+          />
+          <div className="space-y-2">
             <Label htmlFor="profile-track">계열</Label>
             <select
               id="profile-track"
               value={track}
               onChange={(e) => setTrack(e.target.value as MenteeSummary['track'])}
-              className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
             >
               <option value="이과">이과</option>
               <option value="문과">문과</option>
             </select>
           </div>
-          <div>
-            <Label htmlFor="profile-major">희망 진로</Label>
-            <Input
-              id="profile-major"
-              value={desiredMajor}
-              onChange={(e) => setDesiredMajor(e.target.value)}
-              placeholder="예: 의학계열"
-              className="mt-1"
-            />
-          </div>
+          <Input
+            id="profile-major"
+            label="희망 진로"
+            value={desiredMajor}
+            onChange={(e) => setDesiredMajor(e.target.value)}
+            placeholder="예: 의학계열"
+          />
 
           {/* 내신 성적 */}
           <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
@@ -169,7 +152,7 @@ export function ProfileEditModal({
                     min={0}
                     max={100}
                     step={0.1}
-                    value={toStr(naesin[sub])}
+                    value={numberToString(naesin[sub])}
                     onChange={(e) => setNaesinScore(sub, e.target.value)}
                     placeholder="-"
                     className="mt-0.5"
@@ -196,7 +179,7 @@ export function ProfileEditModal({
                     min={0}
                     max={100}
                     step={0.1}
-                    value={toStr(mockExam[sub])}
+                    value={numberToString(mockExam[sub])}
                     onChange={(e) => setMockExamScore(sub, e.target.value)}
                     placeholder="-"
                     className="mt-0.5"

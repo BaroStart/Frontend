@@ -12,3 +12,9 @@ export interface FeedbackItem {
   feedbackText?: string;
   feedbackDate?: string;
 }
+
+export interface FeedbackItemData {
+  id: string;
+  text: string;
+  isImportant: boolean;
+}

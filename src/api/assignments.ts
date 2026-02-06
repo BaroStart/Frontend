@@ -19,16 +19,16 @@ export interface RegisterAssignmentPayload {
   title: string;
   goal: string;
   subject: string;
+  description?: string;
+  content?: string;
 }
 
-/** 등록 결과 */
 export interface RegisterAssignmentResult {
   success: boolean;
   taskIds: string[];
   message?: string;
 }
 
-/** 제출된 과제 목록 (멘티별 또는 전체) */
 export async function fetchSubmittedAssignments(menteeId?: string): Promise<SubmittedAssignment[]> {
   const url = menteeId
     ? `/mentor/mentees/${menteeId}/assignments/submitted`
@@ -37,11 +37,7 @@ export async function fetchSubmittedAssignments(menteeId?: string): Promise<Subm
   return data;
 }
 
-/**
- * 과제 등록
- * - useMock: store에 추가 (메인/멘티상세 페이지에 즉시 반영)
- * - API 모드: POST /mentor/mentees/:menteeId/assignments (백엔드 연동 시)
- */
+
 export async function registerAssignment(
   payload: RegisterAssignmentPayload
 ): Promise<RegisterAssignmentResult> {
@@ -59,7 +55,8 @@ export async function registerAssignment(
         menteeId: payload.menteeId,
         title: payload.title,
         subject: payload.subject,
-        description: payload.goal,
+        description: payload.description || payload.goal,
+        content: payload.content,
         deadline: deadlineStr,
         deadlineDate: payload.singleDate,
         status: 'not_started',
@@ -86,7 +83,8 @@ export async function registerAssignment(
           menteeId: payload.menteeId,
           title: payload.title,
           subject: payload.subject,
-          description: payload.goal,
+          description: payload.description || payload.goal,
+          content: payload.content,
           deadline: deadlineStr,
           deadlineDate: dateStr,
           status: 'not_started',

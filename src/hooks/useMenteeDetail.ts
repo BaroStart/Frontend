@@ -88,17 +88,17 @@ export function useMenteeTasks(
   });
 }
 
-export function useTodayComment(menteeId: string | undefined) {
+export function useTodayComment(menteeId: string | undefined, date?: string) {
   return useQuery({
-    queryKey: ['todayComment', menteeId],
+    queryKey: ['todayComment', menteeId, date],
     queryFn: async () => {
       if (!menteeId) return null;
       if (API_CONFIG.useMock) {
-        return MOCK_TODAY_COMMENTS.find((c) => c.menteeId === menteeId) ?? null;
+        return MOCK_TODAY_COMMENTS.find((c) => c.menteeId === menteeId && c.date === date) ?? null;
       }
       return fetchTodayComments(menteeId);
     },
-    enabled: !!menteeId,
+    enabled: !!menteeId && !!date,
   });
 }
 
