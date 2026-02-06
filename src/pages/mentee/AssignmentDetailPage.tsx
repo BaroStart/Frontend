@@ -15,12 +15,14 @@ const MOCK_ASSIGNMENT: Assignment = {
   status: '미완료',
 };
 
-interface AssignmentDetailPageProps {
-  assignment?: Assignment;
-}
-
-export function AssignmentDetailPage({ assignment = MOCK_ASSIGNMENT }: AssignmentDetailPageProps) {
+export function AssignmentDetailPage() {
+  const [assignment, setAssignment] = useState<Assignment>(MOCK_ASSIGNMENT);
   const [activeTab, setActiveTab] = useState<'info' | 'feedback'>('info');
+  const [isEditing, setIsEditing] = useState(false);
+
+  const onChangeToEditMode = () => {
+    setIsEditing((prev) => !prev);
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -35,7 +37,14 @@ export function AssignmentDetailPage({ assignment = MOCK_ASSIGNMENT }: Assignmen
       <AssignmentDetailTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* 콘텐츠 */}
-      {activeTab === 'info' && <AssignmentInfo assignment={assignment} />}
+      {/* 과제 정보 */}
+      {activeTab === 'info' && (
+        <AssignmentInfo
+          assignment={assignment}
+          isEditing={isEditing}
+          onChangeToEditMode={onChangeToEditMode}
+        />
+      )}
       {activeTab === 'feedback' && <AssignmentFeedback />}
     </div>
   );
