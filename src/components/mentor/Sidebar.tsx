@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 
-import { Calendar, ChevronLeft, ChevronRight, Home, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 
-import { AssignmentIcon, FeedbackIcon, UserIcon } from '@/components/icons';
+import { AssignmentIcon, FeedbackIcon, HomeIcon, PlannerIcon, UserIcon } from '@/components/icons';
 import { useMentees } from '@/hooks/useMentees';
 
 interface MenuItem {
@@ -16,7 +16,7 @@ const quickMenu: MenuItem[] = [
   {
     label: '대시보드',
     path: '/mentor',
-    icon: <Home className="h-[18px] w-[18px]" />,
+    icon: <HomeIcon className="h-[18px] w-[18px]" />,
     end: true,
   },
   {
@@ -32,7 +32,7 @@ const quickMenu: MenuItem[] = [
   {
     label: '플래너 관리',
     path: '/mentor/planner',
-    icon: <Calendar className="h-[18px] w-[18px]" />,
+    icon: <PlannerIcon className="h-[18px] w-[18px]" />,
   },
 ] as (MenuItem & { end?: boolean })[];
 
@@ -90,7 +90,7 @@ export function Sidebar({
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-20 flex h-screen w-64 flex-col bg-white/80 backdrop-blur-xl transition-all duration-300
+      className={`fixed left-0 top-0 z-20 flex h-screen w-64 flex-col bg-white/90 backdrop-blur-xl transition-all duration-300
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         md:translate-x-0
         ${collapsed ? 'md:w-[72px]' : ''}`}
@@ -99,7 +99,7 @@ export function Sidebar({
       }}
     >
       {/* 로고 헤더 */}
-      <div className="flex h-16 items-center justify-between px-4">
+      <div className={`flex h-16 items-center ${collapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
         <Link
           to="/mentor"
           onClick={() => onMobileClose?.()}
@@ -110,30 +110,30 @@ export function Sidebar({
             alt="SeolStudy"
             className="h-9 w-9 shrink-0 rounded-lg object-contain"
           />
-          <span
-            className={`font-plus-jakarta whitespace-nowrap text-lg font-bold tracking-tight text-foreground transition-all duration-300 ${
-              collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'
-            }`}
-          >
-            SeolStudy
-          </span>
+          {!collapsed && (
+            <span className="font-plus-jakarta whitespace-nowrap text-lg font-bold tracking-tight text-foreground">
+              SeolStudy
+            </span>
+          )}
         </Link>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={onToggle}
-            className="hidden h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-secondary hover:text-foreground md:flex"
-            title={collapsed ? '펼치기' : '접기'}
-          >
-            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          </button>
-          <button
-            onClick={onMobileClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-secondary hover:text-foreground md:hidden"
-            aria-label="메뉴 닫기"
-          >
-            <X size={18} />
-          </button>
-        </div>
+        {!collapsed && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onToggle}
+              className="hidden h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-secondary hover:text-foreground md:flex"
+              title="접기"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={onMobileClose}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-secondary hover:text-foreground md:hidden"
+              aria-label="메뉴 닫기"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        )}
       </div>
 
       {!collapsed ? (
@@ -146,7 +146,10 @@ export function Sidebar({
               </p>
               <div className="space-y-1">
                 {quickMenu.map((item) => {
-                  const customActive = location.pathname.startsWith(item.path);
+                  const isEnd = (item as MenuItem & { end?: boolean }).end;
+                  const customActive = isEnd
+                    ? location.pathname === item.path
+                    : location.pathname.startsWith(item.path);
                   return (
                     <NavLink
                       key={item.path}
@@ -154,11 +157,11 @@ export function Sidebar({
                       onClick={() => onMobileClose?.()}
                       className={`flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors ${
                         customActive
-                          ? 'bg-slate-800 text-white'
+                          ? 'bg-sky-50 text-sky-700'
                           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                       }`}
                     >
-                      <span className={customActive ? 'text-white' : 'text-slate-400'}>
+                      <span className={customActive ? 'text-sky-600' : 'text-slate-400'}>
                         {item.icon}
                       </span>
                       <span>{item.label}</span>
@@ -199,19 +202,19 @@ export function Sidebar({
                     onClick={() => handleMenteeClick(mentee.id)}
                     className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all duration-200 ${
                       selectedMenteeId === mentee.id
-                        ? 'bg-foreground text-white'
+                        ? 'bg-sky-50 text-sky-700'
                         : 'hover:bg-secondary'
                     }`}
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <div
                       className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all ${
-                        selectedMenteeId === mentee.id ? 'bg-white/20' : 'bg-secondary'
+                        selectedMenteeId === mentee.id ? 'bg-sky-100' : 'bg-secondary'
                       }`}
                     >
                       <UserIcon
                         className={`h-4 w-4 ${
-                          selectedMenteeId === mentee.id ? 'text-white' : 'text-muted-foreground'
+                          selectedMenteeId === mentee.id ? 'text-sky-600' : 'text-muted-foreground'
                         }`}
                       />
                     </div>
@@ -219,7 +222,7 @@ export function Sidebar({
                       <div className="flex items-center gap-2">
                         <span
                           className={`text-sm font-medium truncate ${
-                            selectedMenteeId === mentee.id ? 'text-white' : 'text-foreground'
+                            selectedMenteeId === mentee.id ? 'text-sky-700' : 'text-foreground'
                           }`}
                         >
                           {mentee.name}
@@ -233,7 +236,7 @@ export function Sidebar({
                       </div>
                       <span
                         className={`text-xs truncate ${
-                          selectedMenteeId === mentee.id ? 'text-white/70' : 'text-muted-foreground'
+                          selectedMenteeId === mentee.id ? 'text-sky-600/70' : 'text-muted-foreground'
                         }`}
                       >
                         {mentee.grade} · {mentee.track}
@@ -258,6 +261,19 @@ export function Sidebar({
                 <span className="text-xs font-medium text-slate-600">이번 주 진행률</span>
                 <span className="text-sm font-bold text-slate-900">73%</span>
               </div>
+              <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                <div className="h-full w-[73%] rounded-full bg-slate-700" />
+              </div>
+              <div className="space-y-1 text-xs text-slate-500">
+                <div className="flex justify-between">
+                  <span>완료된 피드백</span>
+                  <span className="font-medium text-slate-700">22/30</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>확인한 과제</span>
+                  <span className="font-medium text-slate-700">18/25</span>
+                </div>
+              </div>
             </div>
           </div>
         </>
@@ -273,7 +289,7 @@ export function Sidebar({
                 className={({ isActive }) =>
                   `flex h-11 w-11 items-center justify-center rounded-lg transition-all duration-200 ${
                     isActive
-                      ? 'bg-brand-light text-brand'
+                      ? 'bg-sky-50 text-sky-600'
                       : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                   }`
                 }
@@ -293,7 +309,7 @@ export function Sidebar({
                 onClick={() => handleMenteeClick(mentee.id)}
                 className={`flex h-11 w-11 items-center justify-center rounded-lg transition-all duration-200 ${
                   selectedMenteeId === mentee.id
-                    ? 'bg-foreground text-white'
+                    ? 'bg-sky-50 text-sky-600'
                     : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
                 }`}
                 title={`${mentee.name} (${mentee.grade} · ${mentee.track})`}
@@ -301,6 +317,17 @@ export function Sidebar({
                 <UserIcon className="h-5 w-5" />
               </button>
             ))}
+          </div>
+
+          {/* 펼치기 버튼 */}
+          <div className="mt-4">
+            <button
+              onClick={onToggle}
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
+              title="펼치기"
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
         </nav>
       )}

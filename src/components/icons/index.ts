@@ -9,4 +9,5 @@ export { KoreanIcon } from './KoreanIcon'
 export { MathIcon } from './MathIcon';
 export { ListIcon } from './ListIcon';
 export { TimeIcon } from './TimeIcon';
+export { PlannerIcon } from './PlannerIcon';
 export { PlusIcon } from './PlusIcon';

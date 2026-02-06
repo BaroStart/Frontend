@@ -24,6 +24,13 @@
     --input: 214 32% 91%;
     --ring: 215 14% 34%;
     --radius: 0.5rem;
+    --brand: 193 87% 40%;
+    --brand-light: 193 70% 95%;
+    --brand-medium: 193 60% 85%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
   }
 
   * {
