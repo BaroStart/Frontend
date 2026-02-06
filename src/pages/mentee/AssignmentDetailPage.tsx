@@ -16,7 +16,8 @@ const MOCK_ASSIGNMENT: Assignment = {
 };
 
 export function AssignmentDetailPage() {
-  const [assignment, setAssignment] = useState<Assignment>(MOCK_ASSIGNMENT);
+  const assignment = MOCK_ASSIGNMENT; //임시
+  // const [assignment, setAssignment] = useState<Assignment>(MOCK_ASSIGNMENT);
   const [activeTab, setActiveTab] = useState<'info' | 'feedback'>('info');
   const [isEditing, setIsEditing] = useState(false);
 

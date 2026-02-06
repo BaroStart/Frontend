@@ -7,7 +7,8 @@ export default function StudyVerification({ assignment }: { assignment: Assignme
   console.log(isCompleted);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const [isEditing, setIsEditing] = useState(false); // 수정 모드 여부
+  const isEditing = false; //임시
+  // const [isEditing, setIsEditing] = useState(false); // 수정 모드 여부
   const [previewImages, setPreviewImages] = useState<{ id: string; url: string; file: File }[]>([]);
 
   const handleCameraClick = () => {
