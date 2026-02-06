@@ -8,6 +8,8 @@ export interface LearningGoal {
   mentorId: string;
   name: string;
   description?: string;
+  /** 약점 (쉼표로 구분 가능) */
+  weakness?: string;
   materialIds: string[];
   columnTemplate?: string;
   createdAt: string;

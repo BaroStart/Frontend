@@ -20,6 +20,7 @@ import {
   FeedbackWritePage,
   MenteeDetailPage,
   MentorMainPage,
+  PlannerManagePage,
   TemplatesPage,
 } from '@/pages/mentor';
 import { NotFoundPage } from '@/pages/NotFoundPage';
@@ -46,6 +47,7 @@ export function AppRoutes() {
               element={<FeedbackWritePage />}
             />
             <Route path="/mentor/assignments" element={<AssignmentManagePage />} />
+            <Route path="/mentor/planner" element={<PlannerManagePage />} />
             <Route path="/mentor/feedback" element={<FeedbackManagePage />} />
             <Route path="/mentor/templates" element={<TemplatesPage />} />
           </Route>

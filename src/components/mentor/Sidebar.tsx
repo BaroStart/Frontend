@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Calendar, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import { AssignmentIcon, FeedbackIcon, UserIcon } from '@/components/icons';
@@ -20,6 +21,11 @@ const quickMenu: MenuItem[] = [
     label: '피드백 관리',
     path: '/mentor/feedback',
     icon: <FeedbackIcon className="h-[18px] w-[18px]" />,
+  },
+  {
+    label: '플래너 관리',
+    path: '/mentor/planner',
+    icon: <Calendar className="h-[18px] w-[18px]" />,
   },
 ];
 
@@ -43,6 +49,33 @@ export function Sidebar({
   const pathMenteeId = location.pathname.match(/\/mentor\/mentees\/([^/]+)/)?.[1];
   // 대시보드에서는 선택된 멘티 없음, 멘티 상세 페이지에서만 선택 표시
   const selectedMenteeId = isDashboard ? null : pathMenteeId ?? null;
+
+  // 매일 오전 11시 피드백 마감 타이머
+  const [deadlineNow, setDeadlineNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setDeadlineNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  const deadline = useMemo(() => {
+    const now = new Date(deadlineNow);
+    const d = new Date(now);
+    d.setHours(11, 0, 0, 0); // 오전 11시
+    if (now.getTime() >= d.getTime()) {
+      d.setDate(d.getDate() + 1); // 지나면 다음날 11시
+    }
+    return d.getTime();
+  }, [deadlineNow]);
+
+  const timeLeftMs = Math.max(0, deadline - deadlineNow);
+  const timeLeftText = useMemo(() => {
+    const totalSeconds = Math.floor(timeLeftMs / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }, [timeLeftMs]);
 
   const handleMenteeClick = (menteeId: string) => {
     navigate(`/mentor/mentees/${menteeId}`);
@@ -160,29 +193,26 @@ export function Sidebar({
             <div className="mt-4 px-3 py-3">
               <p className="mb-2 text-xs font-semibold text-slate-500">메인 메뉴</p>
               <div className="space-y-1">
-                {quickMenu.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => onMobileClose?.()}
-                    className={({ isActive }) =>
-                      `flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors ${
-                        isActive
+                {quickMenu.map((item) => {
+                  const customActive = location.pathname.startsWith(item.path);
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => onMobileClose?.()}
+                      className={`flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors ${
+                        customActive
                           ? 'bg-slate-800 text-white'
                           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <span className={isActive ? 'text-white' : 'text-slate-400'}>
-                          {item.icon}
-                        </span>
-                        <span>{item.label}</span>
-                      </>
-                    )}
-                  </NavLink>
-                ))}
+                      }`}
+                    >
+                      <span className={customActive ? 'text-white' : 'text-slate-400'}>
+                        {item.icon}
+                      </span>
+                      <span>{item.label}</span>
+                    </NavLink>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -190,6 +220,14 @@ export function Sidebar({
           {/* 하단 진행률 */}
           <div className="border-t border-slate-200 p-3">
             <div className="rounded-lg bg-slate-50 p-3">
+              <div className="mb-3 flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2">
+                <span className="text-[11px] font-medium text-slate-600">
+                  피드백 마감까지
+                </span>
+                <span className="font-mono text-xs font-semibold text-slate-900">
+                  {timeLeftText}
+                </span>
+              </div>
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-xs font-medium text-slate-600">이번 주 진행률</span>
                 <span className="text-sm font-bold text-slate-900">73%</span>

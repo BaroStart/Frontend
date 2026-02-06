@@ -15,6 +15,7 @@ import {
   List,
   Plus,
   RotateCcw,
+  Search,
   Trash2,
   Upload,
   X,
@@ -59,6 +60,7 @@ export function FeedbackManagePage() {
   const [activeTab, setActiveTab] = useState<TabType>('feedback');
   const [templates, setTemplates] = useState<FeedbackTemplate[]>([]);
   const [subjectFilter, setSubjectFilter] = useState<string>('전체');
+  const [templateSearch, setTemplateSearch] = useState('');
   const [feedbackStatusFilter, setFeedbackStatusFilter] = useState<'all' | 'pending' | 'completed'>(
     'all',
   );
@@ -103,12 +105,17 @@ export function FeedbackManagePage() {
   const tabs = [
     { id: 'feedback' as TabType, label: '피드백 목록', icon: FileText },
     { id: 'templates' as TabType, label: '피드백 템플릿 관리', icon: List },
-    { id: 'analytics' as TabType, label: '통계 분석', icon: BarChart3 },
+    { id: 'analytics' as TabType, label: '학습 리포트', icon: BarChart3 },
   ];
 
   const filteredTemplates = templates.filter((t) => {
-    if (subjectFilter === '전체') return true;
-    return t.subject === subjectFilter;
+    const matchSubject = subjectFilter === '전체' || t.subject === subjectFilter;
+    const q = templateSearch.trim().toLowerCase();
+    const matchSearch =
+      !q ||
+      t.name.toLowerCase().includes(q) ||
+      t.content.toLowerCase().includes(q);
+    return matchSubject && matchSearch;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredTemplates.length / PAGE_SIZE));
@@ -207,15 +214,15 @@ export function FeedbackManagePage() {
             )}
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[700px]">
-                <thead className="sticky top-0 bg-white">
-                  <tr className="border-b-2 border-slate-200">
+                <thead className="sticky top-0 bg-slate-50">
+                  <tr className="border-b border-slate-200">
                     {FEEDBACK_TABLE_HEADERS.map((header) => (
                       <th
                         key={header}
-                        className="px-4 py-3 text-left text-sm font-semibold text-slate-600"
+                        className="px-5 py-3 text-left text-xs font-semibold text-slate-600"
                       >
                         {header}
                       </th>
@@ -245,35 +252,31 @@ export function FeedbackManagePage() {
                       return (
                         <tr
                           key={assignment.id}
-                          className={`border-b border-slate-100 transition-colors hover:bg-slate-50/50 ${
-                            deadlineStatus === 'overdue'
-                              ? 'bg-red-50/50'
-                              : deadlineStatus === 'urgent'
-                                ? 'bg-amber-50/30'
-                                : ''
+                          className={`border-b border-slate-100 transition-colors hover:bg-slate-50 ${
+                            deadlineStatus === 'urgent' ? 'bg-amber-50/30' : ''
                           }`}
                         >
-                          <td className="px-4 py-3">
+                          <td className="px-5 py-3">
                             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
                               대기
                             </span>
                           </td>
-                          <td className="px-4 py-3">
-                            <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">
+                          <td className="px-5 py-3">
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
                               {assignment.subject}
                             </span>
                           </td>
-                          <td className="px-4 py-3 font-medium text-slate-900">
+                          <td className="px-5 py-3 text-sm font-semibold text-slate-900">
                             {assignment.title}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-600">
+                          <td className="px-5 py-3 text-sm text-slate-600">
                             {mentee?.name ?? '-'}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-500">
+                          <td className="px-5 py-3 text-sm text-slate-500">
                             {assignment.submittedAt}
                           </td>
-                          <td className="px-4 py-3">{statusBadge}</td>
-                          <td className="px-4 py-3">
+                          <td className="px-5 py-3">{statusBadge}</td>
+                          <td className="px-5 py-3">
                             <Link
                               to={`/mentor/mentees/${assignment.menteeId}/feedback/${assignment.id}`}
                             >
@@ -290,35 +293,35 @@ export function FeedbackManagePage() {
                       return (
                         <tr
                           key={`${stored.menteeId}-${stored.assignmentId}`}
-                          className="border-b border-slate-100 transition-colors hover:bg-slate-50/50"
+                          className="border-b border-slate-100 transition-colors hover:bg-slate-50"
                         >
-                          <td className="px-4 py-3">
+                          <td className="px-5 py-3">
                             <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                               완료
                             </span>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-5 py-3">
                             {stored.subject && (
-                              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
                                 {stored.subject}
                               </span>
                             )}
                           </td>
-                          <td className="px-4 py-3 font-medium text-slate-900">
+                          <td className="px-5 py-3 text-sm font-semibold text-slate-900">
                             {stored.assignmentTitle ?? '과제'}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-600">
+                          <td className="px-5 py-3 text-sm text-slate-600">
                             {mentee?.name ?? '-'}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-500">
+                          <td className="px-5 py-3 text-sm text-slate-500">
                             {stored.submittedAt ?? stored.feedbackDate}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-5 py-3">
                             <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                               완료
                             </span>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-5 py-3">
                             <Link
                               to={`/mentor/mentees/${stored.menteeId}/feedback/${stored.assignmentId}`}
                             >
@@ -358,28 +361,65 @@ export function FeedbackManagePage() {
       {/* 피드백 템플릿 관리 탭 */}
       {activeTab === 'templates' && (
         <div className="space-y-6">
-          <div className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-100 p-0.5">
-            {['전체', '국어', '영어', '수학', '공통'].map((sub) => (
-              <button
-                key={sub}
-                type="button"
-                onClick={() => {
-                  setSubjectFilter(sub);
+          {/* 상단 툴바 */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+              {['전체', '국어', '영어', '수학', '공통'].map((sub) => (
+                <button
+                  key={sub}
+                  type="button"
+                  onClick={() => {
+                    setSubjectFilter(sub);
+                    setCurrentPage(1);
+                  }}
+                  className={`h-8 rounded-md px-3 text-sm font-medium transition-colors ${
+                    subjectFilter === sub
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {sub}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="템플릿 검색..."
+                value={templateSearch}
+                onChange={(e) => {
+                  setTemplateSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                className={`h-8 rounded-md px-3 text-sm font-medium transition-colors ${
-                  subjectFilter === sub
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className="h-9 w-56 rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm focus:border-slate-400 focus:outline-none"
+              />
+            </div>
+
+            <div className="ml-auto flex items-center gap-2">
+              {selectedIds.size > 0 && (
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                  선택 {selectedIds.size}개
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                icon={Trash2}
+                onClick={handleBulkDelete}
+                disabled={selectedIds.size === 0}
               >
-                {sub}
-              </button>
-            ))}
+                선택 삭제
+              </Button>
+              <Button variant="outline" size="sm" icon={Download} onClick={handleExport}>
+                내보내기
+              </Button>
+            </div>
           </div>
 
           {/* 템플릿 테이블 */}
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[600px]">
                 <thead>
@@ -398,7 +438,7 @@ export function FeedbackManagePage() {
                     {TEMPLATE_TABLE_HEADERS.map((header) => (
                       <th
                         key={header}
-                        className="px-4 py-3 text-left text-sm font-semibold text-slate-700"
+                        className="px-4 py-3 text-left text-xs font-semibold text-slate-700"
                       >
                         {header}
                       </th>
@@ -411,7 +451,7 @@ export function FeedbackManagePage() {
                     return (
                       <tr
                         key={template.id}
-                        className="border-b border-slate-100 transition-colors hover:bg-slate-50/50"
+                        className="group border-b border-slate-100 transition-colors hover:bg-slate-50"
                       >
                         <td className="px-4 py-3">
                           <input
@@ -421,7 +461,9 @@ export function FeedbackManagePage() {
                             className="rounded border-slate-300"
                           />
                         </td>
-                        <td className="px-4 py-3 font-medium text-slate-900">{template.name}</td>
+                        <td className="px-4 py-3">
+                          <p className="text-sm font-semibold text-slate-900">{template.name}</p>
+                        </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
                             <SubjectIcon className="h-3.5 w-3.5" />
@@ -434,9 +476,13 @@ export function FeedbackManagePage() {
                         <td className="px-4 py-3 text-sm text-slate-500">
                           {template.createdAt.replace(/-/g, '.')}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-600">{template.useCount}회</td>
+                        <td className="px-4 py-3 text-sm text-slate-600">
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                            {template.useCount}회
+                          </span>
+                        </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 opacity-70 transition-opacity group-hover:opacity-100">
                             <button
                               type="button"
                               onClick={() => setTemplateModal({ mode: 'view', template })}
@@ -479,20 +525,6 @@ export function FeedbackManagePage() {
 
             {/* 페이지네이션 & 일괄 작업 */}
             <div className="flex flex-col gap-4 border-t border-slate-200 bg-slate-50/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={Trash2}
-                  onClick={handleBulkDelete}
-                  disabled={selectedIds.size === 0}
-                >
-                  선택 항목 삭제
-                </Button>
-                <Button variant="outline" size="sm" icon={Download} onClick={handleExport}>
-                  내보내기
-                </Button>
-              </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-slate-600">
                   {(currentPage - 1) * PAGE_SIZE + 1}-
@@ -540,7 +572,7 @@ export function FeedbackManagePage() {
         </div>
       )}
 
-      {/* 통계 분석 탭 */}
+      {/* 학습 리포트 탭 */}
       {activeTab === 'analytics' && <LearningAnalyticsSection />}
 
       {/* 새 템플릿 / 편집 모달 */}

@@ -28,6 +28,7 @@ import { ChatModal } from '@/components/mentor/ChatModal';
 import { FeedbackWriteModal } from '@/components/mentor/FeedbackWriteModal';
 import { LearningAnalysisModal } from '@/components/mentor/LearningAnalysisModal';
 import { ProfileEditModal } from '@/components/mentor/ProfileEditModal';
+import { SUBJECT_TO_KEY } from '@/components/mentor/SubjectScoresChart';
 import {
   type LearningTaskData,
   type PersonalScheduleData,
@@ -63,6 +64,7 @@ import {
 } from '@/lib/learningTaskStorage';
 import { getPersonalSchedules, savePersonalSchedules } from '@/lib/personalScheduleStorage';
 import { useAssignmentStore } from '@/stores/useAssignmentStore';
+import { useAuthStore } from '@/stores/useAuthStore';
 import type {
   AssignmentDetail,
   AssignmentSelection,
@@ -76,17 +78,6 @@ import type {
   ScheduleState,
 } from '@/types';
 
-const getAllScoresAverage = (mentee: MenteeSummary): number | null => {
-  const s = mentee.scores;
-  if (!s) return null;
-  const vals: number[] = [];
-  [s.naesin, s.mockExam].forEach((sub) => {
-    if (sub) [sub.korean, sub.english, sub.math].forEach((v) => v != null && vals.push(v));
-  });
-  if (vals.length === 0) return null;
-  return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
-};
-
 /* -------------------- 메인 컴포넌트 -------------------- */
 
 export function MenteeDetailPage() {
@@ -95,6 +86,7 @@ export function MenteeDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { removeIncomplete, clearRegisteredIncomplete } = useAssignmentStore();
+  const { user } = useAuthStore();
 
   // 서버 데이터
   const { data: mentee = null, isLoading } = useMentee(menteeId);
@@ -592,8 +584,10 @@ export function MenteeDetailPage() {
       <ProfileSection
         mentee={displayMentee}
         kpi={kpi}
+        mentorSubject={
+          user?.role === 'mentor' ? (user.subject ?? '국어') : undefined
+        }
         onOpenAnalysis={() => openModal('learningAnalysis')}
-        onOpenChat={() => openChatModal()}
         onOpenProfile={() => openModal('profileEdit')}
       />
 
@@ -795,6 +789,9 @@ export function MenteeDetailPage() {
         isOpen={activeModal === 'profileEdit'}
         onClose={closeModal}
         mentee={displayMentee}
+        mentorSubject={
+          user?.role === 'mentor' ? (user.subject ?? '국어') : '국어'
+        }
         onSave={(data) =>
           setMenteeOverride((prev) => (prev ? { ...prev, ...data } : { ...displayMentee, ...data }))
         }
@@ -836,8 +833,8 @@ export function MenteeDetailPage() {
 function ProfileSection({
   mentee,
   kpi,
+  mentorSubject,
   onOpenAnalysis,
-  onOpenChat,
   onOpenProfile,
 }: {
   mentee: MenteeSummary;
@@ -851,8 +848,8 @@ function ProfileSection({
     attendanceRate: number;
     attendanceChange: number;
   } | null;
+  mentorSubject?: '국어' | '영어' | '수학';
   onOpenAnalysis: () => void;
-  onOpenChat: () => void;
   onOpenProfile: () => void;
 }) {
   return (
@@ -885,9 +882,6 @@ function ProfileSection({
           <Button variant="outline" size="sm" icon={BarChart3} onClick={onOpenAnalysis}>
             학습 분석
           </Button>
-          <Button variant="outline" size="sm" icon={MessageCircle} onClick={onOpenChat}>
-            메시지 보내기
-          </Button>
           <Button size="sm" icon={User} onClick={onOpenProfile}>
             프로필 수정
           </Button>
@@ -895,57 +889,53 @@ function ProfileSection({
       </div>
 
       {(mentee.scores || kpi) && (
-        <div className="mt-6 space-y-4">
-          {mentee.scores && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
-              <p className="mb-2 text-xs font-medium text-slate-600">성적</p>
-              <div className="flex flex-wrap gap-4">
-                {mentee.scores.naesin && (
-                  <div>
-                    <span className="text-xs text-slate-500">내신</span>
-                    <p className="text-sm font-medium text-slate-800">
-                      국 {mentee.scores.naesin.korean ?? '-'} · 영{' '}
-                      {mentee.scores.naesin.english ?? '-'} · 수 {mentee.scores.naesin.math ?? '-'}
+        <div className="mt-6">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+            {kpi && (
+              <>
+                <KpiCard
+                  title="총 학습 시간"
+                  value={`${kpi.totalStudyHours}h`}
+                  change={kpi.studyHoursChange}
+                />
+                <KpiCard
+                  title="과제 완료율"
+                  value={`${kpi.assignmentCompletionRate}%`}
+                  change={kpi.completionRateChange}
+                />
+              </>
+            )}
+            {mentee.scores &&
+              mentorSubject &&
+              (() => {
+                const sk = SUBJECT_TO_KEY[mentorSubject];
+                const n = mentee.scores!.naesin?.[sk];
+                const vals =
+                  n && typeof n === 'object'
+                    ? (['midterm1', 'final1', 'midterm2', 'final2'] as const)
+                        .map((k) => n[k])
+                        .filter((v): v is number => typeof v === 'number')
+                    : [];
+                if (vals.length === 0) return null;
+                const avg =
+                  vals.reduce((a, b) => a + b, 0) / vals.length;
+                const change =
+                  vals.length >= 2 ? vals[vals.length - 1] - vals[0] : 0;
+                const changeText =
+                  change > 0 ? `+${change}점 상승` : change < 0 ? `${change}점 하락` : '변동 없음';
+                return (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs text-slate-500">평균 성적</p>
+                    <p className="mt-1 text-xl font-bold text-slate-900">
+                      {avg % 1 === 0 ? avg : avg.toFixed(1)}
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      - {changeText}
                     </p>
                   </div>
-                )}
-                {mentee.scores.mockExam && (
-                  <div>
-                    <span className="text-xs text-slate-500">모의고사</span>
-                    <p className="text-sm font-medium text-slate-800">
-                      국 {mentee.scores.mockExam.korean ?? '-'} · 영{' '}
-                      {mentee.scores.mockExam.english ?? '-'} · 수{' '}
-                      {mentee.scores.mockExam.math ?? '-'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          {kpi && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-              <KpiCard
-                title="총 학습 시간"
-                value={`${kpi.totalStudyHours}h`}
-                change={kpi.studyHoursChange}
-              />
-              <KpiCard
-                title="과제 완료율"
-                value={`${kpi.assignmentCompletionRate}%`}
-                change={kpi.completionRateChange}
-              />
-              <KpiCard
-                title="평균 성적"
-                value={String(getAllScoresAverage(mentee) ?? kpi.averageScore)}
-                change={kpi.scoreChange}
-              />
-              <KpiCard
-                title="출석률"
-                value={`${kpi.attendanceRate}%`}
-                change={kpi.attendanceChange}
-              />
-            </div>
-          )}
+                );
+              })()}
+          </div>
         </div>
       )}
     </div>

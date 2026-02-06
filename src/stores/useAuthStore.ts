@@ -25,7 +25,13 @@ const MOCK_ACCOUNTS: Record<string, { user: User; password: string }> = {
     password: 'test1234',
   },
   mentor01: {
-    user: { id: 'm1', name: '김멘토', role: 'mentor', school: '서울대학교 의과대학' },
+    user: {
+      id: 'm1',
+      name: '김멘토',
+      role: 'mentor',
+      school: '서울대학교 의과대학',
+      subject: '국어' as const,
+    },
     password: 'test1234',
   },
 };
