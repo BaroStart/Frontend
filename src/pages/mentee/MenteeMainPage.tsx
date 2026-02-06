@@ -13,6 +13,8 @@ import type { TimeSlot } from "@/api/todos";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { CommentIcon, ListIcon, TimeIcon, UserIcon } from "@/components/icons";
 import { MOCK_INCOMPLETE_ASSIGNMENTS } from "@/data/menteeDetailMock";
+import { incrementQnaCount } from "@/lib/menteeActivityStorage";
+import { getSubmittedAssignments } from "@/lib/menteeAssignmentSubmissionStorage";
 
 export function MenteeMainPage() {
   const navigate = useNavigate();
@@ -23,7 +25,6 @@ export function MenteeMainPage() {
 
   const { user } = useAuthStore();
   const menteeName = user?.name ?? "멘티";
-  const isStarred = true;
 
   const {
     todos,
@@ -63,10 +64,11 @@ export function MenteeMainPage() {
   const assignmentsByDate = useMemo(() => {
     // mock 멘티 계정(s1/s2)이 아니면 s1로 폴백
     const menteeId = user?.role === "mentee" && /^s\\d+$/i.test(user.id) ? user.id : "s1";
+    const submittedById = user?.id ? getSubmittedAssignments(user.id) : {};
 
     return MOCK_INCOMPLETE_ASSIGNMENTS.filter((a) => a.menteeId === menteeId).map((a) => {
       const dateKey = a.completedAtDate ?? a.deadlineDate ?? "2026-02-02";
-      const isDone = a.status === "completed";
+      const isDone = a.status === "completed" || !!submittedById[a.id];
       return {
         id: a.id,
         dateKey,
@@ -119,11 +121,6 @@ export function MenteeMainPage() {
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-1">
           <span className="text-lg font-semibold text-gray-900">{menteeName}님</span>
-          {isStarred && (
-            <span aria-label="즐겨찾기" className="text-base leading-none">
-              ⭐
-            </span>
-          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -140,7 +137,9 @@ export function MenteeMainPage() {
             open={commentOpen}
             onClose={() => setCommentOpen(false)}
             onSubmit={(values) => {
-              console.log("comment submit:", values);
+              const hasAny =
+                (values.comment?.trim().length ?? 0) > 0 || (values.question?.trim().length ?? 0) > 0;
+              if (hasAny && user?.id) incrementQnaCount(user.id, 1);
             }}
           />
 

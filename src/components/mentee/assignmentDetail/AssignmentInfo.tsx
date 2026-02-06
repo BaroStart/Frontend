@@ -9,6 +9,7 @@ interface AssignmentInfoProps {
   detail: AssignmentDetail | null;
   isEditing: boolean;
   onChangeToEditMode: () => void;
+  onSubmitAssignment?: () => void;
 }
 
 export default function AssignmentInfo({
@@ -16,6 +17,7 @@ export default function AssignmentInfo({
   detail,
   isEditing,
   onChangeToEditMode,
+  onSubmitAssignment,
 }: AssignmentInfoProps) {
   return (
     <>
@@ -35,6 +37,7 @@ export default function AssignmentInfo({
         assignment={assignment}
         isEditing={isEditing}
         onChangeToEditMode={onChangeToEditMode}
+        onSubmitAssignment={onSubmitAssignment}
       />
     </>
   );

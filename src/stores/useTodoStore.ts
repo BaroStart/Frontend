@@ -10,12 +10,15 @@ import {
   type TimeSlot,
 } from '@/api/todos';
 import { isApiSuccess } from '@/api/response';
+import { STORAGE_KEYS } from '@/constants';
 
 export type TodoItem = {
   id: number;
   title: string;
   done: boolean;
   timeList?: TimeSlot[];
+  /** mock에서 streak/뱃지 계산용 */
+  doneAt?: string; // ISO
 };
 
 type TodoState = {
@@ -54,9 +57,28 @@ const MOCK_TODOS_BY_DATE: Record<string, TodoItem[]> = {
   '2026-02-04': [{ id: 5, title: '영단어 50개', done: false }],
 };
 
+function readMockTodosByDate(): Record<string, TodoItem[]> | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.MENTEE_TODOS_BY_DATE);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, TodoItem[]>;
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeMockTodosByDate(v: Record<string, TodoItem[]>) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.MENTEE_TODOS_BY_DATE, JSON.stringify(v));
+  } catch {
+    // ignore
+  }
+}
+
 export const useTodoStore = create<TodoState>((set, get) => ({
   selectedDate: API_CONFIG.useMock ? '2026-02-02' : toYmdLocal(new Date()),
-  todosByDate: MOCK_TODOS_BY_DATE,
+  todosByDate: API_CONFIG.useMock ? readMockTodosByDate() ?? MOCK_TODOS_BY_DATE : {},
   todos: API_CONFIG.useMock ? (MOCK_TODOS_BY_DATE['2026-02-02'] ?? []) : [],
 
   setSelectedDate: async (date) => {
@@ -107,8 +129,10 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       const dateKey = get().selectedDate;
       set((s) => {
         const next = [{ id: Date.now(), title: trimmed, done: false }, ...(s.todosByDate[dateKey] ?? [])];
+        const nextByDate = { ...s.todosByDate, [dateKey]: next };
+        writeMockTodosByDate(nextByDate);
         return {
-          todosByDate: { ...s.todosByDate, [dateKey]: next },
+          todosByDate: nextByDate,
           todos: next,
         };
       });
@@ -125,9 +149,21 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       const dateKey = get().selectedDate;
       set((s) => {
         const cur = s.todosByDate[dateKey] ?? [];
-        const next = cur.map((t) => (t.id === id ? { ...t, done: !t.done } : t));
+        const nowIso = new Date().toISOString();
+        const next = cur.map((t) => {
+          if (t.id !== id) return t;
+          const nextDone = !t.done;
+          return {
+            ...t,
+            done: nextDone,
+            timeList: opts?.timeList ?? t.timeList,
+            doneAt: nextDone ? nowIso : undefined,
+          };
+        });
+        const nextByDate = { ...s.todosByDate, [dateKey]: next };
+        writeMockTodosByDate(nextByDate);
         return {
-          todosByDate: { ...s.todosByDate, [dateKey]: next },
+          todosByDate: nextByDate,
           todos: next,
         };
       });
@@ -161,8 +197,10 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       set((s) => {
         const cur = s.todosByDate[dateKey] ?? [];
         const next = cur.map((t) => (t.id === id ? { ...t, title: trimmed } : t));
+        const nextByDate = { ...s.todosByDate, [dateKey]: next };
+        writeMockTodosByDate(nextByDate);
         return {
-          todosByDate: { ...s.todosByDate, [dateKey]: next },
+          todosByDate: nextByDate,
           todos: next,
         };
       });
@@ -189,8 +227,10 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       set((s) => {
         const cur = s.todosByDate[dateKey] ?? [];
         const next = cur.filter((t) => t.id !== id);
+        const nextByDate = { ...s.todosByDate, [dateKey]: next };
+        writeMockTodosByDate(nextByDate);
         return {
-          todosByDate: { ...s.todosByDate, [dateKey]: next },
+          todosByDate: nextByDate,
           todos: next,
         };
       });

@@ -1,6 +1,23 @@
 import type { ReactNode } from 'react';
 
-import { Award, BookOpen, CalendarDays, Clock, Flame, Hourglass, Star, TrendingUp, Trophy } from 'lucide-react';
+import {
+  Award,
+  BookOpen,
+  CalendarDays,
+  Clock,
+  Coffee,
+  Crown,
+  Flame,
+  Hourglass,
+  LockKeyhole,
+  MessageCircleQuestion,
+  Sparkles,
+  Star,
+  Target,
+  Timer,
+  TrendingUp,
+  Trophy,
+} from 'lucide-react';
 
 export type BadgeItem = {
   id: string;
@@ -25,22 +42,34 @@ export function BadgeSection({
   const iconFor = (b: BadgeItem): ReactNode => {
     if (b.icon) return b.icon;
     switch (b.id) {
-      case 'b1':
+      case 'badge_attendance_7':
         return <Flame className="h-5 w-5" />;
-      case 'b2':
+      case 'badge_weekly_goal_7days':
         return <Trophy className="h-5 w-5" />;
-      case 'b3':
+      case 'badge_first_assignment':
         return <Star className="h-5 w-5" />;
-      case 'b4':
+      case 'badge_total_100h':
         return <Clock className="h-5 w-5" />;
-      case 'b5':
+      case 'badge_korean_master':
         return <BookOpen className="h-5 w-5" />;
-      case 'b6':
-        return <TrendingUp className="h-5 w-5" />;
-      case 'b7':
+      case 'badge_math_master':
+        return <Target className="h-5 w-5" />;
+      case 'badge_english_master':
+        return <Sparkles className="h-5 w-5" />;
+      case 'badge_attendance_30':
         return <CalendarDays className="h-5 w-5" />;
-      case 'b8':
+      case 'badge_todo_streak_7':
+        return <TrendingUp className="h-5 w-5" />;
+      case 'badge_question_king':
+        return <Crown className="h-5 w-5" />;
+      case 'badge_pomodoro_master':
+        return <Timer className="h-5 w-5" />;
+      case 'badge_morning_routine':
+        return <Coffee className="h-5 w-5" />;
+      case 'badge_100h_study':
         return <Hourglass className="h-5 w-5" />;
+      case 'badge_questions_10':
+        return <MessageCircleQuestion className="h-5 w-5" />;
       default:
         return <Award className="h-5 w-5" />;
     }
@@ -63,7 +92,9 @@ export function BadgeSection({
           return (
             <div key={b.id} className="flex flex-col items-center gap-2">
               <div className={[base, acquiredCls].join(' ')}>
-                <div className="leading-none">{iconFor(b)}</div>
+                <div className="leading-none">
+                  {b.acquired ? iconFor(b) : <LockKeyhole className="h-5 w-5" />}
+                </div>
               </div>
 
               <div className="text-center">

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { Pencil } from 'lucide-react';
 import { API_CONFIG } from '@/api/config';
 import { logout as logoutApi } from '@/api/auth';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +13,11 @@ import { SubjectAchievementSection } from '@/components/mentee/my/SubjectAchieve
 import { MonthlyStudyCalendar } from '@/components/mentee/my/MonthlyStudyCalendar';
 import { BadgeSection } from '@/components/mentee/my/BadgeSection';
 import { ConsultButton } from '@/components/mentee/my/ConsultButton';
+import { getAttendanceDates, getQnaCount, toYmdLocal } from '@/lib/menteeActivityStorage';
+import { getSubmittedAssignments } from '@/lib/menteeAssignmentSubmissionStorage';
+import { MOCK_INCOMPLETE_ASSIGNMENTS } from '@/data/menteeDetailMock';
+import { MOCK_SUBJECT_STUDY_TIMES } from '@/data/learningAnalysisMock';
+import { useTodoStore } from '@/stores/useTodoStore';
 
 export function MyPage() {
   const navigate = useNavigate();
@@ -117,19 +123,196 @@ export function MyPage() {
     []
   );
 
-  const badges = useMemo(
-    () => [
-      { id: 'b1', title: '7일 연속', subtitle: '출석', acquired: true },
-      { id: 'b2', title: '주간목표', subtitle: '달성', acquired: true },
-      { id: 'b3', title: '첫 과제', subtitle: '완료', acquired: true },
-      { id: 'b4', title: '100시간', subtitle: '학습', acquired: true },
-      { id: 'b5', title: '국어', subtitle: '마스터', acquired: false },
-      { id: 'b6', title: '성공', subtitle: '플래너', acquired: false },
-      { id: 'b7', title: '30일 연속', subtitle: '출석', acquired: false },
-      { id: 'b8', title: '500시간', subtitle: '학습', acquired: false },
-    ],
-    []
-  );
+  const { todosByDate } = useTodoStore();
+
+  const badges = useMemo(() => {
+    const userKey = (authUser?.id ?? '').trim();
+    // mock 데이터는 s1/s2 기반이라, 실 API 로그인(아이디=loginId)인 경우도 s1로 폴백
+    const mockMenteeId =
+      authUser?.role === 'mentee' && authUser?.id && /^s\d+$/i.test(authUser.id) ? authUser.id : 's1';
+
+    const todayKey = toYmdLocal(new Date());
+
+    const attendanceDates = userKey ? getAttendanceDates(userKey) : [];
+    const attendanceSet = new Set(attendanceDates);
+
+    const consecutiveEndingToday = (set: Set<string>, untilKey: string) => {
+      const [y, m, d] = untilKey.split('-').map(Number);
+      if (!y || !m || !d) return 0;
+      let cur = new Date(y, m - 1, d);
+      let streak = 0;
+      while (true) {
+        const k = toYmdLocal(cur);
+        if (!set.has(k)) break;
+        streak += 1;
+        cur.setDate(cur.getDate() - 1);
+      }
+      return streak;
+    };
+
+    const attendanceStreak = consecutiveEndingToday(attendanceSet, todayKey);
+
+    const submitted = userKey ? getSubmittedAssignments(userKey) : {};
+    const submittedIds = new Set(Object.keys(submitted));
+
+    const isAssignmentDoneForUser = (assignmentId: string, baseStatus?: string) =>
+      baseStatus === 'completed' || submittedIds.has(assignmentId);
+
+    // "첫 과제 완료": 진짜로 제출을 한 번이라도 했을 때만 오픈
+    const firstAssignmentDone = submittedIds.size >= 1;
+
+    // 주간목표 달성: 최근 7일 연속으로 (해당 날짜의 과제 달성률 100%)
+    const assignments = MOCK_INCOMPLETE_ASSIGNMENTS.filter((a) => a.menteeId === mockMenteeId);
+    const assignmentStatsByDate = new Map<string, { total: number; done: number }>();
+    for (const a of assignments) {
+      const dateKey = a.deadlineDate ?? a.completedAtDate;
+      if (!dateKey) continue;
+      const cur = assignmentStatsByDate.get(dateKey) ?? { total: 0, done: 0 };
+      cur.total += 1;
+      if (isAssignmentDoneForUser(a.id, a.status)) cur.done += 1;
+      assignmentStatsByDate.set(dateKey, cur);
+    }
+
+    const dayHasAllAssignmentsDone = (dateKey: string) => {
+      const s = assignmentStatsByDate.get(dateKey);
+      return !!s && s.total > 0 && s.done === s.total;
+    };
+
+    const streakDays = (untilKey: string, days: number, predicate: (k: string) => boolean) => {
+      const [y, m, d] = untilKey.split('-').map(Number);
+      if (!y || !m || !d) return false;
+      const cur = new Date(y, m - 1, d);
+      for (let i = 0; i < days; i += 1) {
+        const k = toYmdLocal(cur);
+        if (!predicate(k)) return false;
+        cur.setDate(cur.getDate() - 1);
+      }
+      return true;
+    };
+
+    const weeklyGoalAchieved = streakDays(todayKey, 7, dayHasAllAssignmentsDone);
+
+    // 오늘도 한 걸음: 최근 7일 연속으로 (해당 날짜 할 일 100% 완료)
+    const todoHasAllDone = (dateKey: string) => {
+      const list = todosByDate[dateKey] ?? [];
+      if (list.length === 0) return false;
+      return list.every((t) => t.done);
+    };
+    const todoStreakAchieved = streakDays(todayKey, 7, todoHasAllDone);
+
+    // 질문왕: 코멘트/질문 제출 10회 이상
+    const qnaCount = userKey ? getQnaCount(userKey) : 0;
+    const questionKing = qnaCount >= 10;
+
+    // 학습시간(목데이터 기반): 과목별 50h, 누적 100h
+    const subjectHours = MOCK_SUBJECT_STUDY_TIMES[mockMenteeId] ?? [];
+    const hoursOf = (subject: string) => subjectHours.find((s) => s.subject === subject)?.hours ?? 0;
+    const korMaster = hoursOf('국어') >= 50;
+    const engMaster = hoursOf('영어') >= 50;
+    const mathMaster = hoursOf('수학') >= 50;
+    const total100h = subjectHours.reduce((acc, s) => acc + (s.hours ?? 0), 0) >= 100;
+
+    // 포모도로: 25분 이상 집중 timeList가 붙은 완료 todo 20회 이상
+    const pomodoroCount = (() => {
+      let count = 0;
+      for (const list of Object.values(todosByDate)) {
+        for (const t of list) {
+          if (!t.done || !t.timeList?.length) continue;
+          const slot = t.timeList[0];
+          const start = new Date(slot.startTime).getTime();
+          const end = new Date(slot.endTime).getTime();
+          if (Number.isFinite(start) && Number.isFinite(end) && end - start >= 25 * 60 * 1000) {
+            count += 1;
+          }
+        }
+      }
+      return count;
+    })();
+    const pomodoroMaster = pomodoroCount >= 20;
+
+    // 아침 루틴: 6~9시 사이에 체크한(완료한) todo/과제 7회 이상
+    const morningCount = (() => {
+      let count = 0;
+
+      // todo (timeList 기준)
+      for (const list of Object.values(todosByDate)) {
+        for (const t of list) {
+          if (!t.done || !t.timeList?.length) continue;
+          const slot = t.timeList[0];
+          const d = new Date(slot.startTime);
+          const h = d.getHours();
+          if (h >= 6 && h <= 9) count += 1;
+        }
+      }
+
+      // assignments (submittedAt 기준)
+      for (const meta of Object.values(submitted)) {
+        const d = new Date(meta.submittedAt);
+        const h = d.getHours();
+        if (h >= 6 && h <= 9) count += 1;
+      }
+
+      return count;
+    })();
+    const morningRoutine = morningCount >= 7;
+
+    return [
+      { id: 'badge_first_assignment', title: '첫 과제', subtitle: '완료', acquired: firstAssignmentDone },
+      { id: 'badge_attendance_7', title: '7일 연속', subtitle: '출석', acquired: attendanceStreak >= 7 },
+      { id: 'badge_attendance_30', title: '30일 연속', subtitle: '출석', acquired: attendanceStreak >= 30 },
+      { id: 'badge_weekly_goal_7days', title: '주간목표', subtitle: '달성', acquired: weeklyGoalAchieved },
+      { id: 'badge_todo_streak_7', title: '오늘도', subtitle: '한 걸음', acquired: todoStreakAchieved },
+      { id: 'badge_question_king', title: '질문왕', subtitle: '10회+', acquired: questionKing },
+      { id: 'badge_korean_master', title: '국어', subtitle: '마스터', acquired: korMaster },
+      { id: 'badge_math_master', title: '수학', subtitle: '마스터', acquired: mathMaster },
+      { id: 'badge_english_master', title: '영어', subtitle: '마스터', acquired: engMaster },
+      { id: 'badge_total_100h', title: '100시간', subtitle: '학습', acquired: total100h },
+      { id: 'badge_pomodoro_master', title: '포모도로', subtitle: '마스터', acquired: pomodoroMaster },
+      { id: 'badge_morning_routine', title: '아침', subtitle: '루틴', acquired: morningRoutine },
+    ];
+  }, [authUser?.id, authUser?.role, todosByDate]);
+
+  const handlePickProfileImage = () => fileRef.current?.click();
+
+  const handleProfileFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError('');
+    setUploadSuccess(false);
+
+    // 선택 즉시 로컬 미리보기(업로드 URL은 PUT 전용일 수 있어 <img src>로 깨질 수 있음)
+    try {
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+      const previewUrl = URL.createObjectURL(file);
+      previewUrlRef.current = previewUrl;
+      setProfileImage(previewUrl);
+    } catch {
+      // ignore preview errors
+    }
+
+    if (API_CONFIG.useMock) {
+      setUploadError('현재 VITE_USE_MOCK=true 입니다. VITE_USE_MOCK=false로 바꾼 뒤 업로드를 시도하세요.');
+      e.target.value = '';
+      return;
+    }
+
+    const ext = file.name.includes('.') ? `.${file.name.split('.').pop()}` : '';
+    const who = authUser?.id ?? 'unknown';
+    const fileName = `profile/${who}-${Date.now()}${ext}`;
+
+    setUploading(true);
+    try {
+      await uploadFileViaPreAuthenticatedUrl({ file, fileName });
+      setUploadSuccess(true);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : '업로드 중 오류가 발생했습니다.');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
 
   return (
     <div className="relative px-4 pt-4 pb-4">
@@ -140,12 +323,19 @@ export function MyPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 overflow-hidden rounded-full bg-gray-100">
+          <button
+            type="button"
+            onClick={handlePickProfileImage}
+            disabled={uploading}
+            className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-gray-200"
+            aria-label="프로필 사진 변경"
+            title="프로필 사진 변경"
+          >
             {authUser?.profileImage ? (
               <img src={authUser.profileImage} alt="avatar" className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-gray-400">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                   <path
                     d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z"
                     stroke="currentColor"
@@ -156,9 +346,37 @@ export function MyPage() {
                 </svg>
               </div>
             )}
-          </div>
+            <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-gray-900 text-white shadow-sm ring-2 ring-white">
+              <Pencil className="h-3 w-3" />
+            </span>
+            {uploading && (
+              <span className="absolute inset-0 grid place-items-center bg-black/25">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+              </span>
+            )}
+          </button>
         </div>
       </div>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleProfileFileChange}
+      />
+
+      {(uploadError || uploadSuccess) && (
+        <div className="mb-4">
+          {uploading && <p className="text-xs font-semibold text-gray-600">업로드 중...</p>}
+          {uploadSuccess && <p className="text-xs font-semibold text-emerald-600">프로필 사진 업로드 완료</p>}
+          {uploadError && <p className="text-xs font-semibold text-red-500">{uploadError}</p>}
+        </div>
+      )}
+
+      {!uploadError && !uploadSuccess && (
+        <p className="mb-4 text-xs text-gray-400">우측 상단 프로필을 눌러 사진을 변경할 수 있어요.</p>
+      )}
 
       <WeeklyStudyStatusCard
         title="이번주 학습 현황"
@@ -180,75 +398,6 @@ export function MyPage() {
       <BadgeSection className="mt-6" title="획득한 배지" items={badges} onClickAll={() => {}} />
 
       <div className="mt-6">
-        <div className="mb-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-          <p className="text-sm font-semibold text-gray-900">프로필 사진 변경</p>
-          <p className="mt-1 text-xs text-gray-500">사진을 선택해서 프로필 이미지를 업데이트할 수 있어요.</p>
-
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setUploadError('');
-              setUploadSuccess(false);
-
-              // 선택 즉시 로컬 미리보기(업로드 URL은 PUT 전용일 수 있어 <img src>로 깨질 수 있음)
-              try {
-                if (previewUrlRef.current) {
-                  URL.revokeObjectURL(previewUrlRef.current);
-                }
-                const previewUrl = URL.createObjectURL(file);
-                previewUrlRef.current = previewUrl;
-                setProfileImage(previewUrl);
-              } catch {
-                // ignore preview errors
-              }
-
-              if (API_CONFIG.useMock) {
-                setUploadError('현재 VITE_USE_MOCK=true 입니다. VITE_USE_MOCK=false로 바꾼 뒤 업로드를 시도하세요.');
-                e.target.value = '';
-                return;
-              }
-
-              const ext = file.name.includes('.') ? `.${file.name.split('.').pop()}` : '';
-              const who = authUser?.id ?? 'unknown';
-              const fileName = `profile/${who}-${Date.now()}${ext}`;
-
-              setUploading(true);
-              try {
-                await uploadFileViaPreAuthenticatedUrl({ file, fileName });
-                setUploadSuccess(true);
-              } catch (err) {
-                setUploadError(err instanceof Error ? err.message : '업로드 중 오류가 발생했습니다.');
-              } finally {
-                setUploading(false);
-                e.target.value = '';
-              }
-            }}
-          />
-
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={uploading}
-              onClick={() => fileRef.current?.click()}
-              className="w-full sm:w-auto"
-            >
-              {uploading ? '업로드 중...' : '사진 선택'}
-            </Button>
-            {uploadSuccess ? (
-              <span className="text-xs font-semibold text-emerald-600">업로드 완료</span>
-            ) : authUser?.profileImage ? (
-              <span className="text-xs font-semibold text-gray-500">미리보기</span>
-            ) : null}
-          </div>
-          {uploadError && <p className="mt-2 text-xs font-semibold text-red-500">{uploadError}</p>}
-        </div>
-
         <Button variant="outline" className="w-full" onClick={handleLogout}>
           로그아웃
         </Button>

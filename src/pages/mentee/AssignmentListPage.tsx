@@ -12,6 +12,7 @@ import { twMerge } from 'tailwind-merge';
 import { AssignmentIcon, EnglishIcon, KoreanIcon, MathIcon } from '@/components/icons';
 import { MOCK_INCOMPLETE_ASSIGNMENTS, SUBJECTS } from '@/data/menteeDetailMock';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { getSubmittedAssignments } from '@/lib/menteeAssignmentSubmissionStorage';
 
 // --- Types ---
 type Status = '완료' | '미완료';
@@ -55,6 +56,7 @@ export function AssignmentListPage() {
   const { user } = useAuthStore();
   // 실 API 로그인 시 user.id가 loginId일 수 있어서, mock 데이터(s1/s2)가 없으면 s1로 폴백
   const menteeId = user?.role === 'mentee' && /^s\d+$/i.test(user.id) ? user.id : 's1';
+  const userKey = user?.id ?? '';
 
   const getSubjectIcon = (subject: string) => {
     switch (subject) {
@@ -71,10 +73,11 @@ export function AssignmentListPage() {
 
   const filteredAssignments = useMemo(() => {
     const dateKey = toYmdKeyLocal(selectedDate);
+    const submittedById = userKey ? getSubmittedAssignments(userKey) : {};
     const base = MOCK_INCOMPLETE_ASSIGNMENTS.filter((a) => a.menteeId === menteeId).map(
       (a): Assignment => {
         const dateYmd = a.completedAtDate ?? a.deadlineDate ?? dateKey;
-        const isDone = a.status === 'completed';
+        const isDone = a.status === 'completed' || !!submittedById[a.id];
         return {
           id: a.id,
           subject: a.subject,
@@ -91,7 +94,7 @@ export function AssignmentListPage() {
     const byDate = base.filter((a) => a.submissionDate.startsWith(ymdToDot(dateKey)));
     const bySubject = activeTab === '전체' ? byDate : byDate.filter((item) => item.subject === activeTab);
     return bySubject;
-  }, [activeTab, menteeId, selectedDate]);
+  }, [activeTab, menteeId, selectedDate, userKey]);
 
   return (
     <div className="flex flex-col h-full gap-2 px-4 pt-4 bg-white">

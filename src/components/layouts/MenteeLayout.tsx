@@ -1,13 +1,22 @@
+import { useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { TabBar } from '@/components/mentee/TabBar';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { markAttendance } from '@/lib/menteeActivityStorage';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 export function MenteeLayout() {
   useDocumentTitle('설스터디 | 멘티 페이지');
   const { pathname } = useLocation();
   const isHome = pathname === '/mentee';
   const hideHeader = /^\/mentee\/assignments\/[^/]+$/.test(pathname);
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (user?.role !== 'mentee') return;
+    markAttendance(user.id);
+  }, [user?.id, user?.role]);
 
   return (
     <div className="relative mx-auto min-h-screen w-full max-w-md bg-background sm:max-w-lg">

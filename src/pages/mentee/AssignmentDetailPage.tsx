@@ -7,6 +7,7 @@ import AssignmentFeedback from '@/components/mentee/assignmentDetail/AssignmentF
 import AssignmentInfo from '@/components/mentee/assignmentDetail/AssignmentInfo';
 import { MOCK_ASSIGNMENT_DETAILS, MOCK_INCOMPLETE_ASSIGNMENTS } from '@/data/menteeDetailMock';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { getSubmittedAssignments, markAssignmentSubmitted } from '@/lib/menteeAssignmentSubmissionStorage';
 
 function ymdToDot(ymd: string) {
   return ymd.replaceAll('-', '.');
@@ -24,16 +25,27 @@ export function AssignmentDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
 
   const menteeId = user?.role === 'mentee' && /^s\d+$/i.test(user.id) ? user.id : 's1';
+  const userKey = user?.id ?? '';
 
   const { assignment, detail } = useMemo(() => {
     const id = assignmentId ?? 'a1';
     const base = MOCK_INCOMPLETE_ASSIGNMENTS.find((a) => a.menteeId === menteeId && a.id === id);
-    const isDone = base?.status === 'completed';
+    const submitted = userKey ? getSubmittedAssignments(userKey)[id] : undefined;
+    const isDone = base?.status === 'completed' || !!submitted;
 
     const dateYmd = base?.completedAtDate ?? base?.deadlineDate ?? '2026-02-02';
-    const submissionDate = isDone
-      ? toSubmissionText(dateYmd, base?.completedAt)
-      : toSubmissionText(dateYmd, base?.deadline);
+    const submissionDate = (() => {
+      if (submitted?.submittedAt) {
+        const d = new Date(submitted.submittedAt);
+        const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(
+          2,
+          '0'
+        )}`;
+        const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        return `${ymdToDot(ymd)} ${hm}`;
+      }
+      return isDone ? toSubmissionText(dateYmd, base?.completedAt) : toSubmissionText(dateYmd, base?.deadline);
+    })();
 
     const d = MOCK_ASSIGNMENT_DETAILS[id] ?? null;
 
@@ -47,7 +59,7 @@ export function AssignmentDetailPage() {
     };
 
     return { assignment: a, detail: d };
-  }, [assignmentId, menteeId]);
+  }, [assignmentId, menteeId, userKey]);
 
   const onChangeToEditMode = () => {
     setIsEditing((prev) => !prev);
@@ -73,6 +85,10 @@ export function AssignmentDetailPage() {
           detail={detail}
           isEditing={isEditing}
           onChangeToEditMode={onChangeToEditMode}
+          onSubmitAssignment={() => {
+            if (!userKey) return;
+            markAssignmentSubmitted(userKey, assignment.id);
+          }}
         />
       )}
       {activeTab === 'feedback' && <AssignmentFeedback />}
