@@ -423,7 +423,7 @@ function MenteeCard({
         </Link>
         <Link
           to={`/mentor/mentees/${mentee.id}`}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-foreground py-2 text-xs font-medium text-white transition-all hover:bg-foreground/90"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-slate-900 py-2 text-xs font-medium text-white transition-all hover:bg-slate-800"
         >
           상세 보기
           <ArrowRight className="h-3.5 w-3.5" />

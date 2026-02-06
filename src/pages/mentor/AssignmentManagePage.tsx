@@ -811,22 +811,22 @@ function MaterialCard({
     <div
       className={`group relative rounded-lg border px-3 py-2.5 transition-all ${isSeolstudy ? 'border-blue-200 bg-blue-50/30 hover:shadow-soft' : 'border-border/50 bg-secondary/30 hover:shadow-soft'}`}
     >
-      <div className="flex items-center gap-2.5">
+      <div className="flex gap-2.5">
         <div
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isSeolstudy ? 'bg-blue-100 text-blue-600' : 'bg-secondary text-foreground/50'}`}
+          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isSeolstudy ? 'bg-blue-100 text-blue-600' : 'bg-secondary text-foreground/50'}`}
         >
           <FileIcon className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <h3 className="truncate text-[13px] font-semibold text-foreground">{material.title}</h3>
+          <div className="flex items-start gap-1.5">
+            <h3 className="text-[13px] font-semibold leading-snug text-foreground">{material.title}</h3>
             {isSeolstudy && (
-              <span className="shrink-0 rounded-full bg-blue-100 px-1.5 py-px text-[10px] font-medium text-blue-700">
+              <span className="mt-0.5 shrink-0 rounded-full bg-blue-100 px-1.5 py-px text-[10px] font-medium text-blue-700">
                 설스터디
               </span>
             )}
           </div>
-          <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted-foreground">
             <span>{material.subject}</span>
             {material.subCategory && material.subCategory !== '기타' && (
               <>
@@ -840,24 +840,24 @@ function MaterialCard({
             <span>{material.uploadedAt}</span>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-          <button
-            type="button"
-            onClick={onPreview}
-            className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
-            title="미리보기"
-          >
-            <Eye className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-600"
-            title="삭제"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
+      </div>
+      <div className="absolute right-1.5 top-1.5 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+        <button
+          type="button"
+          onClick={onPreview}
+          className="grid h-6 w-6 place-items-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
+          title="미리보기"
+        >
+          <Eye className="h-3 w-3" />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="grid h-6 w-6 place-items-center rounded text-muted-foreground hover:bg-red-50 hover:text-red-600"
+          title="삭제"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
       </div>
     </div>
   );

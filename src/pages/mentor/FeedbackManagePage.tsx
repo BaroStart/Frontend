@@ -113,9 +113,7 @@ export function FeedbackManagePage() {
     const matchSubject = subjectFilter === '전체' || t.subject === subjectFilter;
     const q = templateSearch.trim().toLowerCase();
     const matchSearch =
-      !q ||
-      t.name.toLowerCase().includes(q) ||
-      t.content.toLowerCase().includes(q);
+      !q || t.name.toLowerCase().includes(q) || t.content.toLowerCase().includes(q);
     return matchSubject && matchSearch;
   });
 
@@ -187,7 +185,10 @@ export function FeedbackManagePage() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <FilterTabs
                 items={[
-                  { id: 'all' as const, label: `전체 (${pendingFeedback.length + completedStoredFeedback.length})` },
+                  {
+                    id: 'all' as const,
+                    label: `전체 (${pendingFeedback.length + completedStoredFeedback.length})`,
+                  },
                   { id: 'pending' as const, label: `작성 대기 (${pendingFeedback.length})` },
                   { id: 'completed' as const, label: `완료 (${completedStoredFeedback.length})` },
                 ]}
@@ -201,149 +202,149 @@ export function FeedbackManagePage() {
               )}
             </div>
 
-          <div className="overflow-hidden rounded-xl border border-border/50">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[700px]">
-                <thead className="sticky top-0 bg-secondary/50">
-                  <tr className="border-b border-border">
-                    {FEEDBACK_TABLE_HEADERS.map((header) => (
-                      <th
-                        key={header}
-                        className="px-5 py-3 text-left text-xs font-semibold text-foreground/60"
-                      >
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {(feedbackStatusFilter === 'all' || feedbackStatusFilter === 'pending') &&
-                    pendingFeedback.map((assignment) => {
-                      const mentee = mentees.find((m) => m.id === assignment.menteeId);
-                      const deadlineStatus = getDeadlineStatus(assignment.submittedAt);
-                      const remainingMs = getRemainingMs(assignment.submittedAt);
-                      const statusBadge =
-                        deadlineStatus === 'overdue' ? (
-                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                            마감 초과
-                          </span>
-                        ) : deadlineStatus === 'urgent' ? (
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                            {formatRemainingTime(remainingMs)} 남음
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/60">
-                            {formatDeadline(assignment.submittedAt)}까지
-                          </span>
-                        );
-                      return (
-                        <tr
-                          key={assignment.id}
-                          className={`border-b border-border/50 transition-colors hover:bg-secondary/30 ${
-                            deadlineStatus === 'urgent' ? 'bg-amber-50/30' : ''
-                          }`}
+            <div className="overflow-hidden rounded-xl border border-border/50">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[700px]">
+                  <thead className="sticky top-0 bg-secondary/50">
+                    <tr className="border-b border-border">
+                      {FEEDBACK_TABLE_HEADERS.map((header) => (
+                        <th
+                          key={header}
+                          className="px-5 py-3 text-left text-xs font-semibold text-foreground/60"
                         >
-                          <td className="px-5 py-3">
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(feedbackStatusFilter === 'all' || feedbackStatusFilter === 'pending') &&
+                      pendingFeedback.map((assignment) => {
+                        const mentee = mentees.find((m) => m.id === assignment.menteeId);
+                        const deadlineStatus = getDeadlineStatus(assignment.submittedAt);
+                        const remainingMs = getRemainingMs(assignment.submittedAt);
+                        const statusBadge =
+                          deadlineStatus === 'overdue' ? (
+                            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                              마감 초과
+                            </span>
+                          ) : deadlineStatus === 'urgent' ? (
                             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                              대기
+                              {formatRemainingTime(remainingMs)} 남음
                             </span>
-                          </td>
-                          <td className="px-5 py-3">
-                            <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
-                              {assignment.subject}
+                          ) : (
+                            <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/60">
+                              {formatDeadline(assignment.submittedAt)}까지
                             </span>
-                          </td>
-                          <td className="px-5 py-3 text-sm font-semibold text-foreground">
-                            {assignment.title}
-                          </td>
-                          <td className="px-5 py-3 text-sm text-foreground/70">
-                            {mentee?.name ?? '-'}
-                          </td>
-                          <td className="px-5 py-3 text-sm text-foreground/50">
-                            {assignment.submittedAt}
-                          </td>
-                          <td className="px-5 py-3">{statusBadge}</td>
-                          <td className="px-5 py-3">
-                            <Link
-                              to={`/mentor/mentees/${assignment.menteeId}/feedback/${assignment.id}`}
-                            >
-                              <Button size="sm">피드백 작성</Button>
-                            </Link>
-                          </td>
-                        </tr>
-                      );
-                    })}
-
-                  {(feedbackStatusFilter === 'all' || feedbackStatusFilter === 'completed') &&
-                    completedStoredFeedback.map((stored) => {
-                      const mentee = mentees.find((m) => m.id === stored.menteeId);
-                      return (
-                        <tr
-                          key={`${stored.menteeId}-${stored.assignmentId}`}
-                          className="border-b border-border/50 transition-colors hover:bg-secondary/30"
-                        >
-                          <td className="px-5 py-3">
-                            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                              완료
-                            </span>
-                          </td>
-                          <td className="px-5 py-3">
-                            {stored.subject && (
-                              <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
-                                {stored.subject}
+                          );
+                        return (
+                          <tr
+                            key={assignment.id}
+                            className={`border-b border-border/50 transition-colors hover:bg-secondary/30 ${
+                              deadlineStatus === 'urgent' ? 'bg-amber-50/30' : ''
+                            }`}
+                          >
+                            <td className="px-5 py-3">
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                                대기
                               </span>
-                            )}
-                          </td>
-                          <td className="px-5 py-3 text-sm font-semibold text-foreground">
-                            {stored.assignmentTitle ?? '과제'}
-                          </td>
-                          <td className="px-5 py-3 text-sm text-foreground/70">
-                            {mentee?.name ?? '-'}
-                          </td>
-                          <td className="px-5 py-3 text-sm text-foreground/50">
-                            {stored.submittedAt ?? stored.feedbackDate}
-                          </td>
-                          <td className="px-5 py-3">
-                            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                              완료
-                            </span>
-                          </td>
-                          <td className="px-5 py-3">
-                            <Link
-                              to={`/mentor/mentees/${stored.menteeId}/feedback/${stored.assignmentId}`}
-                            >
-                              <Button size="sm" variant="outline">
-                                보기/수정
-                              </Button>
-                            </Link>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
+                            </td>
+                            <td className="px-5 py-3">
+                              <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
+                                {assignment.subject}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3 text-sm font-semibold text-foreground">
+                              {assignment.title}
+                            </td>
+                            <td className="px-5 py-3 text-sm text-foreground/70">
+                              {mentee?.name ?? '-'}
+                            </td>
+                            <td className="px-5 py-3 text-sm text-foreground/50">
+                              {assignment.submittedAt}
+                            </td>
+                            <td className="px-5 py-3">{statusBadge}</td>
+                            <td className="px-5 py-3">
+                              <Link
+                                to={`/mentor/mentees/${assignment.menteeId}/feedback/${assignment.id}`}
+                              >
+                                <Button size="sm">피드백 작성</Button>
+                              </Link>
+                            </td>
+                          </tr>
+                        );
+                      })}
 
-            {/* 빈 상태 */}
-            {((feedbackStatusFilter === 'all' &&
-              pendingFeedback.length === 0 &&
-              completedStoredFeedback.length === 0) ||
-              (feedbackStatusFilter === 'pending' && pendingFeedback.length === 0) ||
-              (feedbackStatusFilter === 'completed' && completedStoredFeedback.length === 0)) && (
-              <div className="flex min-h-[200px] flex-col items-center justify-center py-8">
-                <FileText className="h-10 w-10 text-muted-foreground/30" />
-                <p className="mt-3 text-sm text-foreground/60">
-                  {feedbackStatusFilter === 'pending'
-                    ? '작성 대기 중인 피드백이 없습니다.'
-                    : feedbackStatusFilter === 'completed'
-                      ? '완료된 피드백이 없습니다.'
-                      : '피드백이 없습니다.'}
-                </p>
+                    {(feedbackStatusFilter === 'all' || feedbackStatusFilter === 'completed') &&
+                      completedStoredFeedback.map((stored) => {
+                        const mentee = mentees.find((m) => m.id === stored.menteeId);
+                        return (
+                          <tr
+                            key={`${stored.menteeId}-${stored.assignmentId}`}
+                            className="border-b border-border/50 transition-colors hover:bg-secondary/30"
+                          >
+                            <td className="px-5 py-3">
+                              <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                완료
+                              </span>
+                            </td>
+                            <td className="px-5 py-3">
+                              {stored.subject && (
+                                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
+                                  {stored.subject}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-5 py-3 text-sm font-semibold text-foreground">
+                              {stored.assignmentTitle ?? '과제'}
+                            </td>
+                            <td className="px-5 py-3 text-sm text-foreground/70">
+                              {mentee?.name ?? '-'}
+                            </td>
+                            <td className="px-5 py-3 text-sm text-foreground/50">
+                              {stored.submittedAt ?? stored.feedbackDate}
+                            </td>
+                            <td className="px-5 py-3">
+                              <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                완료
+                              </span>
+                            </td>
+                            <td className="px-5 py-3">
+                              <Link
+                                to={`/mentor/mentees/${stored.menteeId}/feedback/${stored.assignmentId}`}
+                              >
+                                <Button size="sm" variant="outline">
+                                  보기 / 수정
+                                </Button>
+                              </Link>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
               </div>
-            )}
+
+              {/* 빈 상태 */}
+              {((feedbackStatusFilter === 'all' &&
+                pendingFeedback.length === 0 &&
+                completedStoredFeedback.length === 0) ||
+                (feedbackStatusFilter === 'pending' && pendingFeedback.length === 0) ||
+                (feedbackStatusFilter === 'completed' && completedStoredFeedback.length === 0)) && (
+                <div className="flex min-h-[200px] flex-col items-center justify-center py-8">
+                  <FileText className="h-10 w-10 text-muted-foreground/30" />
+                  <p className="mt-3 text-sm text-foreground/60">
+                    {feedbackStatusFilter === 'pending'
+                      ? '작성 대기 중인 피드백이 없습니다.'
+                      : feedbackStatusFilter === 'completed'
+                        ? '완료된 피드백이 없습니다.'
+                        : '피드백이 없습니다.'}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
         {/* 피드백 템플릿 관리 탭 */}
         {activeTab === 'templates' && (
@@ -351,14 +352,23 @@ export function FeedbackManagePage() {
             {/* 상단 툴바 */}
             <div className="flex flex-wrap items-center gap-3">
               <FilterTabs
-                items={['전체', '국어', '영어', '수학', '공통'].map((sub) => ({ id: sub, label: sub }))}
+                items={['전체', '국어', '영어', '수학', '공통'].map((sub) => ({
+                  id: sub,
+                  label: sub,
+                }))}
                 value={subjectFilter}
-                onChange={(v) => { setSubjectFilter(v); setCurrentPage(1); }}
+                onChange={(v) => {
+                  setSubjectFilter(v);
+                  setCurrentPage(1);
+                }}
               />
 
               <SearchInput
                 value={templateSearch}
-                onChange={(v) => { setTemplateSearch(v); setCurrentPage(1); }}
+                onChange={(v) => {
+                  setTemplateSearch(v);
+                  setCurrentPage(1);
+                }}
                 placeholder="템플릿 검색..."
                 className="w-56"
               />
@@ -437,7 +447,9 @@ export function FeedbackManagePage() {
                             </span>
                           </td>
                           <td className="max-w-[240px] px-4 py-3">
-                            <p className="truncate text-sm text-foreground/60">{template.content}</p>
+                            <p className="truncate text-sm text-foreground/60">
+                              {template.content}
+                            </p>
                           </td>
                           <td className="px-4 py-3 text-sm text-foreground/50">
                             {template.createdAt.replace(/-/g, '.')}
@@ -544,7 +556,8 @@ export function FeedbackManagePage() {
             <LearningAnalyticsSection />
           </div>
         )}
-      </div>{/* 흰색 카드 닫기 */}
+      </div>
+      {/* 흰색 카드 닫기 */}
 
       {/* 새 템플릿 / 편집 모달 */}
       {(templateModal?.mode === 'create' || templateModal?.mode === 'edit') && (
@@ -645,7 +658,10 @@ function TemplateEditModal({
               과목 선택 <span className="text-red-500">*</span>
             </label>
             <FilterTabs
-              items={(['국어', '영어', '수학', '공통'] as const).map((sub) => ({ id: sub, label: sub }))}
+              items={(['국어', '영어', '수학', '공통'] as const).map((sub) => ({
+                id: sub,
+                label: sub,
+              }))}
               value={subject}
               onChange={setSubject}
             />

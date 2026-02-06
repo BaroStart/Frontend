@@ -607,7 +607,7 @@ export function MenteeDetailPage() {
             key={s}
             type="button"
             onClick={() => setFeedbackSubjectFilter(s)}
-            className={`rounded-lg px-3 py-1.5 text-sm ${feedbackSubjectFilter === s ? 'bg-foreground text-white' : 'bg-secondary text-foreground/70 hover:bg-secondary'}`}
+            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-all ${feedbackSubjectFilter === s ? 'bg-slate-900 text-white shadow-sm' : 'bg-secondary text-foreground/60 hover:bg-secondary/80 hover:text-foreground/80'}`}
           >
             {s}
           </button>
@@ -717,8 +717,8 @@ export function MenteeDetailPage() {
           {todayComment ? (
             <div className="space-y-3">
               <div className="flex gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary">
-                  <UserIcon className="h-5 w-5 text-muted-foreground" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10">
+                  <UserIcon className="h-5 w-5 text-brand" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
@@ -864,7 +864,7 @@ function ProfileSection({
               <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-foreground/70">
                 {mentee.grade} · {mentee.track}
               </span>
-              <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-foreground/70">
+              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
                 활동 중
               </span>
             </div>
@@ -920,18 +920,13 @@ function ProfileSection({
                   vals.reduce((a, b) => a + b, 0) / vals.length;
                 const change =
                   vals.length >= 2 ? vals[vals.length - 1] - vals[0] : 0;
-                const changeText =
-                  change > 0 ? `+${change}점 상승` : change < 0 ? `${change}점 하락` : '변동 없음';
                 return (
-                  <div className="rounded-lg border border-border/50 bg-secondary/30 p-3">
-                    <p className="text-xs text-muted-foreground">평균 성적</p>
-                    <p className="mt-1 text-xl font-bold text-foreground">
-                      {avg % 1 === 0 ? avg : avg.toFixed(1)}
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      - {changeText}
-                    </p>
-                  </div>
+                  <KpiCard
+                    title="평균 성적"
+                    value={`${avg % 1 === 0 ? avg : avg.toFixed(1)}`}
+                    change={change}
+                    unit="점"
+                  />
                 );
               })()}
           </div>
@@ -1011,18 +1006,22 @@ function GridCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-[280px] flex-col rounded-xl border border-border/50 bg-white p-4">
-      <div className="mb-3 flex shrink-0 items-center justify-between">
+    <div className="flex min-h-[280px] flex-col rounded-xl border border-border/50 bg-white">
+      <div className="flex shrink-0 items-center justify-between border-b border-border/30 px-4 py-3">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           {icon}
           {title}
         </h3>
         <div className="flex items-center gap-2">
-          {badge && <span className="text-xs text-muted-foreground">{badge}</span>}
+          {badge && (
+            <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-medium text-foreground/60">
+              {badge}
+            </span>
+          )}
           {actions}
         </div>
       </div>
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">{children}</div>
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">{children}</div>
     </div>
   );
 }
@@ -1061,8 +1060,8 @@ function CalendarSection({
   const { searchQuery, contextMenu, draggedItem } = scheduleState;
 
   return (
-    <div className="rounded-xl border border-border/50 bg-white p-4">
-      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="rounded-xl border border-border/50 bg-white">
+      <div className="flex flex-col gap-3 border-b border-border/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Calendar className="h-4 w-4" />
           일정 캘린더
@@ -1080,6 +1079,7 @@ function CalendarSection({
         </div>
       </div>
 
+      <div className="p-4">
       <ScheduleCalendar
         year={year}
         month={month}
@@ -1136,18 +1136,33 @@ function CalendarSection({
           개
         </div>
       )}
+      </div>
     </div>
   );
 }
 
-function KpiCard({ title, value, change }: { title: string; value: string; change: number }) {
+function KpiCard({
+  title,
+  value,
+  change,
+  unit = '%',
+}: {
+  title: string;
+  value: string;
+  change: number;
+  unit?: string;
+}) {
+  const isPositive = change > 0;
+  const isNegative = change < 0;
   return (
-    <div className="rounded-lg border border-border/50 bg-secondary/30 p-3">
-      <p className="text-xs text-muted-foreground">{title}</p>
+    <div className="rounded-lg border border-border/50 bg-secondary/20 p-3">
+      <p className="text-[11px] font-medium text-muted-foreground">{title}</p>
       <p className="mt-1 text-xl font-bold text-foreground">{value}</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">
-        {change > 0 && `↑ ${change}% 증가`}
-        {change < 0 && `↓ ${Math.abs(change)}% 감소`}
+      <p
+        className={`mt-0.5 text-xs font-medium ${isPositive ? 'text-emerald-600' : isNegative ? 'text-rose-600' : 'text-muted-foreground'}`}
+      >
+        {isPositive && `↑ ${change}${unit} 증가`}
+        {isNegative && `↓ ${Math.abs(change)}${unit} 감소`}
         {change === 0 && '변동 없음'}
       </p>
     </div>
@@ -1167,24 +1182,29 @@ function ScheduleItemCard({
     item.type === 'learning' ? '자율학습' : item.type === 'personal' ? '개인' : item.subject;
   const typeBg =
     item.type === 'learning'
-      ? 'bg-amber-100 text-amber-700'
+      ? 'bg-amber-50 text-amber-700'
       : item.type === 'personal'
-        ? 'bg-violet-100 text-violet-700'
-        : 'bg-blue-100 text-blue-700';
+        ? 'bg-violet-50 text-violet-700'
+        : 'bg-sky-50 text-sky-700';
+  const isCompleted = item.status === 'completed';
 
   return (
     <div
       onContextMenu={onContextMenu}
-      className="flex w-full items-center gap-2 rounded-lg border border-border/30 bg-secondary/30 px-3 py-2 transition-colors hover:bg-secondary"
+      className={`flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 transition-colors hover:bg-secondary/30 ${isCompleted ? 'border-border/20 bg-secondary/10 opacity-60' : 'border-border/40'}`}
     >
-      <div className="flex shrink-0 cursor-grab touch-none text-muted-foreground hover:text-foreground/70">
+      <div className="flex shrink-0 cursor-grab touch-none text-muted-foreground/50 hover:text-foreground/50">
         <GripVertical className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
-        <span className={`mt-0.5 inline-block rounded px-1.5 py-0.5 text-xs ${typeBg}`}>
-          {typeLabel}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <p className={`truncate text-[13px] font-medium text-foreground ${isCompleted ? 'line-through' : ''}`}>
+            {item.title}
+          </p>
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${typeBg}`}>
+            {typeLabel}
+          </span>
+        </div>
       </div>
       <button
         type="button"
@@ -1192,10 +1212,10 @@ function ScheduleItemCard({
           e.stopPropagation();
           if (window.confirm(`"${item.title}"을(를) 삭제하시겠습니까?`)) onDelete();
         }}
-        className="shrink-0 rounded p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-600"
         title="삭제"
       >
-        <Trash2 className="h-4 w-4" />
+        <Trash2 className="h-3.5 w-3.5" />
       </button>
     </div>
   );
@@ -1210,18 +1230,19 @@ function FeedbackCard({
   onViewAssignment: () => void;
   onFeedbackClick: () => void;
 }) {
-  const statusLabels = {
-    urgent: '긴급',
-    pending: '대기중',
-    partial: '부분완료',
-    completed: '완료',
+  const statusConfig: Record<string, { label: string; bg: string }> = {
+    urgent: { label: '긴급', bg: 'bg-rose-50 text-rose-700' },
+    pending: { label: '대기중', bg: 'bg-amber-50 text-amber-700' },
+    partial: { label: '부분완료', bg: 'bg-sky-50 text-sky-700' },
+    completed: { label: '완료', bg: 'bg-emerald-50 text-emerald-700' },
   };
+  const status = statusConfig[item.status] ?? statusConfig.pending;
 
   return (
     <div
       role="button"
       tabIndex={0}
-      className="cursor-pointer rounded-lg border border-border/50 p-3 transition-colors hover:border-border hover:bg-secondary/30"
+      className={`cursor-pointer rounded-lg border p-3 transition-colors hover:bg-secondary/20 ${item.status === 'urgent' ? 'border-rose-200 bg-rose-50/30' : 'border-border/40 hover:border-border'}`}
       onClick={onViewAssignment}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -1231,40 +1252,38 @@ function FeedbackCard({
       }}
     >
       <div className="flex items-start justify-between gap-2">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-foreground">{item.title}</span>
-            <span
-              className={`rounded px-1.5 py-0.5 text-xs ${item.status === 'urgent' ? 'bg-foreground text-white' : 'bg-secondary text-foreground/70'}`}
-            >
-              {statusLabels[item.status]}
+            <span className="truncate text-[13px] font-semibold text-foreground">{item.title}</span>
+            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${status.bg}`}>
+              {status.label}
             </span>
           </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
             {item.status === 'completed' && item.feedbackDate
               ? `피드백 작성일: ${item.feedbackDate}`
               : `제출일시: ${item.submittedAt}`}{' '}
             · {item.subject}
           </p>
           {item.status === 'completed' && item.feedbackText && (
-            <p className="mt-1 line-clamp-2 text-xs text-foreground/70">{item.feedbackText}</p>
+            <p className="mt-1 line-clamp-2 text-[11px] text-foreground/60">{item.feedbackText}</p>
           )}
         </div>
       </div>
-      <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+      <div className="mt-2 flex gap-1.5" onClick={(e) => e.stopPropagation()}>
         {item.status !== 'completed' ? (
           <>
             <Button size="sm" onClick={onFeedbackClick}>
               피드백 작성하기
             </Button>
             <Button size="sm" variant="outline" onClick={onViewAssignment}>
-              ● 과제 보기
+              과제 보기
             </Button>
           </>
         ) : (
           <>
             <Button size="sm" variant="outline" onClick={onViewAssignment}>
-              ● 과제 보기
+              과제 보기
             </Button>
             <Button size="sm" variant="outline" onClick={onFeedbackClick}>
               전체 피드백 보기
@@ -1294,12 +1313,13 @@ function IncompleteAssignmentCard({
   onCancelDelete: () => void;
 }) {
   const isCompleted = assignment.status === 'completed';
+  const isUrgent = assignment.status === 'deadline_soon';
 
   return (
     <div
       role="button"
       tabIndex={0}
-      className="cursor-pointer rounded-lg border border-border/50 p-3 transition-colors hover:border-border hover:bg-secondary/30"
+      className={`cursor-pointer rounded-lg border p-3 transition-colors hover:bg-secondary/20 ${isUrgent ? 'border-rose-200 bg-rose-50/20' : 'border-border/40 hover:border-border'}`}
       onClick={onViewAssignment}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -1308,37 +1328,35 @@ function IncompleteAssignmentCard({
         }
       }}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-center gap-2.5">
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             if (!isCompleted) onComplete();
           }}
-          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${isCompleted ? 'border-foreground/70 bg-foreground/70 text-white' : 'border-border hover:border-foreground/50'}`}
+          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${isCompleted ? 'border-foreground/70 bg-foreground/70 text-white' : 'border-border/60 hover:border-foreground/50'}`}
         >
           {isCompleted && <Check className="h-3 w-3" />}
         </button>
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-foreground">{assignment.title}</p>
-          {assignment.description && (
-            <p className="mt-0.5 text-xs text-muted-foreground">{assignment.description}</p>
-          )}
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="truncate text-[13px] font-semibold text-foreground">{assignment.title}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
             {assignment.subject} · {isCompleted ? assignment.completedAt : assignment.deadline}
+            {isUrgent && <span className="ml-1 font-medium text-rose-600">마감 임박</span>}
           </p>
         </div>
         {!isCompleted && (
-          <div className="relative flex gap-1">
+          <div className="relative flex shrink-0 gap-0.5">
             <button
               type="button"
-              className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground/70"
+              className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground/70"
               title="수정"
             >
-              <Edit3 className="h-4 w-4" />
+              <Edit3 className="h-3.5 w-3.5" />
             </button>
             {showDeleteConfirm ? (
-              <div className="absolute right-0 top-8 z-10 flex gap-1 rounded border border-border/50 bg-white p-2 shadow-lg">
+              <div className="absolute right-0 top-8 z-10 flex gap-1 rounded-lg border border-border/50 bg-white p-2 shadow-lg">
                 <Button
                   size="sm"
                   variant="destructive"
@@ -1367,10 +1385,10 @@ function IncompleteAssignmentCard({
                   e.stopPropagation();
                   onDelete();
                 }}
-                className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-red-600"
+                className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-600"
                 title="삭제"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
