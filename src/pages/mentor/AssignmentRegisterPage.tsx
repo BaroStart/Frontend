@@ -311,8 +311,8 @@ export function AssignmentRegisterPage() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* 기본 정보 */}
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-          <h2 className="mb-5 text-lg font-semibold text-slate-900">기본 정보</h2>
+        <section className="rounded-xl border border-border/50 bg-white p-5 shadow-sm sm:p-8">
+          <h2 className="mb-5 text-lg font-semibold text-foreground">기본 정보</h2>
           <div className="grid items-start gap-6 sm:grid-cols-2">
             <div>
               <Label>대상 학생 선택</Label>
@@ -339,8 +339,8 @@ export function AssignmentRegisterPage() {
                     className={cn(
                       'h-9 rounded-md px-3 text-sm font-medium transition-colors',
                       form.dateMode === mode
-                        ? 'bg-slate-800 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                        ? 'bg-foreground text-white'
+                        : 'bg-secondary text-foreground/70 hover:bg-secondary/80',
                     )}
                   >
                     {mode === 'single' ? '단일 날짜' : '요일 반복'}
@@ -357,7 +357,7 @@ export function AssignmentRegisterPage() {
               {form.dateMode === 'recurring' && (
                 <div className="mt-4 space-y-4">
                   <div>
-                    <p className="mb-2 text-xs font-medium text-slate-600">반복 요일</p>
+                    <p className="mb-2 text-xs font-medium text-foreground/70">반복 요일</p>
                     <WeekdaySelector
                       value={form.recurringDays}
                       onChange={(v) => updateForm('recurringDays', v)}
@@ -366,21 +366,21 @@ export function AssignmentRegisterPage() {
                   </div>
                   <div className="flex items-end gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <Label className="text-sm font-medium text-slate-700">시작일</Label>
+                      <Label className="text-sm font-medium text-foreground/80">시작일</Label>
                       <DatePicker
                         value={form.recurringStartDate}
                         onChange={(v) => updateForm('recurringStartDate', v)}
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <Label className="text-sm font-medium text-slate-700">종료일</Label>
+                      <Label className="text-sm font-medium text-foreground/80">종료일</Label>
                       <DatePicker
                         value={form.recurringEndDate}
                         onChange={(v) => updateForm('recurringEndDate', v)}
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <Label className="text-sm font-medium text-slate-700">종료 시간</Label>
+                      <Label className="text-sm font-medium text-foreground/80">종료 시간</Label>
                       <TimePicker
                         value={form.recurringEndTime}
                         onChange={(v) => updateForm('recurringEndTime', v)}
@@ -393,9 +393,9 @@ export function AssignmentRegisterPage() {
           </div>
 
           {selectedMentee && (
-            <div className="mt-4 rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-4">
-              <p className="text-sm font-medium text-slate-700">학생 정보 요약</p>
-              <ul className="mt-2 space-y-1 text-xs text-slate-600">
+            <div className="mt-4 rounded-lg border border-dashed border-border/50 bg-secondary/30 p-4">
+              <p className="text-sm font-medium text-foreground/80">학생 정보 요약</p>
+              <ul className="mt-2 space-y-1 text-xs text-foreground/70">
                 <li>현재 진도: 수학 - 미적분 2단원, 영어 - 독해 유형 2과</li>
                 <li>최근 제출률: {kpi?.assignmentCompletionRate ?? 95}% (지난 20일 기준)</li>
                 <li>평균 학습 시간: 4시간 30분/일</li>
@@ -405,8 +405,8 @@ export function AssignmentRegisterPage() {
         </section>
 
         {/* 과제 상세 정보 */}
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-          <h2 className="mb-6 text-lg font-semibold text-slate-900">과제 상세 정보</h2>
+        <section className="rounded-xl border border-border/50 bg-white p-5 shadow-sm sm:p-8">
+          <h2 className="mb-6 text-lg font-semibold text-foreground">과제 상세 정보</h2>
           <div className="space-y-6">
             <Input
               label="과제 제목"
@@ -429,10 +429,10 @@ export function AssignmentRegisterPage() {
               <div>
                 <Label>과제 목표 선택</Label>
                 {learningGoals.length === 0 ? (
-                  <div className="mt-1.5 rounded-md border border-slate-200 p-3 text-center text-sm text-slate-500">
+                  <div className="mt-1.5 rounded-md border border-border/50 p-3 text-center text-sm text-muted-foreground">
                     등록된 과제 목표가 없습니다.
                     <br />
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-muted-foreground">
                       과제 관리 &gt; 과제 목표에서 추가하세요
                     </span>
                   </div>
@@ -467,8 +467,8 @@ export function AssignmentRegisterPage() {
         </section>
 
         {/* 학습 자료 */}
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">학습 자료</h2>
+        <section className="rounded-xl border border-border/50 bg-white p-5 shadow-sm sm:p-8">
+          <h2 className="mb-4 text-lg font-semibold text-foreground">학습 자료</h2>
           <Tabs
             items={[
               { id: 'column' as const, label: '셀스터디 칼럼' },
@@ -481,7 +481,7 @@ export function AssignmentRegisterPage() {
           {materialTab === 'column' ? (
             <div className="mt-4 space-y-4">
               <div>
-                <p className="mb-2 text-xs font-medium text-slate-600">
+                <p className="mb-2 text-xs font-medium text-foreground/70">
                   동기부여·학습법 칼럼 템플릿
                 </p>
                 <Select
@@ -496,7 +496,7 @@ export function AssignmentRegisterPage() {
                     <SelectValue placeholder="선택 안 함 (과제 목표/과목 템플릿 또는 직접 작성)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <div className="px-2 py-1.5 text-xs font-semibold text-slate-500">
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
                       생활 습관 & 동기부여
                     </div>
                     {MOTIVATIONAL_COLUMN_TEMPLATES.filter(
@@ -506,7 +506,7 @@ export function AssignmentRegisterPage() {
                         {m.label}
                       </SelectItem>
                     ))}
-                    <div className="mt-1 border-t border-slate-100 px-2 py-1.5 text-xs font-semibold text-slate-500">
+                    <div className="mt-1 border-t border-border/30 px-2 py-1.5 text-xs font-semibold text-muted-foreground">
                       국영수 공부법 시리즈
                     </div>
                     {MOTIVATIONAL_COLUMN_TEMPLATES.filter(
@@ -531,16 +531,16 @@ export function AssignmentRegisterPage() {
             <div className="mt-4 space-y-4">
               {matchedMaterials.length > 0 && (
                 <div>
-                  <p className="mb-2 text-sm font-medium text-slate-700">자동 매칭된 학습지</p>
+                  <p className="mb-2 text-sm font-medium text-foreground/80">자동 매칭된 학습지</p>
                   <div className="space-y-2">
                     {matchedMaterials.map((m) => (
                       <div
                         key={m.id}
-                        className="flex items-center justify-between rounded-lg border border-slate-200 p-3"
+                        className="flex items-center justify-between rounded-lg border border-border/50 p-3"
                       >
                         <div>
                           <p className="text-sm font-medium">{m.title}</p>
-                          {m.fileSize && <p className="text-xs text-slate-500">{m.fileSize}</p>}
+                          {m.fileSize && <p className="text-xs text-muted-foreground">{m.fileSize}</p>}
                         </div>
                         <Button size="sm" variant="outline">
                           다운로드
@@ -551,10 +551,10 @@ export function AssignmentRegisterPage() {
                 </div>
               )}
               <div>
-                <p className="mb-2 text-sm font-medium text-slate-700">추가 PDF 업로드</p>
-                <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-slate-50/50 py-8 transition-colors hover:border-slate-300 hover:bg-slate-50">
-                  <FileUp className="h-10 w-10 text-slate-400" />
-                  <span className="mt-2 text-sm text-slate-500">클릭하여 파일 업로드</span>
+                <p className="mb-2 text-sm font-medium text-foreground/80">추가 PDF 업로드</p>
+                <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border/50 bg-secondary/30 py-8 transition-colors hover:border-border hover:bg-secondary/50">
+                  <FileUp className="h-10 w-10 text-muted-foreground" />
+                  <span className="mt-2 text-sm text-muted-foreground">클릭하여 파일 업로드</span>
                   <input
                     type="file"
                     accept=".pdf"
@@ -568,10 +568,10 @@ export function AssignmentRegisterPage() {
                     {uploadedFiles.map((f) => (
                       <div
                         key={f.id}
-                        className="flex items-center justify-between rounded-lg border border-slate-200 p-3"
+                        className="flex items-center justify-between rounded-lg border border-border/50 p-3"
                       >
                         <span className="text-sm font-medium">{f.name}</span>
-                        <span className="text-xs text-slate-500">{f.size}</span>
+                        <span className="text-xs text-muted-foreground">{f.size}</span>
                       </div>
                     ))}
                   </div>

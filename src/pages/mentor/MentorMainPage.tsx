@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
+  ArrowRight,
   BookOpen,
   Calendar,
   Camera,
@@ -9,18 +10,19 @@ import {
   ChevronRight,
   Clock,
   FileText,
-  FileUp,
-  ListChecks,
-  MessageCircle,
   MoreVertical,
+  PenLine,
   Plus,
+  Sparkles,
   Trash2,
-  TrendingUp,
 } from 'lucide-react';
 
 import { UserIcon } from '@/components/icons';
 import { FeedbackWriteModal } from '@/components/mentor/FeedbackWriteModal';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { FilterTabs } from '@/components/ui/FilterTabs';
+import { toast } from '@/components/ui/Toast';
 import { useMentees } from '@/hooks/useMentees';
 import { useSubmittedAssignments } from '@/hooks/useSubmittedAssignments';
 import { getDeadlineStatus } from '@/lib/feedbackDeadline';
@@ -52,10 +54,11 @@ export function MentorMainPage() {
   const { data: submittedAssignments = [] } = useSubmittedAssignments();
 
   const totalPendingFeedback = mentees.reduce((sum, m) => sum + m.pendingFeedbackCount, 0);
-  const pendingWithoutFeedback = submittedAssignments.filter((a) => !a.feedbackDone);
-  const overdueFeedbackCount = pendingWithoutFeedback.filter(
-    (a) => getDeadlineStatus(a.submittedAt) === 'overdue',
+  const overdueCount = submittedAssignments.filter(
+    (a) => !a.feedbackDone && getDeadlineStatus(a.submittedAt) === 'overdue',
   ).length;
+  const totalAssignments = mentees.reduce((sum, m) => sum + m.todayTotal, 0);
+  const completedAssignments = mentees.reduce((sum, m) => sum + m.todaySubmitted, 0);
   const weeklyCompleted = 8;
 
   const filteredMentees = mentees
@@ -72,92 +75,120 @@ export function MentorMainPage() {
       window.confirm(`"${menteeName}" 멘티를 삭제하시겠습니까?\n삭제된 멘티는 목록에서 제거됩니다.`)
     ) {
       setDeletedMenteeIds((prev) => new Set(prev).add(menteeId));
-      alert('멘티가 삭제되었습니다.');
+      toast.success('멘티가 삭제되었습니다.');
     }
   };
 
   return (
-    <div className="min-w-0 space-y-6">
-      {/* 상단: 다크 헤더 (환영 메시지 + 요약 카드) */}
-      <section className="flex flex-col gap-4 rounded-xl bg-slate-800 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
-        <div className="min-w-0">
-          <h2 className="text-base font-bold text-white sm:text-lg">
-            안녕하세요, {user?.name ?? '멘토'}님! 👋
-          </h2>
-          <p className="mt-1 text-sm text-slate-300">오늘도 멘티들의 성장을 함께 만들어가요</p>
-        </div>
-        <div className="flex flex-wrap gap-2 sm:gap-4">
-          <SummaryCard label="담당 멘티" value={`${mentees.length}명`} />
-          <Link to="/mentor/feedback">
-            <SummaryCard
-              label="대기 중인 피드백"
-              value={`${totalPendingFeedback}개`}
-              badge={
-                overdueFeedbackCount > 0 ? (
-                  <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-xs font-medium text-white">
-                    마감 초과 {overdueFeedbackCount}
-                  </span>
-                ) : undefined
-              }
-            />
-          </Link>
-          <SummaryCard label="이번 주 완료 과제" value={`${weeklyCompleted}개`} />
-        </div>
-      </section>
+    <div className="min-w-0 space-y-5">
+      {/* 웰컴 섹션 */}
+      <section
+        className="relative overflow-hidden rounded-xl border border-border/50 p-6"
+        style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8fbff 50%, #f0f7fc 100%)',
+        }}
+      >
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-foreground sm:text-2xl">
+              {user?.name ?? '멘토'}님, 안녕하세요!
+            </h2>
+            <p className="mt-1.5 text-sm text-foreground/60">
+              오늘 <span className="font-bold text-brand">{totalPendingFeedback}개</span>의 피드백이
+              기다리고 있어요
+            </p>
+          </div>
 
-      {/* 퀵버튼 */}
-      <section>
-        <h3 className="mb-3 text-sm font-semibold text-slate-700">빠른 작업</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Link to={`/mentor/mentees/${mentees[0]?.id}/assignments/new`}>
-            <QuickActionCard
-              icon={<Plus className="h-8 w-8" />}
-              title="새 과제 등록"
-              description="멘티에게 과제 부여하기"
-            />
+          {/* 빠른 액션 버튼 */}
+          <div className="flex shrink-0 gap-2.5">
+            <Link
+              to={`/mentor/mentees/${mentees[0]?.id}/assignments/new`}
+              className="flex h-8 items-center gap-1.5 rounded-md border border-foreground/15 bg-white px-4 text-xs font-semibold text-foreground shadow-sm transition-all hover:border-foreground/30 hover:shadow-md"
+            >
+              <Plus className="h-3.5 w-3.5" />새 과제
+            </Link>
+            <Button
+              variant="brand-soft"
+              size="sm"
+              className="gap-1.5 shadow-sm"
+              onClick={() => openFeedbackModal()}
+            >
+              <PenLine className="h-3 w-3" />
+              피드백 작성
+            </Button>
+          </div>
+        </div>
+
+        {/* 요약 통계 */}
+        <div className="relative mt-5 grid grid-cols-4 gap-3">
+          <div className="rounded-lg border border-border/60 bg-white px-3 py-3 text-center">
+            <p className="text-lg font-bold text-foreground">
+              {mentees.length}
+              <span className="ml-0.5 text-xs font-normal text-foreground/50">명</span>
+            </p>
+            <p className="mt-0.5 text-[11px] text-foreground/60">담당 멘티</p>
+          </div>
+          <Link
+            to="/mentor/feedback"
+            className="rounded-lg border border-brand/20 bg-brand/5 px-3 py-3 text-center transition-colors hover:bg-brand/10"
+          >
+            <p className="text-lg font-bold text-brand">
+              {totalPendingFeedback}
+              <span className="ml-0.5 text-xs font-normal">개</span>
+            </p>
+            <p className="mt-0.5 text-[11px] text-foreground/60">
+              대기 피드백
+              {overdueCount > 0 && (
+                <span className="ml-1 inline-flex rounded bg-red-100 px-1 py-px text-[9px] font-semibold text-red-600">
+                  {overdueCount} 마감 초과
+                </span>
+              )}
+            </p>
           </Link>
-          <button type="button" onClick={() => openFeedbackModal()} className="w-full text-left">
-            <QuickActionCard
-              icon={<FileUp className="h-8 w-8" />}
-              title="피드백 작성"
-              description="제출된 과제 검토하기"
-            />
-          </button>
+          <div className="rounded-lg border border-border/60 bg-white px-3 py-3 text-center">
+            <p className="text-lg font-bold text-foreground">
+              {completedAssignments}
+              <span className="text-xs font-normal text-foreground/50">/{totalAssignments}</span>
+            </p>
+            <p className="mt-0.5 text-[11px] text-foreground/60">오늘의 과제</p>
+          </div>
+          <div className="rounded-lg border border-border/60 bg-white px-3 py-3 text-center">
+            <p className="text-lg font-bold text-foreground">
+              {weeklyCompleted}
+              <span className="ml-0.5 text-xs font-normal text-foreground/50">개</span>
+            </p>
+            <p className="mt-0.5 text-[11px] text-foreground/60">주간 완료</p>
+          </div>
         </div>
       </section>
 
       {/* 담당 멘티 현황 */}
       <section>
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <h3 className="text-base font-bold text-slate-800 sm:text-lg">담당 멘티 현황</h3>
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
-            {FILTER_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setFilterTab(tab.id)}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                  filterTab === tab.id
-                    ? 'bg-slate-800 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="text-base font-bold text-foreground">담당 멘티 현황</h3>
+          <FilterTabs
+            items={FILTER_TABS.map((tab) => ({ id: tab.id, label: tab.label }))}
+            value={filterTab}
+            onChange={setFilterTab}
+          />
         </div>
-        <div className="space-y-4">
-          {filteredMentees.map((mentee) => (
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          {filteredMentees.map((mentee, index) => (
             <MenteeCard
               key={mentee.id}
               mentee={mentee}
               recentAssignments={submittedAssignments.filter((a) => a.menteeId === mentee.id)}
               onDelete={() => handleDeleteMentee(mentee.id, mentee.name)}
               onFeedbackClick={(assignmentId) => openFeedbackModal(mentee.id, assignmentId)}
+              index={index}
             />
           ))}
         </div>
+
+        {filteredMentees.length === 0 && (
+          <EmptyState icon={<UserIcon className="h-6 w-6" />} title="해당하는 멘티가 없습니다" />
+        )}
       </section>
 
       <FeedbackWriteModal
@@ -166,48 +197,6 @@ export function MentorMainPage() {
         initialMenteeId={feedbackModalInitial.menteeId}
         initialAssignmentId={feedbackModalInitial.assignmentId}
       />
-    </div>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  badge,
-}: {
-  label: string;
-  value: string;
-  badge?: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-lg bg-slate-700/80 px-3 py-2 sm:px-4 sm:py-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-slate-400">{label}</p>
-        {badge}
-      </div>
-      <p className="mt-0.5 text-lg font-bold text-white sm:mt-1 sm:text-xl">{value}</p>
-    </div>
-  );
-}
-
-function QuickActionCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300 hover:shadow-sm sm:gap-4 sm:p-5">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 sm:h-14 sm:w-14">
-        {icon}
-      </div>
-      <div>
-        <p className="font-semibold text-slate-900">{title}</p>
-        <p className="text-sm text-slate-500">{description}</p>
-      </div>
     </div>
   );
 }
@@ -227,23 +216,32 @@ function RecentAssignmentItem({
         : FileText;
 
   return (
-    <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-slate-200 p-2.5">
-      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-slate-100 text-slate-600">
-          <Icon className="h-4 w-4" />
+    <div className="flex min-w-0 items-center justify-between gap-2 rounded-md border border-border bg-white p-2.5 transition-colors hover:bg-secondary/50">
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-secondary text-muted-foreground">
+          <Icon className="h-3.5 w-3.5" />
         </div>
-        <div className="min-w-0 flex-1 overflow-hidden">
-          <p className="truncate text-sm font-medium text-slate-900">{assignment.title}</p>
-          <p className="truncate text-xs text-slate-500">{assignment.submittedAt} 제출</p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-medium text-foreground">{assignment.title}</p>
+          <p className="text-[11px] text-muted-foreground">{assignment.submittedAt}</p>
         </div>
       </div>
       {assignment.feedbackDone ? (
-        <span className="flex shrink-0 items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
-          <Check className="h-3.5 w-3.5" />
+        <Button variant="success-soft" size="xs" className="shrink-0 gap-1 pointer-events-none">
+          <Check className="h-3 w-3" />
           피드백 완료
-        </span>
+        </Button>
+      ) : getDeadlineStatus(assignment.submittedAt) === 'overdue' ? (
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className="rounded bg-red-100 px-1 py-px text-[9px] font-semibold text-red-600">
+            마감 초과
+          </span>
+          <Button variant="brand-soft" size="xs" onClick={onFeedbackClick}>
+            피드백 작성하기
+          </Button>
+        </div>
       ) : (
-        <Button size="sm" className="whitespace-nowrap" onClick={onFeedbackClick}>
+        <Button variant="brand-soft" size="xs" className="shrink-0" onClick={onFeedbackClick}>
           피드백 작성하기
         </Button>
       )}
@@ -256,53 +254,65 @@ function MenteeCard({
   recentAssignments,
   onDelete,
   onFeedbackClick,
+  index,
 }: {
   mentee: MenteeSummary;
   recentAssignments: SubmittedAssignment[];
   onDelete: () => void;
   onFeedbackClick: (assignmentId: string) => void;
+  index: number;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const todayProgress =
     mentee.todayTotal > 0 ? (mentee.todaySubmitted / mentee.todayTotal) * 100 : 0;
 
   return (
-    <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-      {/* 프로필 헤더 */}
-      <div className="flex items-start gap-4">
-        <Link
-          to={`/mentor/mentees/${mentee.id}`}
-          className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 transition-opacity hover:opacity-80 sm:h-14 sm:w-14"
-        >
-          <UserIcon className="h-7 w-7 text-slate-500" />
-        </Link>
-        <Link
-          to={`/mentor/mentees/${mentee.id}`}
-          className="min-w-0 flex-1 cursor-pointer transition-opacity hover:opacity-80"
-        >
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <span className="text-base font-bold text-slate-900 sm:text-lg">{mentee.name}</span>
-            <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">
-              {mentee.gradeFull ?? mentee.grade}
-            </span>
-            <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs font-medium text-white">
-              활동 중
-            </span>
+    <div
+      className="group relative overflow-hidden rounded-xl border border-border/50 bg-white p-5 transition-all hover:shadow-soft"
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      {/* 상단: 프로필 */}
+      <div className="mb-4 flex items-start justify-between">
+        <Link to={`/mentor/mentees/${mentee.id}`} className="flex items-center gap-3">
+          <div className="relative">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
+              <UserIcon className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500" />
           </div>
-          <p className="mt-1 text-sm text-slate-500">
-            {mentee.school} | 희망 전공: {mentee.desiredMajor}
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
-              멘토링 시작: {mentee.mentoringStart}
-            </span>
-            <span className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              최근 활동: {mentee.lastActive}
-            </span>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-foreground">{mentee.name}</span>
+              <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-foreground/70">
+                {mentee.gradeFull ?? mentee.grade}
+              </span>
+            </div>
+            <p className="text-xs text-foreground/70">
+              {mentee.school}
+              {mentee.desiredMajor && (
+                <span className="ml-1">· 희망 전공: {mentee.desiredMajor}</span>
+              )}
+            </p>
+            <div className="flex items-center gap-2.5 text-[11px] text-foreground/50">
+              {mentee.mentoringStart && (
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {mentee.mentoringStart}
+                </span>
+              )}
+              {mentee.lastActive && (
+                <>
+                  <span>·</span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {mentee.lastActive}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </Link>
+
         <div className="relative">
           <button
             type="button"
@@ -310,30 +320,24 @@ function MenteeCard({
               e.stopPropagation();
               setMenuOpen((prev) => !prev);
             }}
-            className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            title="더보기"
-            aria-expanded={menuOpen}
+            className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
-            <MoreVertical className="h-5 w-5" />
+            <MoreVertical className="h-4 w-4" />
           </button>
           {menuOpen && (
             <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setMenuOpen(false)}
-                aria-hidden="true"
-              />
-              <div className="absolute right-0 top-full z-20 mt-1 min-w-[120px] rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} aria-hidden />
+              <div className="absolute right-0 top-full z-20 mt-1 w-36 overflow-hidden rounded-md border border-border bg-white shadow-lg">
                 <button
                   type="button"
                   onClick={() => {
                     setMenuOpen(false);
                     onDelete();
                   }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-destructive transition-colors hover:bg-destructive/5"
                 >
-                  <Trash2 className="h-4 w-4" />
-                  삭제
+                  <Trash2 className="h-3.5 w-3.5" />
+                  멘티 삭제
                 </button>
               </div>
             </>
@@ -341,70 +345,60 @@ function MenteeCard({
         </div>
       </div>
 
-      {/* 요약 통계 3개 */}
-      <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
-        <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
-          <div className="flex items-center gap-1.5">
-            <ListChecks className="h-4 w-4 text-slate-500" />
-            <span className="text-xs font-medium text-slate-500">오늘의 과제</span>
-          </div>
-          <p className="mt-0.5 text-base font-bold text-slate-900 sm:mt-1 sm:text-lg">
+      {/* 진행률 바 */}
+      <div className="mb-4">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-xs font-medium text-foreground/60">오늘 진행률</span>
+          <span className="text-xs font-bold text-foreground">
             {mentee.todaySubmitted}/{mentee.todayTotal}
-          </p>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
-            <div
-              className="h-full rounded-full bg-slate-600"
-              style={{ width: `${todayProgress}%` }}
-            />
-          </div>
+          </span>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
-          <div className="flex items-center gap-1.5">
-            <BookOpen className="h-4 w-4 text-slate-500" />
-            <span className="text-xs font-medium text-slate-500">학습 인증</span>
-          </div>
-          <p className="mt-0.5 text-base font-bold text-slate-900 sm:mt-1 sm:text-lg">
-            {mentee.learningCert ?? '-'}
-          </p>
-          <p className="text-xs text-slate-500">{mentee.learningCertUploaded ?? '-'}</p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
-          <div className="flex items-center gap-1.5">
-            <TrendingUp className="h-4 w-4 text-slate-500" />
-            <span className="text-xs font-medium text-slate-500">주간 달성률</span>
-          </div>
-          <p className="mt-0.5 text-base font-bold text-slate-900 sm:mt-1 sm:text-lg">
-            {mentee.weeklyAchievement ?? 0}%
-          </p>
-          {mentee.weeklyChange != null && (
-            <p className="text-xs text-slate-500">
-              {mentee.weeklyChange >= 0 ? '↑' : '↓'} 지난주 대비{' '}
-              {mentee.weeklyChange >= 0 ? '+' : ''}
-              {mentee.weeklyChange}%
-            </p>
-          )}
+        <div className="h-2 overflow-hidden rounded-full bg-secondary">
+          <div
+            className="h-full rounded-full bg-brand transition-all duration-500"
+            style={{ width: `${todayProgress}%` }}
+          />
         </div>
       </div>
 
-      {/* 최근 제출 과제 */}
-      <div className="mt-4">
-        <div className="mb-2 flex items-center justify-between">
-          <h4 className="text-sm font-semibold text-slate-800">최근 제출 과제</h4>
+      {/* 통계 미니 카드 */}
+      <div className="mb-4 grid grid-cols-3 gap-2">
+        <div className="rounded-lg bg-secondary/70 px-2 py-2.5 text-center">
+          <p className="text-sm font-bold text-foreground">{mentee.weeklyAchievement ?? 0}%</p>
+          <p className="mt-0.5 text-[10px] text-foreground/50">주간 달성</p>
+        </div>
+        <div className="rounded-lg bg-secondary/70 px-2 py-2.5 text-center">
+          <p className="text-sm font-bold text-foreground">{mentee.learningCert ?? '-'}</p>
+          <p className="mt-0.5 text-[10px] text-foreground/50">학습 인증</p>
+        </div>
+        <div className="rounded-lg bg-secondary/70 px-2 py-2.5 text-center">
+          <p className="text-sm font-bold text-foreground">{mentee.pendingFeedbackCount}</p>
+          <p className="mt-0.5 text-[10px] text-foreground/50">대기 피드백</p>
+        </div>
+      </div>
+
+      {/* 최근 과제 */}
+      <div>
+        <div className="mb-2.5 flex items-center justify-between">
+          <h4 className="text-xs font-bold text-foreground">최근 제출</h4>
           <Link
             to={`/mentor/mentees/${mentee.id}`}
-            className="flex items-center gap-0.5 text-xs font-medium text-slate-600 hover:text-slate-900"
+            className="flex items-center gap-0.5 text-[11px] font-medium text-brand hover:underline"
           >
             전체 보기
-            <ChevronRight className="h-3.5 w-3.5" />
+            <ChevronRight className="h-3 w-3" />
           </Link>
         </div>
-        <div className="min-w-0 space-y-2">
+        <div className="space-y-1.5">
           {(() => {
             const recent = [...recentAssignments]
               .sort((a, b) => (b.submittedAt > a.submittedAt ? 1 : -1))
-              .slice(0, 3);
+              .slice(0, 2);
             return recent.length === 0 ? (
-              <p className="py-4 text-center text-xs text-slate-500">제출된 과제가 없습니다.</p>
+              <div className="rounded-md bg-secondary/50 p-5 text-center">
+                <Sparkles className="mx-auto mb-1.5 h-4 w-4 text-muted-foreground/50" />
+                <p className="text-[11px] text-muted-foreground">아직 제출된 과제가 없어요</p>
+              </div>
             ) : (
               recent.map((a) => (
                 <RecentAssignmentItem
@@ -418,21 +412,21 @@ function MenteeCard({
         </div>
       </div>
 
-      {/* 하단 액션 버튼 */}
-      <div className="mt-4 flex min-w-0 items-center gap-2">
+      {/* 하단 액션 */}
+      <div className="mt-4 flex gap-2">
         <Link
           to={`/mentor/mentees/${mentee.id}/assignments/new`}
-          className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border bg-white py-2 text-xs font-medium text-foreground transition-all hover:bg-secondary"
         >
-          <Plus className="h-4 w-4 shrink-0" />
-          <span className="truncate">새 과제 등록</span>
+          <Plus className="h-3.5 w-3.5" />
+          과제 등록
         </Link>
         <Link
           to={`/mentor/mentees/${mentee.id}`}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 transition-colors hover:bg-slate-50"
-          title="채팅/피드백"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-slate-900 py-2 text-xs font-medium text-white transition-all hover:bg-slate-800"
         >
-          <MessageCircle className="h-5 w-5" />
+          상세 보기
+          <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
     </div>

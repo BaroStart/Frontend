@@ -30,7 +30,7 @@ export function Tabs<T extends string>({
 }: TabsProps<T>) {
   if (variant === 'pill') {
     return (
-      <div className={cn('flex rounded-lg bg-slate-100 p-1', className)}>
+      <div className={cn('flex rounded-lg bg-secondary p-1', className)}>
         {items.map((item) => {
           const Icon = item.icon;
           return (
@@ -41,8 +41,8 @@ export function Tabs<T extends string>({
               className={cn(
                 'flex flex-1 items-center justify-center gap-2 rounded-md py-2.5 text-sm font-medium transition-colors',
                 value === item.id
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700',
+                  ? 'bg-white text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
               )}
             >
               {Icon && <Icon className="h-4 w-4" />}
@@ -56,7 +56,7 @@ export function Tabs<T extends string>({
 
   // underline variant
   return (
-    <div className={cn('flex items-center justify-between border-b border-slate-200', className)}>
+    <div className={cn('flex items-center justify-between border-b border-border', className)}>
       <div className="flex gap-1">
         {items.map((item) => {
           const Icon = item.icon;
@@ -68,8 +68,8 @@ export function Tabs<T extends string>({
               className={cn(
                 'flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors',
                 value === item.id
-                  ? 'border-slate-800 text-slate-900'
-                  : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700',
+                  ? 'border-foreground text-foreground'
+                  : 'border-transparent text-muted-foreground hover:border-foreground/20 hover:text-foreground',
               )}
             >
               {Icon && <Icon className="h-4 w-4" />}

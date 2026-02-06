@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { Bell, LogOut, Menu } from 'lucide-react';
 
+import { UserIcon } from '@/components/icons';
 import { MOCK_NOTIFICATIONS } from '@/data/menteeDetailMock';
 import { useAuthStore } from '@/stores/useAuthStore';
 
@@ -10,13 +11,13 @@ interface HeaderProps {
   onMenuClick?: () => void;
 }
 
-const pageTitles: Record<string, { title: string }> = {
-  '/mentor': { title: '멘토 대시보드' },
-  '/mentor/assignments': { title: '과제 관리' },
-  '/mentor/assignments/new': { title: '과제 등록' },
-  '/mentor/planner': { title: '플래너 관리' },
-  '/mentor/feedback': { title: '피드백 관리' },
-  '/mentor/templates': { title: '템플릿' },
+const pageTitles: Record<string, { title: string; breadcrumb?: string[] }> = {
+  '/mentor': { title: '대시보드', breadcrumb: ['홈'] },
+  '/mentor/assignments': { title: '과제 관리', breadcrumb: ['홈', '과제'] },
+  '/mentor/assignments/new': { title: '과제 등록', breadcrumb: ['홈', '과제', '새 과제'] },
+  '/mentor/planner': { title: '플래너 관리', breadcrumb: ['홈', '플래너'] },
+  '/mentor/feedback': { title: '피드백 관리', breadcrumb: ['홈', '피드백'] },
+  '/mentor/templates': { title: '템플릿', breadcrumb: ['홈', '템플릿'] },
 };
 
 export function Header({ onMenuClick }: HeaderProps) {
@@ -28,15 +29,15 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   const getPageInfo = () => {
     if (location.pathname.includes('/assignments/new')) {
-      return { title: '과제 등록' };
+      return { title: '과제 등록', breadcrumb: ['홈', '과제', '새 과제'] };
     }
     if (location.pathname.includes('/feedback/')) {
-      return { title: '피드백 등록' };
+      return { title: '피드백 작성', breadcrumb: ['홈', '피드백', '작성'] };
     }
     if (location.pathname.startsWith('/mentor/mentees/')) {
-      return { title: '멘티 상세' };
+      return { title: '멘티 관리', breadcrumb: ['홈', '멘티', '상세'] };
     }
-    return pageTitles[location.pathname] ?? { title: '멘토 대시보드' };
+    return pageTitles[location.pathname] ?? { title: '대시보드', breadcrumb: ['홈'] };
   };
   const { title } = getPageInfo();
 
@@ -46,123 +47,146 @@ export function Header({ onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-2 border-b border-slate-200 bg-white px-4 sm:h-16 sm:px-6">
-      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-        <button
-          type="button"
-          onClick={onMenuClick}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 md:hidden"
-          aria-label="메뉴 열기"
-        >
-          <Menu size={20} />
-        </button>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-semibold text-slate-900 sm:text-lg">{title}</h1>
-        </div>
-      </div>
-
-      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-        {/* 알림 */}
-        <div className="relative">
+    <header className="sticky top-0 z-10 border-b border-border/50 bg-white/80 backdrop-blur-xl">
+      <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <button
             type="button"
-            onClick={() => {
-              setNotificationOpen((prev) => !prev);
-              setProfileMenuOpen(false);
-            }}
-            className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-            aria-expanded={notificationOpen}
-            aria-label="알림"
+            onClick={onMenuClick}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-foreground/60 transition-all hover:bg-secondary hover:text-foreground md:hidden"
+            aria-label="메뉴 열기"
           >
-            <Bell size={20} />
-            {MOCK_NOTIFICATIONS.length > 0 && (
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
-            )}
+            <Menu size={20} />
           </button>
-          {notificationOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setNotificationOpen(false)}
-                aria-hidden="true"
-              />
-              <div className="absolute right-0 top-full z-20 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-                <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-                  <h3 className="font-semibold text-slate-900">알림</h3>
-                  <p className="text-xs text-slate-500">최근 알림을 확인하세요</p>
-                </div>
-                <div className="max-h-72 overflow-y-auto">
-                  {MOCK_NOTIFICATIONS.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-slate-500">알림이 없습니다.</p>
-                  ) : (
-                    MOCK_NOTIFICATIONS.map((n) => (
-                      <div
-                        key={n.id}
-                        className="border-b border-slate-100 px-4 py-3 transition-colors last:border-b-0 hover:bg-slate-50"
-                      >
-                        <p className="text-sm font-medium text-slate-900">{n.title}</p>
-                        <p className="mt-0.5 text-xs text-slate-600">{n.message}</p>
-                        <p className="mt-1 text-xs text-slate-400">{n.time}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </>
-          )}
+          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-foreground sm:text-xl">{title}</h1>
         </div>
 
-        {/* 프로필 드롭다운 */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => {
-              setProfileMenuOpen((prev) => !prev);
-              setNotificationOpen(false);
-            }}
-            className="flex items-center gap-2 rounded-lg p-1.5 transition-colors hover:bg-slate-100"
-            aria-expanded={profileMenuOpen}
-            aria-label="프로필 메뉴"
-          >
-            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-200">
-              {user?.profileImage ? (
-                <img src={user.profileImage} alt={user.name} className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-sm font-medium text-slate-600">
-                  {user?.name?.charAt(0) ?? 'M'}
+        <div className="flex shrink-0 items-center gap-2">
+          {/* 알림 */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setNotificationOpen((prev) => !prev);
+                setProfileMenuOpen(false);
+              }}
+              className="relative flex h-10 w-10 items-center justify-center rounded-lg text-foreground/60 transition-colors hover:text-foreground"
+              aria-expanded={notificationOpen}
+              aria-label="알림"
+            >
+              <Bell size={20} />
+              {MOCK_NOTIFICATIONS.length > 0 && (
+                <span className="absolute right-2 top-2 flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
                 </span>
               )}
-            </div>
-          </button>
+            </button>
+            {notificationOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setNotificationOpen(false)}
+                  aria-hidden="true"
+                />
+                <div className="absolute right-0 top-full z-20 mt-2 w-80 overflow-hidden rounded-lg border border-border bg-white shadow-lg">
+                  <div className="border-b border-border px-4 py-3">
+                    <h3 className="text-sm font-semibold text-foreground">알림</h3>
+                    <p className="text-xs text-muted-foreground">최근 알림 {MOCK_NOTIFICATIONS.length}개</p>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {MOCK_NOTIFICATIONS.length === 0 ? (
+                      <div className="py-12 text-center">
+                        <Bell className="mx-auto h-8 w-8 text-muted-foreground/30" />
+                        <p className="mt-2 text-sm text-muted-foreground">알림이 없습니다</p>
+                      </div>
+                    ) : (
+                      MOCK_NOTIFICATIONS.map((n, index) => (
+                        <div
+                          key={n.id}
+                          className="border-b border-border/50 px-4 py-3 transition-colors last:border-b-0 hover:bg-secondary/50 cursor-pointer"
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-foreground/30" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-foreground">{n.title}</p>
+                              <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
+                                {n.message}
+                              </p>
+                              <p className="mt-1.5 text-[10px] text-muted-foreground/70">
+                                {n.time}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
-          {profileMenuOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setProfileMenuOpen(false)}
-                aria-hidden="true"
-              />
-              <div className="absolute right-0 top-full z-20 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-                <div className="border-b border-slate-100 px-4 py-3">
-                  <p className="font-medium text-slate-900">{user?.name ?? '멘토'}</p>
-                  <p className="text-xs text-slate-500">{user?.school ?? '소속 없음'}</p>
-                </div>
-                <div className="py-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileMenuOpen(false);
-                      handleLogout();
-                    }}
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-50"
-                  >
-                    <LogOut size={16} className="text-slate-400" />
-                    로그아웃
-                  </button>
-                </div>
+          {/* 프로필 드롭다운 */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setProfileMenuOpen((prev) => !prev);
+                setNotificationOpen(false);
+              }}
+              className="flex items-center gap-2.5 rounded-lg p-1.5 pr-3 transition-colors"
+              aria-expanded={profileMenuOpen}
+              aria-label="프로필 메뉴"
+            >
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-secondary">
+                {user?.profileImage ? (
+                  <img
+                    src={user.profileImage}
+                    alt={user.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <UserIcon className="h-4 w-4 text-muted-foreground" />
+                )}
               </div>
-            </>
-          )}
+              <span className="hidden text-sm font-medium text-foreground sm:block">
+                {user?.name ?? '멘토'}
+              </span>
+            </button>
+
+            {profileMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setProfileMenuOpen(false)}
+                  aria-hidden="true"
+                />
+                <div className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-lg border border-border bg-white shadow-lg">
+                  <div className="px-3 py-2.5">
+                    <p className="text-xs font-semibold text-foreground">{user?.name ?? '멘토'}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {user?.school ?? '소속 없음'}
+                    </p>
+                  </div>
+                  <div className="border-t border-border p-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-destructive transition-colors hover:bg-destructive/5"
+                    >
+                      <LogOut size={13} />
+                      로그아웃
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>

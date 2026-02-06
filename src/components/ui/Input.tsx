@@ -6,16 +6,34 @@ import { Label } from './Label';
 
 interface InputProps extends React.ComponentProps<'input'> {
   label?: string;
+  labelClassName?: string;
+  endAdornment?: React.ReactNode;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, label, id, ...props }, ref) => {
-    const inputElement = (
+  ({ className, type, label, labelClassName, endAdornment, id, ...props }, ref) => {
+    const inputElement = endAdornment ? (
+      <div className="relative">
+        <input
+          type={type}
+          id={id}
+          className={cn(
+            'flex h-12 w-full rounded-2xl border border-border bg-secondary/50 px-4 py-3 pr-10 text-base transition-all file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus:bg-white focus:border-brand/30 focus:outline-none focus:ring-2 focus:ring-brand/10 disabled:cursor-not-allowed disabled:opacity-50',
+            className,
+          )}
+          ref={ref}
+          {...props}
+        />
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 [&>*]:pointer-events-auto">
+          {endAdornment}
+        </div>
+      </div>
+    ) : (
       <input
         type={type}
         id={id}
         className={cn(
-          'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+          'flex h-12 w-full rounded-2xl border border-border bg-secondary/50 px-4 py-3 text-base transition-all file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus:bg-white focus:border-brand/30 focus:outline-none focus:ring-2 focus:ring-brand/10 disabled:cursor-not-allowed disabled:opacity-50',
           className,
         )}
         ref={ref}
@@ -26,7 +44,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     if (label) {
       return (
         <div className="space-y-2">
-          <Label htmlFor={id}>{label}</Label>
+          <Label htmlFor={id} className={cn('text-sm font-medium text-foreground', labelClassName)}>
+            {label}
+          </Label>
           {inputElement}
         </div>
       );

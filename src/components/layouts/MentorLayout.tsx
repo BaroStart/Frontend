@@ -27,7 +27,8 @@ export function MentorLayout() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-100/70">
+
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={handleToggleSidebar}
@@ -36,11 +37,11 @@ export function MentorLayout() {
       />
 
       <div
-        className={`min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-60'}`}
+        className={`min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-56'}`}
       >
         <Header onMenuClick={handleMobileSidebarToggle} />
 
-        <main className="min-w-0 p-4 sm:p-6">
+        <main className="min-w-0 p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>
@@ -48,7 +49,7 @@ export function MentorLayout() {
       {/* 모바일 사이드바 오버레이 배경 */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-[15] bg-black/30 md:hidden"
+          className="fixed inset-0 z-[15] bg-foreground/20 backdrop-blur-sm md:hidden"
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
