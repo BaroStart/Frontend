@@ -3,7 +3,17 @@ import AssignmentContent from '@/components/mentee/assignmentDetail/AssignmentCo
 import AssignmentResources from '@/components/mentee/assignmentDetail/AssignmentResources';
 import StudyVerification from '@/components/mentee/assignmentDetail/StudyVerification';
 
-export default function AssignmentInfo({ assignment }: { assignment: Assignment }) {
+interface AssignmentInfoProps {
+  assignment: Assignment;
+  isEditing: boolean;
+  onChangeToEditMode: () => void;
+}
+
+export default function AssignmentInfo({
+  assignment,
+  isEditing,
+  onChangeToEditMode,
+}: AssignmentInfoProps) {
   return (
     <>
       <div className="px-6 py-6 space-y-8">
@@ -13,12 +23,16 @@ export default function AssignmentInfo({ assignment }: { assignment: Assignment 
         {/* 학습 자료 */}
         <AssignmentResources />
 
-        {/* 공부 인증 - 미제출/수정 화면 */}
+        {/* 공부 인증 + 메모 */}
         <StudyVerification assignment={assignment} />
       </div>
 
       {/* 하단 버튼 */}
-      <AssignmentActions assignment={assignment} />
+      <AssignmentActions
+        assignment={assignment}
+        isEditing={isEditing}
+        onChangeToEditMode={onChangeToEditMode}
+      />
     </>
   );
 }
