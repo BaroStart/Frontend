@@ -1,8 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom';
 
 import { TabBar } from '@/components/mentee/TabBar';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export function MenteeLayout() {
+  useDocumentTitle('설스터디 | 멘티 페이지');
   return (
     <div className="mx-auto min-h-screen w-full max-w-md bg-white shadow-sm sm:max-w-lg md:shadow-lg">
       <header className="sticky top-0 z-10 border-b border-gray-100 bg-white">
