@@ -4,6 +4,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Bell, LogOut, Menu } from 'lucide-react';
 
 import { UserIcon } from '@/components/icons';
+import { API_CONFIG } from '@/api/config';
+import { logout as logoutApi } from '@/api/auth';
 import { MOCK_NOTIFICATIONS } from '@/data/menteeDetailMock';
 import { useAuthStore } from '@/stores/useAuthStore';
 
@@ -41,9 +43,17 @@ export function Header({ onMenuClick }: HeaderProps) {
   };
   const { title } = getPageInfo();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      if (!API_CONFIG.useMock) {
+        await logoutApi();
+      }
+    } catch {
+      // ignore
+    } finally {
+      logout();
+      navigate('/login');
+    }
   };
 
   return (

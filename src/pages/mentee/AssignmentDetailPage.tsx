@@ -1,25 +1,53 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
 
 import AssignmentDetailHeader from '@/components/mentee/assignmentDetail/AssignmentDetailHeader';
 import AssignmentDetailTabs from '@/components/mentee/assignmentDetail/AssignmentDetailTabs';
 import AssignmentFeedback from '@/components/mentee/assignmentDetail/AssignmentFeedback';
 import AssignmentInfo from '@/components/mentee/assignmentDetail/AssignmentInfo';
+import { MOCK_ASSIGNMENT_DETAILS, MOCK_INCOMPLETE_ASSIGNMENTS } from '@/data/menteeDetailMock';
+import { useAuthStore } from '@/stores/useAuthStore';
 
-// --- Dummy Data ---
-const MOCK_ASSIGNMENT: Assignment = {
-  id: 1,
-  subject: '국어',
-  title: '비문학 독해 연습',
-  description: '목표: 과학 지문 3개 풀이 및 오답 분석',
-  submissionDate: '2026.02.02 14:30',
-  status: '미완료',
-};
+function ymdToDot(ymd: string) {
+  return ymd.replaceAll('-', '.');
+}
+
+function toSubmissionText(dateYmd: string, timeText?: string) {
+  if (!timeText) return ymdToDot(dateYmd);
+  return `${ymdToDot(dateYmd)} ${timeText}`;
+}
 
 export function AssignmentDetailPage() {
-  const assignment = MOCK_ASSIGNMENT; //임시
-  // const [assignment, setAssignment] = useState<Assignment>(MOCK_ASSIGNMENT);
+  const { assignmentId } = useParams<{ assignmentId: string }>();
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'info' | 'feedback'>('info');
   const [isEditing, setIsEditing] = useState(false);
+
+  const menteeId = user?.role === 'mentee' && /^s\d+$/i.test(user.id) ? user.id : 's1';
+
+  const { assignment, detail } = useMemo(() => {
+    const id = assignmentId ?? 'a1';
+    const base = MOCK_INCOMPLETE_ASSIGNMENTS.find((a) => a.menteeId === menteeId && a.id === id);
+    const isDone = base?.status === 'completed';
+
+    const dateYmd = base?.completedAtDate ?? base?.deadlineDate ?? '2026-02-02';
+    const submissionDate = isDone
+      ? toSubmissionText(dateYmd, base?.completedAt)
+      : toSubmissionText(dateYmd, base?.deadline);
+
+    const d = MOCK_ASSIGNMENT_DETAILS[id] ?? null;
+
+    const a: Assignment = {
+      id,
+      subject: d?.subject ?? base?.subject ?? '-',
+      title: d?.title ?? base?.title ?? '과제',
+      description: d?.goal ?? base?.description ?? '',
+      submissionDate,
+      status: isDone ? '완료' : '미완료',
+    };
+
+    return { assignment: a, detail: d };
+  }, [assignmentId, menteeId]);
 
   const onChangeToEditMode = () => {
     setIsEditing((prev) => !prev);
@@ -42,6 +70,7 @@ export function AssignmentDetailPage() {
       {activeTab === 'info' && (
         <AssignmentInfo
           assignment={assignment}
+          detail={detail}
           isEditing={isEditing}
           onChangeToEditMode={onChangeToEditMode}
         />

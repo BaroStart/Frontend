@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+
 import { EnglishIcon, KoreanIcon, MathIcon, UserIcon } from "@/components/icons";
 
 export type Subject = "KOREAN" | "ENGLISH" | "MATH" | "ETC";
@@ -9,7 +10,6 @@ export type FeedbackItem = {
   subject: Subject;
   mentorName: string;
   content: string;
-
   timeText?: string;
   assignmentCount?: number;
   assignmentId?: string;
@@ -21,16 +21,12 @@ type Props = {
   onOpenAssignment?: (assignmentId: string) => void;
 };
 
-const SUBJECT_META: Record<
-  Subject,
-  { label: string; icon: React.ReactNode }
-> = {
+const SUBJECT_META: Record<Subject, { label: string; icon: React.ReactNode }> = {
   KOREAN: { label: "국어", icon: <KoreanIcon className="h-6 w-6 text-[#0E9ABE]" /> },
   ENGLISH: { label: "영어", icon: <EnglishIcon className="h-6 w-6 text-[#0E9ABE]" /> },
   MATH: { label: "수학", icon: <MathIcon className="h-6 w-6 text-[#0E9ABE]" /> },
   ETC: { label: "기타", icon: <UserIcon className="h-6 w-6 text-[#0E9ABE]" /> },
 };
-
 
 export function FeedbackCard({ item, className, onOpenAssignment }: Props) {
   const meta = SUBJECT_META[item.subject];
@@ -40,47 +36,47 @@ export function FeedbackCard({ item, className, onOpenAssignment }: Props) {
   return (
     <div
       className={[
-        "w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm",
+        "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm",
+        "transition hover:bg-slate-50 hover:shadow-md",
         className ?? "",
       ].join(" ")}
     >
-      <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0E9ABE]/10 text-slate-700">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0E9ABE]/10 text-slate-700">
           {meta.icon}
         </div>
 
-        <div className="min-w-0">
-          <div className="text-sm font-bold text-slate-900">{meta.label}</div>
-        </div>
-      </div>
-
-      <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-4">
-        <div className="flex gap-3">
-          <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-black-100 text-slate-500 ring-1 ring-slate-200">
-            <UserIcon className="h-4 w-4" />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="text-xs font-semibold text-slate-500">
-              {item.mentorName} 멘토
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-extrabold text-slate-900">{meta.label}</span>
+              {item.assignmentCount != null && (
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                  과제 {item.assignmentCount}개
+                </span>
+              )}
             </div>
-
-            <p className="mt-1 whitespace-pre-wrap break-keep text-sm font-medium leading-7 text-slate-700">
-              {item.content}
-            </p>
+            <div className="mt-1 flex items-center gap-2 text-[11px] font-medium text-slate-500">
+              <span className="truncate">{item.mentorName} 멘토</span>
+              {item.timeText && (
+                <>
+                  <span className="text-slate-300">·</span>
+                  <span className="shrink-0 text-slate-400">{item.timeText}</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
+        <span className="shrink-0 rounded-full border border-slate-100 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+          피드백
+        </span>
       </div>
 
-      <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
-        <div className="flex items-center gap-4">
-          {item.timeText && (
-            <span className="inline-flex items-center gap-1">
-              {item.timeText}
-            </span>
-          )}
-        </div>
+      <p className="mt-2.5 line-clamp-4 whitespace-pre-wrap break-keep text-sm leading-6 text-slate-700">
+        {item.content}
+      </p>
 
+      <div className="mt-3 flex items-center justify-end">
         <button
           type="button"
           disabled={!canOpen}
@@ -92,13 +88,12 @@ export function FeedbackCard({ item, className, onOpenAssignment }: Props) {
             }
             navigate(`/mentee/assignments/${item.assignmentId}`);
           }}
-          className={
-            canOpen
-              ? "font-bold text-slate-700 hover:text-slate-900"
-              : "font-bold text-slate-300 cursor-default"
-          }
+          className={[
+            "rounded-xl px-3 py-2 text-sm font-extrabold transition",
+            canOpen ? "text-[#0E9ABE] hover:bg-[#0E9ABE]/10" : "cursor-default text-slate-300",
+          ].join(" ")}
         >
-          과제 보기 <span aria-hidden="true">›</span>
+          과제 보기 <span aria-hidden="true">→</span>
         </button>
       </div>
     </div>

@@ -6,17 +6,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { TimeRangeModal, type TimeRangeValue } from "../TimeRangeModal";
 
 export type TodoItem = {
-  id: string;
+  id: number;
   title: string;
   done: boolean;
 };
 
 type Props = {
   item: TodoItem;
-  onToggleDone: () => void;
-  onUpdateTitle: (title: string) => void;
-  onDelete: () => void;
-  onSubmitStudyTime?: (value: TimeRangeValue) => void;
+  onToggleDone: (args?: { timeRange?: TimeRangeValue }) => void | Promise<void>;
+  onUpdateTitle: (title: string) => void | Promise<void>;
+  onDelete: () => void | Promise<void>;
 };
 
 const schema = z.object({
@@ -29,7 +28,6 @@ export function TodoCard({
   onToggleDone,
   onUpdateTitle,
   onDelete,
-  onSubmitStudyTime,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -217,9 +215,8 @@ export function TodoCard({
         open={timeModalOpen}
         onClose={() => setTimeModalOpen(false)}
         onSubmit={(value: TimeRangeValue) => {
-          onSubmitStudyTime?.(value); 
           setTimeModalOpen(false);
-          onToggleDone();
+          onToggleDone({ timeRange: value });
         }}
       />
     </>

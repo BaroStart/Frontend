@@ -7,6 +7,7 @@ import {
   NotificationIcon,
   UserIcon,
 } from '@/components/icons';
+import { useNotificationStore } from '@/stores/useNotificationStore';
 
 interface TabItem {
   path: string;
@@ -24,8 +25,9 @@ const tabs: TabItem[] = [
 ];
 
 export function TabBar() {
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
   return (
-    <nav className="fixed bottom-0 w-full max-w-md -translate-x-1/2 bg-white border-t border-gray-100 left-1/2 sm:max-w-lg">
+    <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 border-t border-gray-100 bg-white sm:max-w-lg">
       <div className="flex items-center justify-around h-16 px-2">
         {tabs.map((tab) => (
           <NavLink
@@ -40,7 +42,17 @@ export function TabBar() {
           >
             {({ isActive }) => (
               <>
-                <span className={isActive ? 'text-[#0E9ABE]' : 'text-gray-400'}>{tab.icon}</span>
+                <span className={isActive ? 'text-[#0E9ABE]' : 'text-gray-400'}>
+                  <span className="relative inline-flex">
+                    {tab.icon}
+                    {tab.path === '/mentee/notifications' && unreadCount > 0 && (
+                      <span
+                        className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-rose-500"
+                        aria-label="읽지 않은 알림"
+                      />
+                    )}
+                  </span>
+                </span>
                 <span
                   className={`text-xs font-medium ${isActive ? 'text-[#0E9ABE]' : 'text-gray-400'}`}
                 >

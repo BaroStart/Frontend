@@ -87,18 +87,18 @@ export function MenteeDetailPage() {
   const { removeIncomplete, clearRegisteredIncomplete } = useAssignmentStore();
   const { user } = useAuthStore();
 
+  // 날짜/뷰 상태
+  const [selectedDate, setSelectedDate] = useState(getTodayDateStr);
+  const [viewMode, setViewMode] = useState<'today' | 'week' | 'month'>('today');
+  const [feedbackSubjectFilter, setFeedbackSubjectFilter] = useState('전체');
+
   // 서버 데이터
   const { data: mentee = null, isLoading } = useMentee(menteeId);
   const { data: kpi = null } = useMenteeKpi(menteeId);
   const { data: serverTasks = [] } = useMenteeTasks(menteeId);
   const { data: serverFeedbackItems = [] } = useFeedbackItems(menteeId);
   const { data: serverIncomplete = [] } = useIncompleteAssignments(menteeId);
-  const { data: todayComment = null } = useTodayComment(menteeId);
-
-  // 날짜/뷰 상태
-  const [selectedDate, setSelectedDate] = useState(getTodayDateStr);
-  const [viewMode, setViewMode] = useState<'today' | 'week' | 'month'>('today');
-  const [feedbackSubjectFilter, setFeedbackSubjectFilter] = useState('전체');
+  const { data: todayComment = null } = useTodayComment(menteeId, selectedDate);
 
   // 모달 상태 (한 번에 하나만 열림)
   const [activeModal, setActiveModal] = useState<ModalType>(null);

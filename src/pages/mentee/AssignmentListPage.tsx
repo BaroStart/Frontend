@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -9,64 +9,54 @@ import {
   ChevronRight as ChevronRightSmall,
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
-import { EnglishIcon, KoreanIcon, MathIcon } from '@/components/icons';
+import { AssignmentIcon, EnglishIcon, KoreanIcon, MathIcon } from '@/components/icons';
+import { MOCK_INCOMPLETE_ASSIGNMENTS, SUBJECTS } from '@/data/menteeDetailMock';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 // --- Types ---
-type Subject = '국어' | '영어' | '수학';
 type Status = '완료' | '미완료';
 
-interface Assignment {
-  id: number;
-  subject: Subject;
-  title: string;
-  description: string;
-  submissionDate: string;
-  status: Status;
+const TABS = SUBJECTS;
+
+function pad2(n: number) {
+  return String(n).padStart(2, '0');
 }
 
-// --- Dummy Data ---
-const ASSIGNMENTS: Assignment[] = [
-  {
-    id: 1,
-    subject: '수학',
-    title: '미적분 II - 치환적분 연습',
-    description: '부분적분과 치환적분을 활용한 정적분 문제 풀이 및 심화 응용',
-    submissionDate: '2026.02.02 14:30',
-    status: '완료',
-  },
-  {
-    id: 2,
-    subject: '영어',
-    title: '영어 독해 - 주제문 찾기',
-    description: '고난도 지문 3개 분석 및 주제 파악 연습 (수능 기출 변형)',
-    submissionDate: '2026.02.02 11:20',
-    status: '완료',
-  },
-  {
-    id: 3,
-    subject: '국어',
-    title: '현대시 감상 - 표현 기법',
-    description: '은유, 직유, 의인법 등 표현 기법 분석 및 에세이 작성',
-    submissionDate: '2026.02.02 09:40',
-    status: '완료',
-  },
-  {
-    id: 5,
-    subject: '수학',
-    title: '확률과 통계 - 조건부 확률',
-    description: '조건부 확률의 정의와 곱셈정리를 이용한 문제 해결',
-    submissionDate: '2026.02.03 10:00',
-    status: '미완료',
-  },
-];
+function toYmdKeyLocal(d: Date) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
 
-const TABS = ['전체', '국어', '영어', '수학'];
+function addDays(d: Date, diff: number) {
+  const copy = new Date(d);
+  copy.setDate(copy.getDate() + diff);
+  return copy;
+}
+
+function formatKoreanDate(d: Date) {
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+}
+
+function ymdToDot(ymd: string) {
+  // "2026-02-02" -> "2026.02.02"
+  return ymd.replaceAll('-', '.');
+}
+
+function toSubmissionText(dateYmd: string, timeText?: string) {
+  if (!timeText) return ymdToDot(dateYmd);
+  // mock 데이터는 "오전 10:45" 같은 포맷이라 그대로 붙임
+  return `${ymdToDot(dateYmd)} ${timeText}`;
+}
 
 export function AssignmentListPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('전체');
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date(2026, 1, 2)); // 2026-02-02 (목데이터 기준)
 
-  const getSubjectIcon = (subject: Subject) => {
+  const { user } = useAuthStore();
+  // 실 API 로그인 시 user.id가 loginId일 수 있어서, mock 데이터(s1/s2)가 없으면 s1로 폴백
+  const menteeId = user?.role === 'mentee' && /^s\d+$/i.test(user.id) ? user.id : 's1';
+
+  const getSubjectIcon = (subject: string) => {
     switch (subject) {
       case '수학':
         return <MathIcon className="h-6 w-6 text-[#0E9ABE]" />;
@@ -75,28 +65,64 @@ export function AssignmentListPage() {
       case '국어':
         return <KoreanIcon className="h-6 w-6 text-[#0E9ABE]" />;
       default:
-        return <KoreanIcon className="h-6 w-6 text-[#0E9ABE]" />;
+        return <AssignmentIcon className="h-6 w-6 text-[#0E9ABE]" />;
     }
   };
 
-  const filteredAssignments =
-    activeTab === '전체' ? ASSIGNMENTS : ASSIGNMENTS.filter((item) => item.subject === activeTab);
+  const filteredAssignments = useMemo(() => {
+    const dateKey = toYmdKeyLocal(selectedDate);
+    const base = MOCK_INCOMPLETE_ASSIGNMENTS.filter((a) => a.menteeId === menteeId).map(
+      (a): Assignment => {
+        const dateYmd = a.completedAtDate ?? a.deadlineDate ?? dateKey;
+        const isDone = a.status === 'completed';
+        return {
+          id: a.id,
+          subject: a.subject,
+          title: a.title,
+          description: a.description ?? '',
+          submissionDate: isDone
+            ? toSubmissionText(dateYmd, a.completedAt)
+            : toSubmissionText(dateYmd, a.deadline),
+          status: (isDone ? '완료' : '미완료') satisfies Status,
+        };
+      }
+    );
+
+    const byDate = base.filter((a) => a.submissionDate.startsWith(ymdToDot(dateKey)));
+    const bySubject = activeTab === '전체' ? byDate : byDate.filter((item) => item.subject === activeTab);
+    return bySubject;
+  }, [activeTab, menteeId, selectedDate]);
 
   return (
     <div className="flex flex-col h-full gap-2 px-4 pt-4 bg-white">
       {/* 헤더 */}
       <header>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
-            <CalendarDays className="w-4 h-4" />
-            {/* TODO: 클릭시 달력 모달 열기 */}
-            <span className="text-sm font-semibold tracking-tight">2026년 2월 2일</span>
-          </div>
-          <div className="flex gap-2">
-            <button className="flex items-center justify-center w-10 h-10 text-gray-400 transition-colors rounded-full hover:bg-gray-100 hover:text-gray-600">
+        <div className="grid grid-cols-3 items-center">
+          <div className="flex justify-start">
+            <button
+              type="button"
+              onClick={() => setSelectedDate((d) => addDays(d, -1))}
+              className="flex items-center justify-center w-10 h-10 text-gray-400 transition-colors rounded-full hover:bg-gray-100 hover:text-gray-600"
+              aria-label="이전 날짜"
+            >
               <ChevronLeft className="w-6 h-6" />
             </button>
-            <button className="flex items-center justify-center w-10 h-10 text-gray-400 transition-colors rounded-full hover:bg-gray-100 hover:text-gray-600">
+          </div>
+
+          <div className="flex justify-center">
+            <div className="flex items-center gap-2 text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
+              <CalendarDays className="w-4 h-4" />
+              <span className="text-sm font-semibold tracking-tight">{formatKoreanDate(selectedDate)}</span>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setSelectedDate((d) => addDays(d, 1))}
+              className="flex items-center justify-center w-10 h-10 text-gray-400 transition-colors rounded-full hover:bg-gray-100 hover:text-gray-600"
+              aria-label="다음 날짜"
+            >
               <ChevronRight className="w-6 h-6" />
             </button>
           </div>

@@ -28,7 +28,7 @@ export function useFeedbackItems(
     queryKey: ['feedbackItems', menteeId, params],
     queryFn: async () => {
       if (!menteeId) return [];
-      if (API_CONFIG.useMock) {
+      if (API_CONFIG.useMockMentor) {
         const base = MOCK_FEEDBACK_ITEMS.filter((f) => f.menteeId === menteeId);
         return base.map((item) => {
           const stored = getMentorFeedback(menteeId, item.assignmentId);
@@ -55,7 +55,7 @@ export function useIncompleteAssignments(menteeId: string | undefined, params?: 
     refetchOnMount: 'always', // 새로고침/페이지 진입 시 persist 복원 후 항상 최신 데이터 반영
     queryFn: async () => {
       if (!menteeId) return [];
-      if (API_CONFIG.useMock) {
+      if (API_CONFIG.useMockMentor) {
         const { registeredIncomplete } = useAssignmentStore.getState();
         const mock = MOCK_INCOMPLETE_ASSIGNMENTS.filter((a) => a.menteeId === menteeId);
         const registered = registeredIncomplete.filter((a) => a.menteeId === menteeId);
@@ -75,7 +75,7 @@ export function useMenteeTasks(
     queryKey: ['menteeTasks', menteeId, params],
     queryFn: async () => {
       if (!menteeId) return [];
-      if (API_CONFIG.useMock) {
+      if (API_CONFIG.useMockMentor) {
         const mock = MOCK_MENTEE_TASKS.filter((t) => t.menteeId === menteeId);
         const registered = useAssignmentStore.getState().registeredTasks.filter(
           (t) => t.menteeId === menteeId
@@ -93,7 +93,7 @@ export function useTodayComment(menteeId: string | undefined, date?: string) {
     queryKey: ['todayComment', menteeId, date],
     queryFn: async () => {
       if (!menteeId) return null;
-      if (API_CONFIG.useMock) {
+      if (API_CONFIG.useMockMentor) {
         return MOCK_TODAY_COMMENTS.find((c) => c.menteeId === menteeId && c.date === date) ?? null;
       }
       return fetchTodayComments(menteeId);
@@ -107,7 +107,7 @@ export function useMenteeKpi(menteeId: string | undefined) {
     queryKey: ['menteeKpi', menteeId],
     queryFn: async () => {
       if (!menteeId) return null;
-      if (API_CONFIG.useMock) {
+      if (API_CONFIG.useMockMentor) {
         return MOCK_MENTEE_KPIS.find((k) => k.menteeId === menteeId) ?? null;
       }
       return fetchMenteeKpi(menteeId);

@@ -9,7 +9,7 @@ export function useSubmittedAssignments(menteeId?: string) {
   return useQuery({
     queryKey: ['submittedAssignments', menteeId],
     queryFn: async () => {
-      if (API_CONFIG.useMock) {
+      if (API_CONFIG.useMockMentor) {
         let list = menteeId
           ? MOCK_SUBMITTED_ASSIGNMENTS.filter((a) => a.menteeId === menteeId)
           : [...MOCK_SUBMITTED_ASSIGNMENTS];

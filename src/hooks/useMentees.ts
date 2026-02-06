@@ -10,7 +10,7 @@ export function useMentees() {
   return useQuery({
     queryKey: MENTEES_QUERY_KEY,
     queryFn: async () => {
-      if (API_CONFIG.useMock) {
+      if (API_CONFIG.useMockMentor) {
         return MOCK_MENTEES;
       }
       return fetchMentees();

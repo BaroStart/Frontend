@@ -26,6 +26,14 @@ function addDays(d: Date, diff: number) {
   return next;
 }
 
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function toYmdKeyLocal(d: Date) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
 function ChevronLeftIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
@@ -61,129 +69,167 @@ export function FeedbackListPage() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
 
   const dateText = useMemo(() => formatKoreanDate(selectedDate), [selectedDate]);
+  const dateKey = useMemo(() => toYmdKeyLocal(selectedDate), [selectedDate]);
 
-  const dummyFeedback = {
-    id: "1",
-    mentorName: "김민준 멘토",
-    timeAgoText: "4시간 전",
-    subject: "영어" as const,
-    message: "영어 독해에서 주제로 찾기가 아직 어려워 보이네요. 내일 추가 자료를 드릴게요.",
-  };
+  const dummyTodayFeedbackByDate = useMemo(() => {
+    const map: Record<
+      string,
+      { id: string; mentorName: string; timeAgoText: string; subject: "국어" | "영어" | "수학"; message: string } | null
+    > = {
+      "2026-02-06": {
+        id: "t1",
+        mentorName: "김민준 멘토",
+        timeAgoText: "4시간 전",
+        subject: "영어",
+        message: "영어 독해에서 주제로 찾기가 아직 어려워 보여요. 내일 추가 자료를 드릴게요.",
+      },
+      "2026-02-07": {
+        id: "t2",
+        mentorName: "김민준 멘토",
+        timeAgoText: "2시간 전",
+        subject: "수학",
+        message: "풀이 과정이 훨씬 깔끔해졌어요. 다음엔 검산 루틴을 추가해봅시다.",
+      },
+    };
+    return map;
+  }, []);
 
-  const dummySubjectFeedbacks: FeedbackItem[] = [
-  {
-    id: "f1",
-    subject: "MATH",
-    mentorName: "김민준",
-    content:
-      "오늘 풀이한 적분 문제에서 치환적분 활용이 정말 좋았습니다!\n다만 부호 실수가 2문제에서 보였어요.\n검산 습관을 들이면 충분히 줄일 수 있을 것 같아요.",
-    timeText: "14:30",
-    assignmentCount: 3,
-    assignmentId: "a-101",
-  },
-  {
-    id: "f2",
-    subject: "KOREAN",
-    mentorName: "김민준",
-    content:
-      "시 감상에서 화자의 정서를 정확히 파악했어요.\n상징어 해석도 전반적으로 좋았습니다!",
-    timeText: "13:10",
-    assignmentCount: 2,
-    assignmentId: "a-102",
-  },
-];
+  const dummyFeedback = dummyTodayFeedbackByDate[dateKey] ?? null;
+
+  const dummySubjectFeedbacks: FeedbackItem[] = useMemo(() => {
+    const byDate: Record<string, FeedbackItem[]> = {
+      "2026-02-06": [
+        {
+          id: "f1",
+          subject: "MATH",
+          mentorName: "김민준",
+          content:
+            "오늘 풀이한 적분 문제에서 치환적분 활용이 정말 좋았습니다!\n다만 부호 실수가 2문제에서 보였어요.\n검산 습관을 들이면 충분히 줄일 수 있을 것 같아요.",
+          timeText: "14:30",
+          assignmentCount: 3,
+          assignmentId: "a-101",
+        },
+        {
+          id: "f2",
+          subject: "KOREAN",
+          mentorName: "김민준",
+          content: "시 감상에서 화자의 정서를 정확히 파악했어요.\n상징어 해석도 전반적으로 좋았습니다!",
+          timeText: "13:10",
+          assignmentCount: 2,
+          assignmentId: "a-102",
+        },
+      ],
+      "2026-02-07": [
+        {
+          id: "f3",
+          subject: "ENGLISH",
+          mentorName: "김민준",
+          content: "문단별 요약이 좋아요. 근거 문장 표시를 한 번 더 해보면 정확도가 더 올라갑니다.",
+          timeText: "11:05",
+          assignmentCount: 1,
+          assignmentId: "a-201",
+        },
+      ],
+    };
+    return byDate[dateKey] ?? [];
+  }, [dateKey]);
+
+  const filtered = useMemo(() => {
+    if (subject === "ALL") return dummySubjectFeedbacks;
+    return dummySubjectFeedbacks.filter((x) => x.subject === subject);
+  }, [dummySubjectFeedbacks, subject]);
 
   return (
-    <div className="px-4 py-6">
-      <div className="ml-2 mb-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-400">{dateText}</p>
-            <h1 className="mt-1 text-xl font-extrabold tracking-tight text-gray-900">
-              피드백
-            </h1>
-          </div>
-
-          <div className="mt-2 flex items-center gap-2">
+    <div className="px-4 pt-4 pb-24">
+      <header className="mb-4">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center">
+          <div className="flex justify-start">
             <button
               type="button"
               onClick={() => setSelectedDate((d) => addDays(d, -1))}
-              className="grid h-10 w-10 place-items-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700 active:scale-95 transition"
+              className="grid h-9 w-9 place-items-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 active:scale-95"
               aria-label="이전 날짜"
             >
-              <ChevronLeftIcon className="h-6 w-6" />
+              <ChevronLeftIcon className="h-5 w-5" />
             </button>
+          </div>
+
+          <div className="text-center">
+            <h1 className="text-lg font-extrabold tracking-tight text-gray-900">피드백</h1>
+            <p className="mt-0.5 text-xs font-medium text-gray-400">{dateText}</p>
+          </div>
+
+          <div className="flex justify-end">
             <button
               type="button"
               onClick={() => setSelectedDate((d) => addDays(d, 1))}
-              className="grid h-10 w-10 place-items-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700 active:scale-95 transition"
+              className="grid h-9 w-9 place-items-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 active:scale-95"
               aria-label="다음 날짜"
             >
-              <ChevronRightIcon className="h-6 w-6" />
+              <ChevronRightIcon className="h-5 w-5" />
             </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <PlannerSummaryCard
-        title="플래너 총평"
-        message="집중 시간이 꾸준히 늘고 있고, 과제 미루는 횟수도 줄었어요. 다음 주는 영어 독해 루틴을 하루 10분만 더 확보해보면 더 좋아질 것 같아요."
-        coachName="김민준 멘토"
-        updatedText="오늘"
-      />
+      <div className="space-y-4">
+        <PlannerSummaryCard
+          title="플래너 총평"
+          message="집중 시간이 꾸준히 늘고 있고, 과제 미루는 횟수도 줄었어요. 다음 주는 영어 독해 루틴을 하루 10분만 더 확보해보면 더 좋아질 것 같아요."
+          coachName="김민준 멘토"
+          updatedText="오늘"
+        />
 
-      <TodayFeedbackCard
-        item={dummyFeedback}
-        onClick={(it) => console.log("clicked feedback:", it.id)}
-      />
+        <TodayFeedbackCard item={dummyFeedback} onClick={(it) => console.log("clicked feedback:", it.id)} />
 
-      <FeedbackSummarySection
-        items={[
-          {
-            id: "1",
-            mentorName: "김민준",
-            timeAgoText: "2시간 전",
-            message: "오늘 수학 문제 풀이 속도가 많이 개선되었습니다!",
-            subject: "수학" as any,
-          },
-          {
-            id: "2",
-            mentorName: "김민준",
-            timeAgoText: "4시간 전",
-            message: "영어 독해에서 주제문 찾기가 아직 어려워 보여요.",
-            subject: "영어" as any,
-          },
-        ]}
-        onClickItem={(it) => console.log("open assignment for:", it.id)}
-      />
+        <FeedbackSummarySection
+          items={[
+            {
+              id: "1",
+              mentorName: "김민준",
+              timeAgoText: "2시간 전",
+              message: "오늘 수학 문제 풀이 속도가 많이 개선되었습니다!",
+              subject: "수학" as any,
+            },
+            {
+              id: "2",
+              mentorName: "김민준",
+              timeAgoText: "4시간 전",
+              message: "영어 독해에서 주제문 찾기가 아직 어려워 보여요.",
+              subject: "영어" as any,
+            },
+          ]}
+          onClickItem={(it) => console.log("open assignment for:", it.id)}
+        />
 
-      <div className="px-4 -mx-4 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-2 py-2">
-          {TABS.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setSubject(tab.value)}
-              className={twMerge(
-                "h-10 whitespace-nowrap rounded-2xl px-5 py-2.5 text-sm font-bold transition-all duration-200 shadow-sm",
-                subject === tab.value
-                  ? "bg-[#0E9ABE] text-white shadow-[#0E9ABE]/30"
-                  : "border border-gray-100 bg-white text-gray-400 hover:bg-gray-50 hover:text-gray-600"
-              )}
-            >
-              {tab.label}
-            </button>
+        <div className="px-4 -mx-4 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-2 py-1.5">
+            {TABS.map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setSubject(tab.value)}
+                className={twMerge(
+                  "h-9 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition",
+                  subject === tab.value
+                    ? "bg-[#0E9ABE] text-white shadow-sm shadow-[#0E9ABE]/20"
+                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {filtered.map((item) => (
+            <FeedbackCard
+              key={item.id}
+              item={item}
+              onOpenAssignment={(id) => navigate(`/mentee/assignments/${id}`)}
+            />
           ))}
         </div>
-      </div>
-
-      <div className="mt-4 space-y-4">
-        {dummySubjectFeedbacks.map((item) => (
-          <FeedbackCard
-            key={item.id}
-            item={item}
-            onOpenAssignment={(id) => navigate(`/mentee/assignments/${id}`)}
-          />
-        ))}
       </div>
     </div>
   );

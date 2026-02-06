@@ -16,30 +16,28 @@ export function PlannerSummaryCard({
   return (
     <section
       className={[
-        "relative overflow-hidden rounded-3xl border border-[#BFE6F1] bg-gradient-to-br from-[#DFF5FB] via-white to-white p-5 shadow-sm",
+        "rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm",
         className ?? "",
       ].join(" ")}
     >
-      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#0E9ABE]/10" />
-      <div className="absolute -left-8 -bottom-8 h-28 w-28 rounded-full bg-[#0E9ABE]/5" />
-
-      <div className="relative flex items-start justify-between gap-3">
-        <div>
-          <h2 className="mt-2 text-lg font-extrabold text-slate-900">
-            {title}
-          </h2>
-        </div>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-extrabold text-slate-900">{title}</h2>
+        {(coachName || updatedText) && (
+          <span className="text-[11px] font-semibold text-slate-400">
+            {updatedText ?? ""}
+          </span>
+        )}
       </div>
 
-      <p className="relative mt-3 text-sm leading-6 text-slate-900">
-        {message}
-      </p>
+      <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-700">{message}</p>
 
       {(coachName || updatedText) && (
-        <div className="relative mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-          {coachName && <span className="font-semibold">{coachName}</span>}
-          {coachName && updatedText && <span className="text-slate-300">·</span>}
-          {updatedText && <span>{updatedText}</span>}
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+          {coachName && (
+            <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700">
+              {coachName}
+            </span>
+          )}
         </div>
       )}
     </section>

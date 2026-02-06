@@ -9,7 +9,7 @@ export function useMentee(menteeId: string | undefined) {
     queryKey: ['mentee', menteeId],
     queryFn: async () => {
       if (!menteeId) return null;
-      if (API_CONFIG.useMock) {
+      if (API_CONFIG.useMockMentor) {
         return MOCK_MENTEES.find((m) => m.id === menteeId) ?? null;
       }
       return fetchMentee(menteeId);

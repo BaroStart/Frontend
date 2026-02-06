@@ -15,7 +15,7 @@ export function useAssignmentDetail(
     queryKey: ['assignmentDetail', menteeId, assignmentId],
     queryFn: async (): Promise<AssignmentDetail | null> => {
       if (!menteeId || !assignmentId) return null;
-      if (API_CONFIG.useMock) {
+      if (API_CONFIG.useMockMentor) {
         // 먼저 등록한 과제에서 찾기
         const registered = useAssignmentStore.getState().registeredIncomplete.find(
           (a) => a.id === assignmentId && a.menteeId === menteeId

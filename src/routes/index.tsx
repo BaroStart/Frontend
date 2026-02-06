@@ -4,6 +4,7 @@ import { MenteeLayout } from '@/components/layouts/MenteeLayout';
 import { MentorLayout } from '@/components/layouts/MentorLayout';
 import { ProtectedRoute } from '@/components/layouts/ProtectedRoute';
 import { LoginPage } from '@/pages/LoginPage';
+import { SignupPage } from '@/pages/SignupPage';
 import {
   AssignmentDetailPage,
   AssignmentListPage,
@@ -30,6 +31,7 @@ export function AppRoutes() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* ------ 멘토 라우트 ------ */}

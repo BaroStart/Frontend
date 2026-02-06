@@ -17,13 +17,13 @@ export function TodayFeedbackCard({ item, onClick, className }: Props) {
   const clickable = Boolean(item && onClick);
 
   return (
-    <section className={["w-full mt-5", className ?? ""].join(" ").trim()}>
-      <h2 className="mb-3 text-base font-semibold text-slate-900">
-        오늘의 피드백
-      </h2>
+    <section className={["w-full", className ?? ""].join(" ").trim()}>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-sm font-extrabold text-slate-900">오늘의 피드백</h2>
+      </div>
 
       {!item ? (
-        <div className="rounded-2xl border border-[#E2F1F6] bg-[#F2FBFD] p-4 text-sm text-slate-500">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-500">
           오늘은 아직 받은 피드백이 없어요.
         </div>
       ) : (
@@ -32,16 +32,16 @@ export function TodayFeedbackCard({ item, onClick, className }: Props) {
           disabled={!clickable}
           onClick={() => item && onClick?.(item)}
           className={[
-            "relative w-full overflow-hidden rounded-3xl border border-[#D7EDF4] bg-white p-5 text-left shadow-sm transition",
-            "hover:shadow-md active:scale-[0.99]",
+            "relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-left shadow-sm transition",
+            "hover:bg-slate-50 hover:shadow-md active:scale-[0.99]",
             clickable ? "" : "cursor-default",
           ].join(" ")}
         >
           <div className="absolute left-0 top-0 h-full w-1 bg-[#0E9ABE]" />
 
-          <div className="flex items-start gap-4 pl-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-3xl bg-gray-200 text-black-100">
-              <UserIcon className="h-6 w-6" />
+          <div className="flex items-start gap-3 pl-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-200 text-slate-500">
+              <UserIcon className="h-5 w-5" />
             </div>
 
             <div className="min-w-0">
@@ -51,9 +51,7 @@ export function TodayFeedbackCard({ item, onClick, className }: Props) {
                 <span>{item.timeAgoText}</span>
               </div>
 
-              <p className="mt-2 text-sm leading-6 text-slate-900">
-                {item.message}
-              </p>
+              <p className="mt-1.5 line-clamp-3 text-sm leading-6 text-slate-800">{item.message}</p>
             </div>
           </div>
         </button>

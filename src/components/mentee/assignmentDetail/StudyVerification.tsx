@@ -1,15 +1,22 @@
 import { type ChangeEvent, useRef, useState } from 'react';
 
 import { Camera, CheckCircle2, ImageIcon, Info, PenTool, X } from 'lucide-react';
+import type { AssignmentDetail } from '@/types';
 
-export default function StudyVerification({ assignment }: { assignment: Assignment }) {
+export default function StudyVerification({
+  assignment,
+  detail,
+}: {
+  assignment: Assignment;
+  detail: AssignmentDetail | null;
+}) {
   const isCompleted = assignment.status === '완료'; //과제 제출 완료 여부
-  console.log(isCompleted);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const isEditing = false; //임시
   // const [isEditing, setIsEditing] = useState(false); // 수정 모드 여부
   const [previewImages, setPreviewImages] = useState<{ id: string; url: string; file: File }[]>([]);
+  const submittedPhotos = detail?.studentPhotos ?? [];
 
   const handleCameraClick = () => {
     cameraInputRef.current?.click();
@@ -108,7 +115,7 @@ export default function StudyVerification({ assignment }: { assignment: Assignme
         )}
 
         {/* 첨부한 사진 없을 때 */}
-        {previewImages.length === 0 && (
+        {previewImages.length === 0 && submittedPhotos.length === 0 && (
           <div className="flex flex-col items-center justify-center p-8 mb-6 text-center border border-dashed rounded-xl border-slate-200 bg-slate-50/50">
             <div className="flex items-center justify-center w-12 h-12 mb-3 bg-white rounded-full shadow-sm text-slate-300">
               <ImageIcon className="w-6 h-6" />
@@ -120,7 +127,33 @@ export default function StudyVerification({ assignment }: { assignment: Assignme
           </div>
         )}
 
-        {/* 첨부한 사진이 있을 때 */}
+        {/* (mock) 제출된 사진이 있을 때 */}
+        {submittedPhotos.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="flex items-center gap-1 text-xs font-medium text-slate-900">
+                <ImageIcon className="w-3.5 h-3.5" />
+                제출된 사진 ({submittedPhotos.length})
+              </h4>
+            </div>
+
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-6 px-6 [&::-webkit-scrollbar]:hidden">
+              {submittedPhotos.map((p, i) => (
+                <div
+                  key={p.id}
+                  className="relative flex-shrink-0 overflow-hidden border w-28 aspect-square bg-slate-100 rounded-xl group border-slate-100"
+                >
+                  <img src={p.url} alt={p.caption ?? `제출 사진 ${i + 1}`} className="object-cover w-full h-full" />
+                  <div className="absolute bottom-2 left-2 bg-black/60 px-1.5 py-0.5 rounded text-[10px] text-white font-medium">
+                    {i + 1}/{submittedPhotos.length}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 새로 첨부한 사진이 있을 때 */}
         {previewImages && previewImages.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">

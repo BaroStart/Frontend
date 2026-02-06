@@ -16,7 +16,7 @@ export function useSubjectStudyTimes(menteeId: string | undefined) {
     queryKey: ['subjectStudyTimes', menteeId],
     queryFn: async (): Promise<SubjectStudyTime[]> => {
       if (!menteeId) return [];
-      if (API_CONFIG.useMock) {
+      if (API_CONFIG.useMockMentor) {
         return MOCK_SUBJECT_STUDY_TIMES[menteeId] ?? MOCK_SUBJECT_STUDY_TIMES.s1 ?? [];
       }
       return fetchSubjectStudyTimes(menteeId);
@@ -30,7 +30,7 @@ export function useWeeklyPatterns(menteeId: string | undefined) {
     queryKey: ['weeklyPatterns', menteeId],
     queryFn: async (): Promise<DailyStudyPattern[]> => {
       if (!menteeId) return [];
-      if (API_CONFIG.useMock) {
+      if (API_CONFIG.useMockMentor) {
         return MOCK_WEEKLY_PATTERNS[menteeId] ?? MOCK_WEEKLY_PATTERNS.s1 ?? [];
       }
       return fetchWeeklyPatterns(menteeId);

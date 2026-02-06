@@ -4,6 +4,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TodoCard, type TodoItem } from "./TodoCard";
 import { PlusIcon } from "@/components/icons";
+import type { TimeRangeValue } from "../TimeRangeModal";
 
 const schema = z.object({
   title: z.string().trim().min(1, "할 일을 입력해주세요.").max(40, "40자 이내로 입력해주세요."),
@@ -12,10 +13,10 @@ type FormValues = z.infer<typeof schema>;
 
 type Props = {
   items: TodoItem[];
-  onAddAtTop: (title: string) => void;
-  onToggleDone: (id: string) => void;
-  onUpdateTitle: (id: string, title: string) => void;
-  onDelete: (id: string) => void;
+  onAddAtTop: (title: string) => void | Promise<void>;
+  onToggleDone: (id: number, args?: { timeRange?: TimeRangeValue }) => void | Promise<void>;
+  onUpdateTitle: (id: number, title: string) => void | Promise<void>;
+  onDelete: (id: number) => void | Promise<void>;
 };
 
 export function TodoList({ items, onAddAtTop, onToggleDone, onUpdateTitle, onDelete }: Props) {
@@ -81,7 +82,7 @@ export function TodoList({ items, onAddAtTop, onToggleDone, onUpdateTitle, onDel
                     <span className="inline-flex items-center rounded-lg bg-[#0E9ABE] px-2 py-0.5 text-xs font-bold text-white">
                       할 일
                     </span>
-                    <span className="rounded-lg bg-gray-50 rounded-lg bg-gray-50 px-2 py-0.5 text-xs font-bold text-gray-700px-2 py-0.5 text-xs font-bold text-gray-700">
+                    <span className="rounded-full bg-gray-50 px-2 py-0.5 text-xs font-bold text-gray-700">
                       신규
                     </span>
                   </div>
@@ -131,7 +132,7 @@ export function TodoList({ items, onAddAtTop, onToggleDone, onUpdateTitle, onDel
             <TodoCard
               key={it.id}
               item={it}
-              onToggleDone={() => onToggleDone(it.id)}
+              onToggleDone={(args) => onToggleDone(it.id, args)}
               onUpdateTitle={(title) => onUpdateTitle(it.id, title)}
               onDelete={() => onDelete(it.id)}
             />

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar } from "@/components/mentee/main/Calendar";
 import { AssignmentList } from "@/components/mentee/main/AssignmentList";
@@ -7,7 +7,12 @@ import { CommentModal } from "@/components/mentee/main/CommentModal";
 import { TodoList } from "@/components/mentee/main/TodoList";
 import { useTodoStore } from "@/stores/useTodoStore";
 import { TimeTable, type TimelineItem } from "@/components/mentee/main/TimeTable";
+import { API_CONFIG } from "@/api/config";
+import type { TimeRangeValue } from "@/components/mentee/TimeRangeModal";
+import type { TimeSlot } from "@/api/todos";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { CommentIcon, ListIcon, TimeIcon, UserIcon } from "@/components/icons";
+import { MOCK_INCOMPLETE_ASSIGNMENTS } from "@/data/menteeDetailMock";
 
 export function MenteeMainPage() {
   const navigate = useNavigate();
@@ -16,38 +21,89 @@ export function MenteeMainPage() {
 
   const [viewMode, setViewMode] = useState<"LIST" | "TIMETABLE">("LIST");
 
-  const menteeName = "김멘티님";
+  const { user } = useAuthStore();
+  const menteeName = user?.name ?? "멘티";
   const isStarred = true;
 
-  const { todos, addAtTop, toggleDone, updateTitle, remove } = useTodoStore();
+  const {
+    todos,
+    todosByDate,
+    setSelectedDate: setTodoDate,
+    loadSelectedDate,
+    addAtTop,
+    toggleDone,
+    updateTitle,
+    remove,
+  } = useTodoStore();
 
-  const metaByDate = useMemo(
-    () => ({
-      "2026-02-03": { assignmentCount: 2, todoCount: 0 },
-      "2026-02-04": { assignmentCount: 2, todoCount: 1 },
-      "2026-02-05": { assignmentCount: 0, todoCount: 1 },
-    }),
-    []
-  );
+  const pad2 = (n: number) => String(n).padStart(2, "0");
+  const dateKey = `${selectedDate.getFullYear()}-${pad2(selectedDate.getMonth() + 1)}-${pad2(selectedDate.getDate())}`;
 
-  const assignments: AssignmentItem[] = useMemo(
-    () => [
-      {
-        id: "a1",
-        title: "물리 실험 보고서 작성",
-        status: "PENDING",
-        dueAtText: "2026.02.04 (월) 18:00",
-      },
-      {
-        id: "a2",
-        title: "수학 문제집 3단원",
-        status: "DONE",
-        startedAtText: "02:30",
-        endedAtText: "04:00",
-      },
-    ],
-    [selectedDate]
-  );
+  useEffect(() => {
+    // 달력에서 날짜를 바꾸면, 해당 날짜의 할 일을 보여주도록 연결
+    void setTodoDate(dateKey);
+    // 실서버는 "오늘"만 조회 가능(명세 기준)이라, store가 오늘인 경우에만 load 수행
+    if (!API_CONFIG.useMock) {
+      void loadSelectedDate();
+    }
+  }, [dateKey, loadSelectedDate, setTodoDate]);
+
+  const toIsoTimeSlot = (baseDate: Date, v: TimeRangeValue): TimeSlot[] => {
+    const to24 = (m: "AM" | "PM", hour12: number) => {
+      const h = hour12 % 12;
+      return m === "PM" ? h + 12 : h;
+    };
+    const start = new Date(baseDate);
+    start.setHours(to24(v.start.meridiem, v.start.hour), v.start.minute, 0, 0);
+    const end = new Date(baseDate);
+    end.setHours(to24(v.end.meridiem, v.end.hour), v.end.minute, 0, 0);
+    return [{ startTime: start.toISOString(), endTime: end.toISOString() }];
+  };
+
+  const assignmentsByDate = useMemo(() => {
+    // mock 멘티 계정(s1/s2)이 아니면 s1로 폴백
+    const menteeId = user?.role === "mentee" && /^s\\d+$/i.test(user.id) ? user.id : "s1";
+
+    return MOCK_INCOMPLETE_ASSIGNMENTS.filter((a) => a.menteeId === menteeId).map((a) => {
+      const dateKey = a.completedAtDate ?? a.deadlineDate ?? "2026-02-02";
+      const isDone = a.status === "completed";
+      return {
+        id: a.id,
+        dateKey,
+        title: a.title,
+        status: isDone ? ("DONE" as const) : ("PENDING" as const),
+        // 목록 카드에서 PENDING은 dueAtText를 사용
+        dueAtText: isDone ? undefined : a.deadline ?? "23:59",
+      } satisfies AssignmentItem & { dateKey: string };
+    });
+  }, [user?.id, user?.role]);
+
+  const assignments = useMemo<AssignmentItem[]>(() => {
+    return assignmentsByDate.filter((a) => a.dateKey === dateKey);
+  }, [assignmentsByDate, dateKey]);
+
+  const metaByDate = useMemo(() => {
+    const meta: Record<string, { assignmentCount?: number; todoCount?: number }> = {};
+
+    for (const a of assignmentsByDate) {
+      meta[a.dateKey] = meta[a.dateKey] ?? {};
+      meta[a.dateKey].assignmentCount = (meta[a.dateKey].assignmentCount ?? 0) + 1;
+    }
+
+    for (const [k, list] of Object.entries(todosByDate)) {
+      meta[k] = meta[k] ?? {};
+      meta[k].todoCount = list.length;
+    }
+
+    // 실서버 모드에서는 store가 날짜별 todoByDate를 만들지 않으므로,
+    // 현재 선택된 날짜의 todoCount만이라도 표시(오늘인 경우)
+    if (!API_CONFIG.useMock) {
+      meta[dateKey] = meta[dateKey] ?? {};
+      meta[dateKey].todoCount = todos.length;
+    }
+
+    return meta;
+  }, [assignmentsByDate, dateKey, todos, todosByDate]);
 
   const items: TimelineItem[] = [
     { id: "1", type: "task", title: "할 일", start: "06:13", end: "06:30" },
@@ -62,7 +118,7 @@ export function MenteeMainPage() {
     <div className="px-4 pt-4">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-1">
-          <span className="text-lg font-semibold text-slate-900">{menteeName}</span>
+          <span className="text-lg font-semibold text-gray-900">{menteeName}님</span>
           {isStarred && (
             <span aria-label="즐겨찾기" className="text-base leading-none">
               ⭐
@@ -91,6 +147,7 @@ export function MenteeMainPage() {
           <button
             type="button"
             aria-label="프로필"
+            onClick={() => navigate("/mentee/mypage")}
             className="grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-gray-100 text-gray-500 transition active:scale-[0.98]"
           >
             <UserIcon className="h-5 w-5" />
@@ -152,10 +209,14 @@ export function MenteeMainPage() {
 
           <TodoList
             items={todos}
-            onAddAtTop={addAtTop}
-            onToggleDone={toggleDone}
-            onUpdateTitle={updateTitle}
-            onDelete={remove}
+            onAddAtTop={(title) => addAtTop(title)}
+            onToggleDone={(id, args) =>
+              args?.timeRange
+                ? toggleDone(id, { timeList: toIsoTimeSlot(selectedDate, args.timeRange) })
+                : toggleDone(id)
+            }
+            onUpdateTitle={(id, title) => updateTitle(id, title)}
+            onDelete={(id) => remove(id)}
           />
         </>
       ) : (

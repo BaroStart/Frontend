@@ -51,7 +51,8 @@ export function Sidebar({
 }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: mentees = [] } = useMentees();
+  const { data } = useMentees();
+  const mentees = Array.isArray(data) ? data : [];
   const isDashboard = location.pathname === '/mentor';
   const pathMenteeId = location.pathname.match(/\/mentor\/mentees\/([^/]+)/)?.[1];
   const selectedMenteeId = isDashboard ? null : (pathMenteeId ?? null);

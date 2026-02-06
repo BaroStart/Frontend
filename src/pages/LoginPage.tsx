@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { Eye, EyeOff } from 'lucide-react';
 
+import { API_CONFIG } from '@/api/config';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -12,21 +13,28 @@ export function LoginPage() {
   const navigate = useNavigate();
   const { loginWithCredentials } = useAuthStore();
   const [role, setRole] = useState<UserRole>('mentee');
-  const [id, setId] = useState('mentee01');
-  const [password, setPassword] = useState('test1234');
+  const [id, setId] = useState(() => (API_CONFIG.useMockAuth ? 'mentee01' : ''));
+  const [password, setPassword] = useState(() => (API_CONFIG.useMockAuth ? 'test1234' : ''));
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const handleRoleChange = (newRole: UserRole) => {
     setRole(newRole);
-    setId(newRole === 'mentor' ? 'mentor01' : 'mentee01');
-    setPassword('test1234');
+    if (API_CONFIG.useMockAuth) {
+      setId(newRole === 'mentor' ? 'mentor01' : 'mentee01');
+      setPassword('test1234');
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const success = loginWithCredentials(id, password, role);
+    const loginId = id.trim();
+    if (!loginId) {
+      setError('아이디를 입력해주세요.');
+      return;
+    }
+    const success = await loginWithCredentials(loginId, password, role);
     if (success) {
       navigate(role === 'mentor' ? '/mentor' : '/mentee', { replace: true });
     } else {
@@ -146,6 +154,13 @@ export function LoginPage() {
           <Button type="submit" className="w-full">
             로그인
           </Button>
+
+          <p className="pt-2 text-center text-sm text-slate-600">
+            아직 계정이 없나요?{' '}
+            <Link to="/signup" className="font-semibold text-slate-900 underline underline-offset-4">
+              회원가입
+            </Link>
+          </p>
         </form>
       </div>
 

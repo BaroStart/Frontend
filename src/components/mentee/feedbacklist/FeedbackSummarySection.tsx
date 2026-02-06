@@ -5,8 +5,8 @@ export type FeedbackSummaryItem = {
   mentorName: string;
   timeAgoText: string;
   message: string;
-  subject?: string; 
-  mentorAvatar?: string; 
+  subject?: string;
+  mentorAvatar?: string;
 };
 
 type Props = {
@@ -25,18 +25,18 @@ export function FeedbackSummarySection({
   emptyText = "받은 피드백이 없습니다.",
 }: Props) {
   return (
-    <section className={["w-full mt-5 mb-5", className ?? ""].join(" ").trim()}>
-      <div className="mb-3 flex items-end justify-between">
-        <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-        <span className="text-xs text-slate-400">{items.length}개</span>
+    <section className={["w-full", className ?? ""].join(" ").trim()}>
+      <div className="mb-2 flex items-end justify-between">
+        <h2 className="text-sm font-extrabold text-slate-900">{title}</h2>
+        <span className="text-[11px] font-semibold text-slate-400">{items.length}개</span>
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 text-sm text-slate-500 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-500">
           {emptyText}
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-2.5">
           {items.map((it) => (
             <li key={it.id}>
               <FeedbackSummaryCard item={it} onClick={onClickItem} />
@@ -63,14 +63,14 @@ function FeedbackSummaryCard({ item, onClick, className }: CardProps) {
       disabled={!clickable}
       onClick={() => onClick?.(item)}
       className={[
-        "w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-left",
-        "transition hover:shadow-sm active:scale-[0.99]",
+        "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-left shadow-sm",
+        "transition hover:bg-slate-50 hover:shadow-md active:scale-[0.99]",
         clickable ? "" : "cursor-default",
         className ?? "",
       ].join(" ")}
     >
-      <div className="flex items-start gap-4">
-        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-slate-100 bg-slate-100">
+      <div className="flex items-start gap-3">
+        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-2xl border border-slate-100 bg-slate-100">
           {item.mentorAvatar ? (
             <img
               src={item.mentorAvatar}
@@ -79,22 +79,18 @@ function FeedbackSummaryCard({ item, onClick, className }: CardProps) {
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-gray-200 text-black-100 text-slate-400">
-              <UserIcon className="h-6 w-6" />
+              <UserIcon className="h-5 w-5" />
             </div>
           )}
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-slate-900">
-              {item.mentorName} 멘토
-            </span>
-            <span className="text-xs font-normal text-slate-400">
-              {item.timeAgoText}
-            </span>
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate text-sm font-bold text-slate-900">{item.mentorName} 멘토</span>
+            <span className="shrink-0 text-[11px] font-medium text-slate-400">{item.timeAgoText}</span>
           </div>
 
-          <p className="mt-2 text-sm font-medium leading-7 text-slate-600 whitespace-pre-wrap break-keep">
+          <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-slate-600 whitespace-pre-wrap break-keep">
             {item.message}
           </p>
         </div>

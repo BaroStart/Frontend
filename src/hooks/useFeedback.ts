@@ -23,7 +23,7 @@ export function useFeedbackDetail(
       (options?.enabled ?? true) &&
       !!menteeId &&
       !!assignmentId &&
-      !API_CONFIG.useMock,
+      !API_CONFIG.useMockMentor,
   });
 }
 

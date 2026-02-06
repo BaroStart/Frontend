@@ -66,7 +66,7 @@ export function DatePicker({
           variant="outline"
           icon={CalendarIcon}
           className={cn(
-            'h-10 w-[200px] justify-start text-left font-normal',
+            'h-10 w-full justify-start text-left font-normal sm:max-w-[200px]',
             (!value || hideValue) && 'text-muted-foreground',
             className,
           )}
