@@ -90,9 +90,8 @@ export function MenteeMainPage() {
 
           <button
             type="button"
-            onClick={() => navigate("/mentee/mypage")}
             aria-label="프로필"
-            className="grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-gray-200 text-gray-600 transition active:scale-[0.98]"
+            className="grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-gray-100 text-gray-500 transition active:scale-[0.98]"
           >
             <UserIcon className="h-5 w-5" />
           </button>
