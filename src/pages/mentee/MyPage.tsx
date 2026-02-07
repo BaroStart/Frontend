@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { API_CONFIG } from '@/api/config';
@@ -20,11 +20,6 @@ import { useTodoStore } from '@/stores/useTodoStore';
 export function MyPage() {
   const navigate = useNavigate();
   const { logout, user: authUser } = useAuthStore();
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  const previewUrlRef = useRef<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string>('');
-  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const dailyQuote = useMemo(() => {
     // "매일 바뀌는 멘트" (로컬 날짜 기준, 하루 동안은 고정)
