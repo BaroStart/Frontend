@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Pencil } from 'lucide-react';
 import { API_CONFIG } from '@/api/config';
 import { logout as logoutApi } from '@/api/auth';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { uploadFileViaPreAuthenticatedUrl } from '@/lib/storageUpload';
 
 import { WeeklyStudyStatusCard } from '@/components/mentee/my/WeeklyStudyStatusCard';
 import { SubjectAchievementSection } from '@/components/mentee/my/SubjectAchievementSection';
@@ -21,21 +19,12 @@ import { useTodoStore } from '@/stores/useTodoStore';
 
 export function MyPage() {
   const navigate = useNavigate();
-  const { logout, user: authUser, setProfileImage } = useAuthStore();
+  const { logout, user: authUser } = useAuthStore();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const previewUrlRef = useRef<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string>('');
   const [uploadSuccess, setUploadSuccess] = useState(false);
-
-  useEffect(() => {
-    return () => {
-      if (previewUrlRef.current) {
-        URL.revokeObjectURL(previewUrlRef.current);
-        previewUrlRef.current = null;
-      }
-    };
-  }, []);
 
   const dailyQuote = useMemo(() => {
     // "매일 바뀌는 멘트" (로컬 날짜 기준, 하루 동안은 고정)
@@ -83,42 +72,9 @@ export function MyPage() {
 
   const subjects = useMemo(
     () => [
-      {
-        id: 'kor',
-        name: '국어',
-        percent: 92,
-        weekTotalText: '주간 목표: 12시간',
-        weekDoneText: '11.2h / 12h',
-        breakdown: [
-          { label: '비문학', valueText: '6.5h' },
-          { label: '문학', valueText: '3.2h' },
-          { label: '문법', valueText: '1.5h' },
-        ],
-      },
-      {
-        id: 'eng',
-        name: '영어',
-        percent: 78,
-        weekTotalText: '주간 목표: 15시간',
-        weekDoneText: '11.7h / 15h',
-        breakdown: [
-          { label: '독해', valueText: '7.2h' },
-          { label: '단어', valueText: '2.8h' },
-          { label: '어법', valueText: '1.7h' },
-        ],
-      },
-      {
-        id: 'math',
-        name: '수학',
-        percent: 65,
-        weekTotalText: '주간 목표: 18시간',
-        weekDoneText: '11.7h / 18h',
-        breakdown: [
-          { label: '개념', valueText: '5.5h' },
-          { label: '오답노트', valueText: '4.2h' },
-          { label: '확통', valueText: '2.0h' },
-        ],
-      },
+      { id: "kor", name: "국어", percent: 92, progressText: "44 / 55" },
+      { id: "eng", name: "영어", percent: 78, progressText: "31 / 40" },
+      { id: "math", name: "수학", percent: 65, progressText: "26 / 40" },
     ],
     []
   );
@@ -272,48 +228,6 @@ export function MyPage() {
     ];
   }, [authUser?.id, authUser?.role, todosByDate]);
 
-  const handlePickProfileImage = () => fileRef.current?.click();
-
-  const handleProfileFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadError('');
-    setUploadSuccess(false);
-
-    // 선택 즉시 로컬 미리보기(업로드 URL은 PUT 전용일 수 있어 <img src>로 깨질 수 있음)
-    try {
-      if (previewUrlRef.current) {
-        URL.revokeObjectURL(previewUrlRef.current);
-      }
-      const previewUrl = URL.createObjectURL(file);
-      previewUrlRef.current = previewUrl;
-      setProfileImage(previewUrl);
-    } catch {
-      // ignore preview errors
-    }
-
-    if (API_CONFIG.useMock) {
-      setUploadError('현재 VITE_USE_MOCK=true 입니다. VITE_USE_MOCK=false로 바꾼 뒤 업로드를 시도하세요.');
-      e.target.value = '';
-      return;
-    }
-
-    const ext = file.name.includes('.') ? `.${file.name.split('.').pop()}` : '';
-    const who = authUser?.id ?? 'unknown';
-    const fileName = `profile/${who}-${Date.now()}${ext}`;
-
-    setUploading(true);
-    try {
-      await uploadFileViaPreAuthenticatedUrl({ file, fileName });
-      setUploadSuccess(true);
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : '업로드 중 오류가 발생했습니다.');
-    } finally {
-      setUploading(false);
-      e.target.value = '';
-    }
-  };
-
   return (
     <div className="relative px-4 pt-4 pb-4">
       <div className="mb-4 flex items-center justify-between">
@@ -322,15 +236,7 @@ export function MyPage() {
           <h1 className="text-lg font-semibold text-gray-900">{authUser?.name ?? '멘티'}님</h1>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handlePickProfileImage}
-            disabled={uploading}
-            className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-gray-200"
-            aria-label="프로필 사진 변경"
-            title="프로필 사진 변경"
-          >
+        <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-gray-200">
             {authUser?.profileImage ? (
               <img src={authUser.profileImage} alt="avatar" className="h-full w-full object-cover" />
             ) : (
@@ -346,40 +252,11 @@ export function MyPage() {
                 </svg>
               </div>
             )}
-            <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-gray-900 text-white shadow-sm ring-2 ring-white">
-              <Pencil className="h-3 w-3" />
-            </span>
-            {uploading && (
-              <span className="absolute inset-0 grid place-items-center bg-black/25">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
-              </span>
-            )}
-          </button>
         </div>
       </div>
 
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleProfileFileChange}
-      />
-
-      {(uploadError || uploadSuccess) && (
-        <div className="mb-4">
-          {uploading && <p className="text-xs font-semibold text-gray-600">업로드 중...</p>}
-          {uploadSuccess && <p className="text-xs font-semibold text-emerald-600">프로필 사진 업로드 완료</p>}
-          {uploadError && <p className="text-xs font-semibold text-red-500">{uploadError}</p>}
-        </div>
-      )}
-
-      {!uploadError && !uploadSuccess && (
-        <p className="mb-4 text-xs text-gray-400">우측 상단 프로필을 눌러 사진을 변경할 수 있어요.</p>
-      )}
-
       <WeeklyStudyStatusCard
-        title="이번주 학습 현황"
+        title="학습 현황"
         percent={summary.weekProgressPercent}
         totalStudyText={summary.totalStudyText}
         completedText={summary.completedText}
