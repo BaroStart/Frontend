@@ -37,6 +37,26 @@ export function MenteeMainPage() {
     remove,
   } = useTodoStore();
 
+  // const thread = { root: null, replies: [] };
+
+  const thread = {
+    root: {
+      id: "root-1",
+      author: "나",
+      content: "오늘 영어 독해가 너무 어려웠어요.\n특히 주제 찾기가 헷갈려요.",
+      createdAtText: "방금",
+    },
+    replies: [
+      {
+        id: "r-1",
+        author: "멘토",
+        content: "좋아. 주제 찾기는 ‘반복되는 키워드’부터 체크하자!\n내일 예시 자료 줄게.",
+        parentId: "root-1",
+        createdAtText: "1분 전",
+      },
+    ],
+  };
+
   const pad2 = (n: number) => String(n).padStart(2, "0");
   const dateKey = `${selectedDate.getFullYear()}-${pad2(selectedDate.getMonth() + 1)}-${pad2(selectedDate.getDate())}`;
 
@@ -136,11 +156,8 @@ export function MenteeMainPage() {
           <CommentModal
             open={commentOpen}
             onClose={() => setCommentOpen(false)}
-            onSubmit={(values) => {
-              const hasAny =
-                (values.comment?.trim().length ?? 0) > 0 || (values.question?.trim().length ?? 0) > 0;
-              if (hasAny && user?.id) incrementQnaCount(user.id, 1);
-            }}
+            onSubmit={(values) => console.log("submit", values)}
+            thread={thread} 
           />
 
           <button

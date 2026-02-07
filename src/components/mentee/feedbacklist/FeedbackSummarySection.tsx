@@ -22,7 +22,7 @@ export function FeedbackSummarySection({
   onClickItem,
   className,
   title = "피드백 요약",
-  emptyText = "받은 피드백이 없습니다.",
+  emptyText = "아직 피드백이 없습니다.",
 }: Props) {
   return (
     <section className={["w-full", className ?? ""].join(" ").trim()}>
@@ -63,7 +63,7 @@ function FeedbackSummaryCard({ item, onClick, className }: CardProps) {
       disabled={!clickable}
       onClick={() => onClick?.(item)}
       className={[
-        "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-left shadow-sm",
+        "w-full rounded-2xl border border-l-4 border-slate-200 border-l-[#0E9ABE] bg-white px-4 py-3.5 text-left shadow-sm",
         "transition hover:bg-slate-50 hover:shadow-md active:scale-[0.99]",
         clickable ? "" : "cursor-default",
         className ?? "",
@@ -72,11 +72,7 @@ function FeedbackSummaryCard({ item, onClick, className }: CardProps) {
       <div className="flex items-start gap-3">
         <div className="h-10 w-10 shrink-0 overflow-hidden rounded-2xl border border-slate-100 bg-slate-100">
           {item.mentorAvatar ? (
-            <img
-              src={item.mentorAvatar}
-              alt={item.mentorName}
-              className="h-full w-full object-cover"
-            />
+            <img src={item.mentorAvatar} alt={item.mentorName} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-gray-200 text-black-100 text-slate-400">
               <UserIcon className="h-5 w-5" />
