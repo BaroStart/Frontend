@@ -12,6 +12,7 @@ export interface RegisterAssignmentPayload {
   menteeId: string;
   dateMode: 'single' | 'recurring';
   singleDate?: string;
+  singleEndTime?: string;
   recurringDays?: number[];
   recurringStartDate?: string;
   recurringEndDate?: string;
@@ -45,10 +46,9 @@ export async function registerAssignment(
     const { addIncomplete } = useAssignmentStore.getState();
     const incomplete: IncompleteAssignment[] = [];
 
-    const deadlineTime = payload.recurringEndTime ?? '23:59';
-    const deadlineStr = formatDeadlineKr(deadlineTime);
-
     if (payload.dateMode === 'single' && payload.singleDate) {
+      const deadlineTime = payload.singleEndTime ?? '23:59';
+      const deadlineStr = formatDeadlineKr(deadlineTime);
       const taskId = generateId('t');
       incomplete.push({
         id: taskId,
@@ -67,6 +67,8 @@ export async function registerAssignment(
       payload.recurringEndDate &&
       payload.recurringDays?.length
     ) {
+      const deadlineTime = payload.recurringEndTime ?? '23:59';
+      const deadlineStr = formatDeadlineKr(deadlineTime);
       const start = new Date(payload.recurringStartDate);
       const end = new Date(payload.recurringEndDate);
       const days = payload.recurringDays;

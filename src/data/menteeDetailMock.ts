@@ -515,6 +515,6 @@ export const MOCK_NOTIFICATIONS = [
     id: '3',
     title: '학습 인증 업로드',
     message: '박지민님이 오늘의 학습 인증을 업로드했습니다.',
-    time: '2시간 전',
+    time: '30분 전',
   },
 ];

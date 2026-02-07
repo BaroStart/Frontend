@@ -9,17 +9,15 @@ export const parseDateFromStr = (str: string): string | null => {
   return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
 };
 
-/** 주간 범위 (월~일) */
+/** 주간 범위 (오늘-1일부터 오늘-7일까지) */
 export const getWeekRange = (dateStr: string) => {
-  const d = new Date(dateStr);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  const mon = new Date(d);
-  mon.setDate(d.getDate() + diff);
-  const sun = new Date(mon);
-  sun.setDate(mon.getDate() + 6);
+  const base = new Date(dateStr);
+  const yesterday = new Date(base);
+  yesterday.setDate(base.getDate() - 1);
+  const sevenDaysAgo = new Date(base);
+  sevenDaysAgo.setDate(base.getDate() - 7);
   const fmt = (x: Date) => x.toISOString().split('T')[0];
-  return { start: fmt(mon), end: fmt(sun) };
+  return { start: fmt(sevenDaysAgo), end: fmt(yesterday) };
 };
 
 /** 월간 범위 (1일~말일) */
@@ -47,3 +45,16 @@ export const formatDisplayDate = (dateStr: string) => {
 export const formatDateDot = (dateStr: string) => dateStr.replace(/-/g, '.');
 
 export const formatDateDash = (dateStr: string) => dateStr.replace(/\./g, '-');
+
+/** 주간 보기 형식: "2월 1일 ~ 2월 7일" */
+export const formatWeekRange = (start: string, end: string) => {
+  const [, m1, d1] = start.split('-');
+  const [, m2, d2] = end.split('-');
+  return `${+m1}월 ${+d1}일 ~ ${+m2}월 ${+d2}일`;
+};
+
+/** 월간 보기 형식: "2026년 2월" */
+export const formatMonthOnly = (dateStr: string) => {
+  const [y, m] = dateStr.split('-');
+  return `${y}년 ${+m}월`;
+};

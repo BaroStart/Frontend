@@ -15,7 +15,6 @@ import {
   MessageCircle,
   Pencil,
   Plus,
-  RotateCcw,
   Trash2,
   User,
 } from 'lucide-react';
@@ -49,6 +48,8 @@ import {
 } from '@/hooks/useMenteeDetail';
 import {
   formatDisplayDate,
+  formatMonthOnly,
+  formatWeekRange,
   getMonthRange,
   getTodayDateStr,
   getWeekRange,
@@ -84,7 +85,7 @@ export function MenteeDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { removeIncomplete, clearRegisteredIncomplete } = useAssignmentStore();
+  const { removeIncomplete } = useAssignmentStore();
   const { user } = useAuthStore();
 
   // 날짜/뷰 상태
@@ -263,10 +264,17 @@ export function MenteeDetailPage() {
   // 오늘 할 일 (자율학습 + 개인일정만)
   const todayTodoItems = useMemo(
     () =>
-      scheduleItems.filter(
-        (s) => s.date === getTodayDateStr() && (s.type === 'learning' || s.type === 'personal'),
-      ),
-    [scheduleItems],
+      scheduleItems.filter((s) => {
+        const isCorrectType = s.type === 'learning' || s.type === 'personal';
+        if (!isCorrectType) return false;
+        
+        if (viewMode === 'today') {
+          return s.date === getTodayDateStr();
+        } else {
+          return isDateInRange(s.date, dateRange.start, dateRange.end);
+        }
+      }),
+    [scheduleItems, viewMode, dateRange],
   );
 
   // 피드백 아이템 (필터 + 날짜 범위)
@@ -341,7 +349,13 @@ export function MenteeDetailPage() {
   // 날짜 네비게이션
   const handleDateNav = (delta: number) => {
     const d = new Date(selectedDate);
-    d.setDate(d.getDate() + delta);
+    if (viewMode === 'week') {
+      d.setDate(d.getDate() + delta * 7);
+    } else if (viewMode === 'month') {
+      d.setMonth(d.getMonth() + delta);
+    } else {
+      d.setDate(d.getDate() + delta);
+    }
     setSelectedDate(d.toISOString().split('T')[0]);
   };
 
@@ -594,6 +608,7 @@ export function MenteeDetailPage() {
       <DateNavigation
         selectedDate={selectedDate}
         viewMode={viewMode}
+        dateRange={dateRange}
         onDateChange={setSelectedDate}
         onPrev={() => handleDateNav(-1)}
         onNext={() => handleDateNav(1)}
@@ -645,29 +660,11 @@ export function MenteeDetailPage() {
           icon={<FileText className="h-4 w-4" />}
           badge={`총 ${filteredAssignments.length}개`}
           actions={
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                icon={RotateCcw}
-                onClick={async () => {
-                  if (window.confirm('등록한 과제를 모두 초기화할까요?')) {
-                    clearRegisteredIncomplete(menteeId ?? undefined);
-                    await queryClient.invalidateQueries({
-                      queryKey: ['incompleteAssignments', menteeId],
-                    });
-                  }
-                }}
-                title="초기화"
-              >
-                초기화
+            <Link to={`/mentor/mentees/${menteeId}/assignments/new`}>
+              <Button size="sm" variant="outline" icon={Plus}>
+                과제 추가
               </Button>
-              <Link to={`/mentor/mentees/${menteeId}/assignments/new`}>
-                <Button size="sm" variant="outline" icon={Plus}>
-                  과제 추가
-                </Button>
-              </Link>
-            </>
+            </Link>
           }
         >
           {filteredAssignments.map((a) => (
@@ -692,7 +689,7 @@ export function MenteeDetailPage() {
 
         {/* 자율 학습 To-Do */}
         <GridCard
-          title="자율 학습 To-Do"
+          title="할 일"
           icon={<ListChecks className="h-4 w-4" />}
           badge={`완료: ${todayTodoItems.filter((i) => i.type === 'learning' && i.status === 'completed').length}/${todayTodoItems.filter((i) => i.type === 'learning').length}`}
         >
@@ -895,12 +892,10 @@ function ProfileSection({
                 <KpiCard
                   title="총 학습 시간"
                   value={`${kpi.totalStudyHours}h`}
-                  change={kpi.studyHoursChange}
                 />
                 <KpiCard
                   title="과제 완료율"
                   value={`${kpi.assignmentCompletionRate}%`}
-                  change={kpi.completionRateChange}
                 />
               </>
             )}
@@ -918,14 +913,10 @@ function ProfileSection({
                 if (vals.length === 0) return null;
                 const avg =
                   vals.reduce((a, b) => a + b, 0) / vals.length;
-                const change =
-                  vals.length >= 2 ? vals[vals.length - 1] - vals[0] : 0;
                 return (
                   <KpiCard
                     title="평균 성적"
                     value={`${avg % 1 === 0 ? avg : avg.toFixed(1)}`}
-                    change={change}
-                    unit="점"
                   />
                 );
               })()}
@@ -939,6 +930,7 @@ function ProfileSection({
 function DateNavigation({
   selectedDate,
   viewMode,
+  dateRange,
   onDateChange,
   onPrev,
   onNext,
@@ -946,28 +938,38 @@ function DateNavigation({
 }: {
   selectedDate: string;
   viewMode: 'today' | 'week' | 'month';
+  dateRange: { start: string; end: string };
   onDateChange: (date: string) => void;
   onPrev: () => void;
   onNext: () => void;
   onViewModeChange: (mode: 'today' | 'week' | 'month') => void;
 }) {
+  const getDisplayText = () => {
+    if (viewMode === 'week') {
+      return formatWeekRange(dateRange.start, dateRange.end);
+    } else if (viewMode === 'month') {
+      return formatMonthOnly(selectedDate);
+    }
+    return formatDisplayDate(selectedDate);
+  };
+
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border/50 bg-white px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onPrev}
-          className="rounded p-1.5 text-muted-foreground hover:bg-secondary"
+          className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
-        <span className="min-w-0 flex-1 text-sm font-medium text-foreground sm:min-w-[200px] sm:flex-none">
-          {formatDisplayDate(selectedDate)}
+        <span className="min-w-0 flex-1 text-center text-base font-semibold text-foreground sm:min-w-[280px] sm:flex-none">
+          {getDisplayText()}
         </span>
         <button
           type="button"
           onClick={onNext}
-          className="rounded p-1.5 text-muted-foreground hover:bg-secondary"
+          className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
           <ChevronRight className="h-5 w-5" />
         </button>
@@ -975,7 +977,7 @@ function DateNavigation({
           value={selectedDate}
           onChange={onDateChange}
           placeholder="날짜 선택"
-          className="ml-2"
+          className="ml-1"
           hideValue
         />
       </div>
@@ -1006,7 +1008,7 @@ function GridCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-[280px] flex-col rounded-xl border border-border/50 bg-white">
+    <div className="flex h-[420px] flex-col rounded-xl border border-border/50 bg-white">
       <div className="flex shrink-0 items-center justify-between border-b border-border/30 px-4 py-3">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           {icon}
@@ -1141,30 +1143,11 @@ function CalendarSection({
   );
 }
 
-function KpiCard({
-  title,
-  value,
-  change,
-  unit = '%',
-}: {
-  title: string;
-  value: string;
-  change: number;
-  unit?: string;
-}) {
-  const isPositive = change > 0;
-  const isNegative = change < 0;
+function KpiCard({ title, value }: { title: string; value: string }) {
   return (
     <div className="rounded-lg border border-border/50 bg-secondary/20 p-3">
       <p className="text-[11px] font-medium text-muted-foreground">{title}</p>
       <p className="mt-1 text-xl font-bold text-foreground">{value}</p>
-      <p
-        className={`mt-0.5 text-xs font-medium ${isPositive ? 'text-emerald-600' : isNegative ? 'text-rose-600' : 'text-muted-foreground'}`}
-      >
-        {isPositive && `↑ ${change}${unit} 증가`}
-        {isNegative && `↓ ${Math.abs(change)}${unit} 감소`}
-        {change === 0 && '변동 없음'}
-      </p>
     </div>
   );
 }

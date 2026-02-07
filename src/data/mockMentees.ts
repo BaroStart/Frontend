@@ -17,7 +17,7 @@ export const MOCK_MENTEES: MenteeSummary[] = [
     learningCertUploaded: '오늘 업로드됨',
     weeklyAchievement: 85,
     weeklyChange: 12,
-    lastActive: '2시간 전',
+    lastActive: '15분 전',
     mentoringStart: '2026년 1월 5일',
     desiredMajor: '의학계열',
     scores: {
@@ -49,7 +49,7 @@ export const MOCK_MENTEES: MenteeSummary[] = [
     learningCertUploaded: '오늘 업로드됨',
     weeklyAchievement: 92,
     weeklyChange: 8,
-    lastActive: '5시간 전',
+    lastActive: '45분 전',
     mentoringStart: '2026년 1월 8일',
     desiredMajor: '공학계열',
     scores: {

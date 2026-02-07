@@ -7,6 +7,7 @@ export interface LearningGoal {
   id: string;
   mentorId: string;
   name: string;
+  subject?: string;
   description?: string;
   /** 약점 (쉼표로 구분 가능) */
   weakness?: string;
@@ -44,6 +45,7 @@ function seedGoalsForMentor(mentorId: string): LearningGoal[] {
       id: `seed-goal-${mentorId}-korean-nonfiction`,
       mentorId,
       name: '비문학 지문 구조 파악',
+      subject: '국어',
       description: '핵심문장 찾기 → 단락 요약 → 근거 표시까지 루틴화합니다.',
       weakness: '지문 구조 파악, 핵심문장 선별',
       materialIds: ['mat1'],
@@ -55,6 +57,7 @@ function seedGoalsForMentor(mentorId: string): LearningGoal[] {
       id: `seed-goal-${mentorId}-korean-literature`,
       mentorId,
       name: '문학 감상 포인트 정리',
+      subject: '국어',
       description: '작품별 핵심 정서/표현기법/서술자 관점을 체크리스트로 정리합니다.',
       weakness: '표현기법, 화자/서술자 관점',
       materialIds: ['mat2'],
@@ -66,6 +69,7 @@ function seedGoalsForMentor(mentorId: string): LearningGoal[] {
       id: `seed-goal-${mentorId}-english-reading`,
       mentorId,
       name: '영어 독해 구조화',
+      subject: '영어',
       description: '토픽 센텐스 → 전개 → 결론 흐름을 먼저 잡고 세부로 내려갑니다.',
       weakness: '토픽 센텐스, 단락 구조',
       materialIds: ['mat3', 'mat4'],
@@ -77,6 +81,7 @@ function seedGoalsForMentor(mentorId: string): LearningGoal[] {
       id: `seed-goal-${mentorId}-english-vocab`,
       mentorId,
       name: '영단어 누적 복습',
+      subject: '영어',
       description: 'D+1 / D+3 / D+7 반복으로 장기 기억을 유지합니다.',
       weakness: '어휘 유지, 철자/혼동',
       materialIds: ['mat5'],
@@ -88,6 +93,7 @@ function seedGoalsForMentor(mentorId: string): LearningGoal[] {
       id: `seed-goal-${mentorId}-math-calculus`,
       mentorId,
       name: '미적분 개념 + 기본 문제',
+      subject: '수학',
       description: '개념을 1페이지로 정리하고 기본 문제로 바로 확인합니다.',
       weakness: '개념 적용, 계산 실수',
       materialIds: ['mat6'],
@@ -99,6 +105,7 @@ function seedGoalsForMentor(mentorId: string): LearningGoal[] {
       id: `seed-goal-${mentorId}-math-geometry`,
       mentorId,
       name: '기하 벡터 연산 숙달',
+      subject: '수학',
       description: '벡터 기본 연산을 반복해서 속도/정확도를 올립니다.',
       weakness: '벡터 연산, 도형 해석',
       materialIds: ['mat7'],
@@ -167,16 +174,32 @@ export const useLearningGoalStore = create<LearningGoalStore>()(
         const mentorId = _mentorId;
         if (!mentorId) return;
 
+        const seeded = seedGoalsForMentor(mentorId);
+        const seedMap = new Map(seeded.map((g) => [g.id, g]));
+
         const existingForMentor = get().goals.filter((g) => g.mentorId === mentorId);
         if (existingForMentor.length > 0) {
-          // 이미 사용자가/시드가 생성되어 있으면 중복 생성 방지용 플래그만 세팅
+          // 기존 seed 목표에 subject 등 새 필드가 없으면 업데이트
+          const needsUpdate = existingForMentor.some(
+            (g) => seedMap.has(g.id) && !g.subject,
+          );
+          if (needsUpdate) {
+            set((state) => ({
+              goals: state.goals.map((g) => {
+                const seed = seedMap.get(g.id);
+                if (seed && !g.subject) {
+                  return { ...g, subject: seed.subject, columnTemplate: seed.columnTemplate };
+                }
+                return g;
+              }),
+            }));
+          }
           if (!isSeeded(mentorId)) markSeeded(mentorId);
           return;
         }
 
         if (isSeeded(mentorId)) return;
 
-        const seeded = seedGoalsForMentor(mentorId);
         // 혹시 저장소에 같은 id가 있으면 제외
         const existingIds = new Set(get().goals.map((g) => g.id));
         const toAdd = seeded.filter((g) => !existingIds.has(g.id));

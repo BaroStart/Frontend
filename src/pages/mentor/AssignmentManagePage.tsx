@@ -26,7 +26,6 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { DefaultSelect } from '@/components/ui/select';
 import { Tabs } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/Toast';
-import { SUBJECT_SUBCATEGORIES } from '@/data/assignmentRegisterMock';
 import { getTodayDateStr } from '@/lib/dateUtils';
 import {
   deleteMaterial,
@@ -161,7 +160,7 @@ function saveCustomTemplates(templates: AssignmentTemplate[]) {
 
 export function AssignmentManagePage() {
   const [searchParams] = useSearchParams();
-  const { getGoalsByMentor, addGoal, updateGoal, deleteGoal, initialize } = useLearningGoalStore();
+  const { goals: _storeGoals, getGoalsByMentor, addGoal, updateGoal, deleteGoal, initialize } = useLearningGoalStore();
 
   // 탭 상태
   const [activeTab, setActiveTab] = useState<TabType>(() => {
@@ -173,7 +172,6 @@ export function AssignmentManagePage() {
   const [materials, setMaterials] = useState<MaterialMeta[]>([]);
   const [materialFilter, setMaterialFilter] = useState({
     subject: '전체',
-    subCategory: '전체',
     search: '',
   });
   const [uploadModal, setUploadModal] = useState<{
@@ -181,6 +179,8 @@ export function AssignmentManagePage() {
     files: { file: File; meta: Partial<MaterialMeta> }[];
   }>({ open: false, files: [] });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [subjectSelectModal, setSubjectSelectModal] = useState(false);
+  const [preSelectedSubject, setPreSelectedSubject] = useState<string>('국어');
 
   // 학습자료 미리보기 상태
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -213,14 +213,14 @@ export function AssignmentManagePage() {
   useEffect(() => {
     initializeSeolstudyMaterials();
     initialize(CURRENT_MENTOR_ID);
-    setMaterials(getMaterialsMeta().map((m) => ({ ...m, subCategory: m.subCategory || '기타' })));
+    setMaterials(getMaterialsMeta());
     const tab = searchParams.get('tab') as TabType | null;
     if (tab && TABS.some((t) => t.id === tab)) setActiveTab(tab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 파생 데이터
-  const goals = useMemo(() => getGoalsByMentor(CURRENT_MENTOR_ID), [getGoalsByMentor]);
+  const goals = useMemo(() => getGoalsByMentor(CURRENT_MENTOR_ID), [_storeGoals, getGoalsByMentor]);
   const filteredGoals = useMemo(
     () =>
       goals.filter((g) => !goalSearch || g.name.toLowerCase().includes(goalSearch.toLowerCase())),
@@ -230,17 +230,23 @@ export function AssignmentManagePage() {
     return materials.filter((m) => {
       const matchSubject =
         materialFilter.subject === '전체' || m.subject === materialFilter.subject;
-      const matchSubCategory =
-        materialFilter.subCategory === '전체' || m.subCategory === materialFilter.subCategory;
       const matchSearch =
         !materialFilter.search ||
         m.title.toLowerCase().includes(materialFilter.search.toLowerCase()) ||
         m.fileName.toLowerCase().includes(materialFilter.search.toLowerCase());
-      return matchSubject && matchSubCategory && matchSearch;
+      return matchSubject && matchSearch;
     });
   }, [materials, materialFilter]);
 
   // 핸들러
+  const handleSubjectSelect = (subject: string) => {
+    setPreSelectedSubject(subject);
+    setSubjectSelectModal(false);
+    setTimeout(() => {
+      fileInputRef.current?.click();
+    }, 100);
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -257,8 +263,8 @@ export function AssignmentManagePage() {
             : file.type.startsWith('image/')
               ? 'image'
               : 'document',
-          subject: '국어',
-          subCategory: '비문학',
+          subject: preSelectedSubject,
+          subCategory: '기타',
           uploadedAt: getTodayDateStr(),
           source: 'mentor' as const,
         },
@@ -417,7 +423,7 @@ export function AssignmentManagePage() {
             type="button"
             size="sm"
             className="gap-1.5"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => setSubjectSelectModal(true)}
           >
             <Upload className="h-3.5 w-3.5" />
             파일 업로드
@@ -464,7 +470,7 @@ export function AssignmentManagePage() {
                 items={['전체', '국어', '영어', '수학'].map((s) => ({ id: s, label: s }))}
                 value={materialFilter.subject}
                 onChange={(subject) =>
-                  setMaterialFilter((prev) => ({ ...prev, subject, subCategory: '전체' }))
+                  setMaterialFilter((prev) => ({ ...prev, subject }))
                 }
               />
               <SearchInput
@@ -477,6 +483,13 @@ export function AssignmentManagePage() {
                 {filteredMaterials.length}개의 자료
               </p>
             </div>
+
+            {subjectSelectModal && (
+              <SubjectSelectModal
+                onSelect={handleSubjectSelect}
+                onClose={() => setSubjectSelectModal(false)}
+              />
+            )}
 
             {uploadModal.open && (
               <MaterialUploadModal
@@ -500,7 +513,7 @@ export function AssignmentManagePage() {
                     variant="outline"
                     size="sm"
                     icon={Upload}
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => setSubjectSelectModal(true)}
                   >
                     파일 업로드
                   </Button>
@@ -828,12 +841,6 @@ function MaterialCard({
           </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted-foreground">
             <span>{material.subject}</span>
-            {material.subCategory && material.subCategory !== '기타' && (
-              <>
-                <span>·</span>
-                <span>{material.subCategory}</span>
-              </>
-            )}
             <span>·</span>
             <span>{material.fileSize}</span>
             <span>·</span>
@@ -860,6 +867,47 @@ function MaterialCard({
         </button>
       </div>
     </div>
+  );
+}
+
+// 과목 선택 모달
+function SubjectSelectModal({
+  onSelect,
+  onClose,
+}: {
+  onSelect: (subject: string) => void;
+  onClose: () => void;
+}) {
+  const subjects = ['국어', '영어', '수학'];
+
+  return (
+    <Dialog open onClose={onClose} maxWidth="max-w-md">
+      <DialogHeader onClose={onClose}>
+        <h2 className="text-lg font-semibold text-foreground">과목 선택</h2>
+        <p className="mt-1 text-sm text-foreground/60">
+          업로드할 학습 자료의 과목을 먼저 선택해주세요.
+        </p>
+      </DialogHeader>
+      <DialogBody>
+        <div className="grid grid-cols-3 gap-3">
+          {subjects.map((subject) => (
+            <button
+              key={subject}
+              type="button"
+              onClick={() => onSelect(subject)}
+              className="rounded-lg border border-border/50 bg-white px-4 py-6 text-center transition-all hover:border-brand hover:bg-brand/5 hover:shadow-soft"
+            >
+              <p className="text-base font-semibold text-foreground">{subject}</p>
+            </button>
+          ))}
+        </div>
+      </DialogBody>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onClose}>
+          취소
+        </Button>
+      </DialogFooter>
+    </Dialog>
   );
 }
 
@@ -890,7 +938,7 @@ function MaterialUploadModal({
         meta: {
           ...p.meta,
           subject: p.meta.subject || '국어',
-          subCategory: p.meta.subCategory || '비문학',
+          subCategory: '기타',
           title: p.meta.title || p.file.name,
           fileName: p.meta.fileName || p.file.name,
           fileSize: p.meta.fileSize || `${(p.file.size / 1024 / 1024).toFixed(2)} MB`,
@@ -910,14 +958,14 @@ function MaterialUploadModal({
       <DialogHeader onClose={onClose}>
         <h2 className="text-lg font-semibold text-foreground">학습 자료 업로드</h2>
         <p className="mt-1 text-sm text-foreground/60">
-          각 파일의 과목과 세부 분류를 선택한 후 업로드하세요.
+          선택한 파일의 과목을 확인한 후 업로드하세요.
         </p>
       </DialogHeader>
       <DialogBody className="space-y-4">
         {items.map((item, index) => (
           <div key={index} className="rounded-lg border border-border/50 p-4">
             <p className="mb-3 truncate text-sm font-medium text-foreground">{item.file.name}</p>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-foreground/70">과목</label>
                 <DefaultSelect
@@ -925,20 +973,10 @@ function MaterialUploadModal({
                   onValueChange={(subject) =>
                     updateItem(index, {
                       subject,
-                      subCategory: SUBJECT_SUBCATEGORIES[subject]?.[0] ?? '기타',
+                      subCategory: '기타',
                     })
                   }
-                  options={['국어', '영어', '수학', '과학', '사회']}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-foreground/70">
-                  세부 분류
-                </label>
-                <DefaultSelect
-                  value={item.meta.subCategory || '비문학'}
-                  onValueChange={(v) => updateItem(index, { subCategory: v })}
-                  options={SUBJECT_SUBCATEGORIES[item.meta.subject || '국어'] ?? ['기타']}
+                  options={['국어', '영어', '수학']}
                 />
               </div>
             </div>
@@ -976,7 +1014,14 @@ function LearningGoalCard({
           <Target className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-foreground">{goal.name}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground">{goal.name}</h3>
+            {goal.subject && (
+              <span className="shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
+                {goal.subject}
+              </span>
+            )}
+          </div>
           {goal.description && (
             <p className="mt-1 line-clamp-2 text-xs text-foreground/60">{goal.description}</p>
           )}
@@ -1049,12 +1094,20 @@ function LearningGoalModal({
   const [description, setDescription] = useState(goal?.description || '');
   const [weakness, setWeakness] = useState(goal?.weakness || '');
   const [selectedIds, setSelectedIds] = useState<string[]>(goal?.materialIds || []);
+  const [subject, setSubject] = useState(goal?.subject || '국어');
+
+  useEffect(() => {
+    if (goal) {
+      setSubject(goal.subject || '국어');
+    }
+  }, [goal]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     onSave({
       mentorId,
+      subject,
       name: name.trim(),
       description: description.trim() || undefined,
       weakness: weakness.trim() || undefined,
@@ -1077,6 +1130,14 @@ function LearningGoalModal({
       </DialogHeader>
       <form onSubmit={handleSubmit}>
         <DialogBody className="space-y-5">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-foreground/80">과목</label>
+            <DefaultSelect
+              value={subject}
+              onValueChange={setSubject}
+              options={['국어', '영어', '수학']}
+            />
+          </div>
           <div>
             <label className="mb-2 block text-sm font-medium text-foreground/80">
               과제 목표 이름

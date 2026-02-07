@@ -71,18 +71,6 @@ export function ProfileEditModal({
   const getInitialMockExam = () =>
     (mentee?.scores?.mockExam?.[subjectKey] as MockExamPeriodScores | undefined) ?? emptyMockExam();
 
-  const handleReset = () => {
-    if (mentee) {
-      setName(mentee.name);
-      setSchool(mentee.school);
-      setGrade(mentee.grade);
-      setTrack(mentee.track);
-      setDesiredMajor(mentee.desiredMajor ?? '');
-      setMemo(mentee.memo ?? '');
-      setNaesin(getInitialNaesin());
-      setMockExam(getInitialMockExam());
-    }
-  };
 
   useEffect(() => {
     if (isOpen && mentee) {
@@ -240,9 +228,6 @@ export function ProfileEditModal({
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={handleReset}>
-              초기화
-            </Button>
             <Button type="button" variant="outline" onClick={onClose}>
               취소
             </Button>

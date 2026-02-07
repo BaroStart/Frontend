@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { useQueryClient } from '@tanstack/react-query';
-import { Copy, FileUp, Save } from 'lucide-react';
+import { Copy, FileText, FileUp, Save } from 'lucide-react';
 
 import { registerAssignment } from '@/api/assignments';
 import { ColumnEditor } from '@/components/mentor/ColumnEditor';
@@ -29,7 +29,7 @@ import {
   SUBJECT_COLUMN_TEMPLATES,
 } from '@/data/assignmentRegisterMock';
 import { MOCK_MENTEE_TASKS } from '@/data/menteeDetailMock';
-import { useMenteeKpi } from '@/hooks/useMenteeDetail';
+import { useIncompleteAssignments, useMenteeKpi } from '@/hooks/useMenteeDetail';
 import { useMentees } from '@/hooks/useMentees';
 import { getTodayDateStr } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
@@ -54,6 +54,7 @@ interface FormState {
   recurringStartDate: string;
   recurringEndDate: string;
   recurringEndTime: string;
+  singleEndTime: string;
 }
 
 const createInitialForm = (menteeId?: string): FormState => ({
@@ -71,6 +72,7 @@ const createInitialForm = (menteeId?: string): FormState => ({
   recurringStartDate: getTodayDateStr(),
   recurringEndDate: getTodayDateStr(),
   recurringEndTime: '23:59',
+  singleEndTime: '23:59',
 });
 
 export function AssignmentRegisterPage() {
@@ -82,11 +84,13 @@ export function AssignmentRegisterPage() {
   // 외부 데이터
   const { data: mentees = [] } = useMentees();
   const { data: kpi } = useMenteeKpi(urlMenteeId);
-  const { getGoalsByMentor, initialize } = useLearningGoalStore();
+  const { goals: _storeGoals, getGoalsByMentor, initialize } = useLearningGoalStore();
 
   // 폼 상태 (하나의 객체로 관리)
   const [form, setForm] = useState<FormState>(() => createInitialForm(urlMenteeId));
+  const { data: incompleteAssignments = [] } = useIncompleteAssignments(form.menteeId);
   const [editorKey, setEditorKey] = useState(0);
+  const [descriptionKey, setDescriptionKey] = useState(0);
   const [uploadedFiles, setUploadedFiles] = useState<{ id: string; name: string; size: string }[]>(
     [],
   );
@@ -117,12 +121,16 @@ export function AssignmentRegisterPage() {
   }, [urlMenteeId]);
 
   // 파생 데이터 (useMemo로 컴포넌트 내에서 계산)
-  const learningGoals = useMemo(() => getGoalsByMentor(CURRENT_MENTOR_ID), [getGoalsByMentor]);
+  const allLearningGoals = useMemo(() => getGoalsByMentor(CURRENT_MENTOR_ID), [_storeGoals, getGoalsByMentor]);
+  const learningGoals = useMemo(
+    () => allLearningGoals.filter((g) => g.subject === form.subject),
+    [allLearningGoals, form.subject],
+  );
   const selectedMentee = mentees.find((m) => m.id === form.menteeId);
   const matchedMaterials = useMemo(() => {
-    const goal = learningGoals.find((g) => g.id === form.improvementPointId);
+    const goal = allLearningGoals.find((g) => g.id === form.improvementPointId);
     return goal ? getMaterialsByIds(goal.materialIds || []) : [];
-  }, [form.improvementPointId, learningGoals]);
+  }, [form.improvementPointId, allLearningGoals]);
   const highlightDates = useMemo(
     () =>
       form.menteeId
@@ -147,14 +155,46 @@ export function AssignmentRegisterPage() {
 
   // 과제 목표 선택 시 관련 데이터 자동 설정
   const handleGoalSelect = (goalId: string) => {
-    const goal = learningGoals.find((g) => g.id === goalId);
+    const goal = allLearningGoals.find((g) => g.id === goalId);
+    let formattedDescription = '';
+    if (goal) {
+      formattedDescription = `<h3>오늘의 목표: ${goal.name}</h3>`;
+      if (goal.columnTemplate) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = goal.columnTemplate;
+        const listElements = tempDiv.querySelectorAll('ul, ol');
+        listElements.forEach((list) => {
+          const listType = list.tagName.toLowerCase();
+          formattedDescription += `<${listType}>`;
+          list.querySelectorAll('li').forEach((li) => {
+            formattedDescription += `<li>${li.textContent?.trim()}</li>`;
+          });
+          formattedDescription += `</${listType}>`;
+        });
+        const paragraphs = tempDiv.querySelectorAll('p');
+        paragraphs.forEach((p) => {
+          const text = p.textContent?.trim();
+          if (text && text.includes('제출')) {
+            formattedDescription += `<p><strong>${text}</strong></p>`;
+          }
+        });
+      } else {
+        if (goal.description) formattedDescription += `<p>${goal.description}</p>`;
+        if (goal.weakness) formattedDescription += `<p>보완점: ${goal.weakness}</p>`;
+      }
+    }
     setForm((prev) => ({
       ...prev,
       improvementPointId: goalId,
       motivationalTemplateId: '',
       goal: goal?.name ?? prev.goal,
+      subject: (goal?.subject as MainSubject) ?? prev.subject,
+      description: formattedDescription,
     }));
-    if (goal?.columnTemplate) applyTemplate(goal.columnTemplate);
+    setDescriptionKey((k) => k + 1);
+    if (goal?.materialIds && goal.materialIds.length > 0) {
+      setMaterialTab('pdf');
+    }
   };
 
   // 이전 날짜에서 불러오기
@@ -243,6 +283,7 @@ export function AssignmentRegisterPage() {
         menteeId: form.menteeId,
         dateMode: form.dateMode,
         singleDate: form.dateMode === 'single' ? form.singleDate : undefined,
+        singleEndTime: form.dateMode === 'single' ? form.singleEndTime : undefined,
         recurringDays: form.dateMode === 'recurring' ? form.recurringDays : undefined,
         recurringStartDate: form.dateMode === 'recurring' ? form.recurringStartDate : undefined,
         recurringEndDate: form.dateMode === 'recurring' ? form.recurringEndDate : undefined,
@@ -337,7 +378,7 @@ export function AssignmentRegisterPage() {
                     type="button"
                     onClick={() => updateForm('dateMode', mode)}
                     className={cn(
-                      'h-9 rounded-md px-3 text-sm font-medium transition-colors',
+                      'h-9 whitespace-nowrap rounded-md px-3 text-sm font-medium transition-colors',
                       form.dateMode === mode
                         ? 'bg-foreground text-white'
                         : 'bg-secondary text-foreground/70 hover:bg-secondary/80',
@@ -346,14 +387,26 @@ export function AssignmentRegisterPage() {
                     {mode === 'single' ? '단일 날짜' : '요일 반복'}
                   </button>
                 ))}
-                {form.dateMode === 'single' && (
-                  <DatePicker
-                    value={form.singleDate}
-                    onChange={(v) => updateForm('singleDate', v)}
-                    placeholder="날짜 선택"
-                  />
-                )}
               </div>
+              {form.dateMode === 'single' && (
+                <div className="mt-4 flex items-end gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-sm font-medium text-foreground/80">날짜</Label>
+                    <DatePicker
+                      value={form.singleDate}
+                      onChange={(v) => updateForm('singleDate', v)}
+                      placeholder="날짜 선택"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-sm font-medium text-foreground/80">종료 시간</Label>
+                    <TimePicker
+                      value={form.singleEndTime}
+                      onChange={(v) => updateForm('singleEndTime', v)}
+                    />
+                  </div>
+                </div>
+              )}
               {form.dateMode === 'recurring' && (
                 <div className="mt-4 space-y-4">
                   <div>
@@ -400,6 +453,18 @@ export function AssignmentRegisterPage() {
                 <li>최근 제출률: {kpi?.assignmentCompletionRate ?? 95}% (지난 20일 기준)</li>
                 <li>평균 학습 시간: 4시간 30분/일</li>
               </ul>
+              {incompleteAssignments.length > 0 && (
+                <div className="mt-3 border-t border-border/30 pt-3">
+                  <p className="text-xs font-medium text-foreground/80">미완료 과제</p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-foreground/70">
+                    {incompleteAssignments.map((a) => (
+                      <li key={a.id}>
+                        {a.title} ({a.subject}{a.deadlineDate ? ` · ${a.deadlineDate}` : ''})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -420,7 +485,9 @@ export function AssignmentRegisterPage() {
                 <Label>과목 선택</Label>
                 <DefaultSelect
                   value={form.subject}
-                  onValueChange={(v) => updateForm('subject', v as MainSubject)}
+                  onValueChange={(v) => {
+                    setForm((prev) => ({ ...prev, subject: v as MainSubject, improvementPointId: '' }));
+                  }}
                   placeholder="과목을 선택하세요"
                   className="mt-1.5"
                   options={MAIN_SUBJECTS}
@@ -456,6 +523,7 @@ export function AssignmentRegisterPage() {
               <Label>과제 내용</Label>
               <div className="mt-1.5">
                 <ColumnEditor
+                  key={descriptionKey}
                   defaultValue={form.description}
                   onChange={(v) => updateForm('description', v)}
                   placeholder="과제 내용을 상세히 입력하세요. (예: 학습 범위, 세부 지시사항 등)"
@@ -536,13 +604,22 @@ export function AssignmentRegisterPage() {
                     {matchedMaterials.map((m) => (
                       <div
                         key={m.id}
-                        className="flex items-center justify-between rounded-lg border border-border/50 p-3"
+                        className="flex items-center gap-3 rounded-lg border border-border/50 p-3"
                       >
-                        <div>
-                          <p className="text-sm font-medium">{m.title}</p>
-                          {m.fileSize && <p className="text-xs text-muted-foreground">{m.fileSize}</p>}
+                        <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{m.title}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>설스터디 학습자료</span>
+                            {m.fileSize && (
+                              <>
+                                <span>·</span>
+                                <span>{m.fileSize}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" className="shrink-0">
                           다운로드
                         </Button>
                       </div>
