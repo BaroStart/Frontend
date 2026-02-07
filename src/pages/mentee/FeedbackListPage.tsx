@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { TodayFeedbackCard } from "@/components/mentee/feedbacklist/TodayFeedbackSection";
 import { FeedbackSummarySection } from "@/components/mentee/feedbacklist/FeedbackSummarySection";
 import { FeedbackCard, type FeedbackItem } from "@/components/mentee/feedbacklist/FeedbackCard";
 import { PlannerSummaryCard } from "@/components/mentee/feedbacklist/PlannerSummaryCard";
@@ -70,31 +69,6 @@ export function FeedbackListPage() {
 
   const dateText = useMemo(() => formatKoreanDate(selectedDate), [selectedDate]);
   const dateKey = useMemo(() => toYmdKeyLocal(selectedDate), [selectedDate]);
-
-  const dummyTodayFeedbackByDate = useMemo(() => {
-    const map: Record<
-      string,
-      { id: string; mentorName: string; timeAgoText: string; subject: "국어" | "영어" | "수학"; message: string } | null
-    > = {
-      "2026-02-06": {
-        id: "t1",
-        mentorName: "김민준 멘토",
-        timeAgoText: "4시간 전",
-        subject: "영어",
-        message: "영어 독해에서 주제로 찾기가 아직 어려워 보여요. 내일 추가 자료를 드릴게요.",
-      },
-      "2026-02-07": {
-        id: "t2",
-        mentorName: "김민준 멘토",
-        timeAgoText: "2시간 전",
-        subject: "수학",
-        message: "풀이 과정이 훨씬 깔끔해졌어요. 다음엔 검산 루틴을 추가해봅시다.",
-      },
-    };
-    return map;
-  }, []);
-
-  const dummyFeedback = dummyTodayFeedbackByDate[dateKey] ?? null;
 
   const dummySubjectFeedbacks: FeedbackItem[] = useMemo(() => {
     const byDate: Record<string, FeedbackItem[]> = {
@@ -179,8 +153,6 @@ export function FeedbackListPage() {
           coachName="김민준 멘토"
           updatedText="오늘"
         />
-
-        <TodayFeedbackCard item={dummyFeedback} onClick={(it) => console.log("clicked feedback:", it.id)} />
 
         <FeedbackSummarySection
           items={[

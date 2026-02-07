@@ -1,17 +1,10 @@
 import { EnglishIcon, KoreanIcon, MathIcon } from "@/components/icons";
 
-type BreakdownItem = {
-  label: string;
-  valueText: string;
-};
-
 export type SubjectAchievementItem = {
   id: string;
   name: "국어" | "영어" | "수학" | string;
   percent: number;
-  weekTotalText?: string;
-  weekDoneText?: string;
-  breakdown?: BreakdownItem[];
+  progressText?: string;
 };
 
 type Props = {
@@ -51,6 +44,7 @@ export function SubjectAchievementSection({
       <div className="space-y-3">
         {items.map((s) => {
           const p = clampPercent(s.percent);
+
           return (
             <div
               key={s.id}
@@ -58,41 +52,27 @@ export function SubjectAchievementSection({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 ">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100">
                     {iconFor(s.name)}
                   </div>
 
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{s.name}</p>
-                    <p className="text-xs text-gray-400">{s.weekTotalText ?? ""}</p>
                   </div>
                 </div>
 
                 <div className="text-right">
                   <p className="text-sm font-semibold text-gray-900">{p}%</p>
-                  <p className="text-xs text-gray-400">{s.weekDoneText ?? ""}</p>
+                  <p className="text-xs text-gray-400">{s.progressText ?? ""}개</p>
                 </div>
               </div>
 
               <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-100">
                 <div
-                  className="h-full rounded-full bg-gray-800"
+                  className="h-full rounded-full bg-[#0E9ABE]"
                   style={{ width: `${p}%` }}
                 />
               </div>
-
-              {s.breakdown && s.breakdown.length > 0 && (
-                <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-gray-50 px-3 py-3">
-                  {s.breakdown.map((b) => (
-                    <div key={b.label} className="text-center">
-                      <p className="text-[11px] text-gray-400">{b.label}</p>
-                      <p className="mt-1 text-xs font-semibold text-gray-900">
-                        {b.valueText}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           );
         })}

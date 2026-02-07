@@ -14,7 +14,7 @@ export function SubjectFilter({ value, onChange }: Props) {
   ];
 
   return (
-    <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+    <div className="mt-2 mb-2 flex gap-2 overflow-x-auto scrollbar-hide">
       {items.map((item) => (
         <button
           key={item.value}

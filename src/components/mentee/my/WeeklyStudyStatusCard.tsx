@@ -27,7 +27,7 @@ export function WeeklyStudyStatusCard({
       </div>
 
       <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-        <div className="h-full rounded-full bg-gray-700" style={{ width: `${p}%` }} />
+        <div className="h-full rounded-full bg-[#0E9ABE]" style={{ width: `${p}%` }} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
