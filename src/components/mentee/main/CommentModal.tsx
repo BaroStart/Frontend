@@ -12,7 +12,7 @@ export type CommentModalValues = z.infer<typeof commentSchema>;
 
 type ThreadMessage = {
   id: string;
-  author: string; // "나" | "멘토"
+  author: string;
   content: string;
   parentId?: string | null;
   createdAtText?: string;
@@ -22,19 +22,16 @@ type CommentModalProps = {
   open: boolean;
   onClose: () => void;
 
-  /** ✅ 처음 코멘트 제출(저장) */
   onSubmit: (values: CommentModalValues) => void | Promise<void>;
 
-  /** ✅ 댓글 스레드(더미/추후 API) */
   thread?: {
-    root?: ThreadMessage | null; // 내 코멘트(최상위)
-    replies?: ThreadMessage[];   // 멘토 대댓글들
+    root?: ThreadMessage | null; 
+    replies?: ThreadMessage[]; 
   };
 
   defaultValues?: Partial<CommentModalValues>;
   title?: string;
 
-  /** (선택) 답글 전송 핸들러: 없으면 로컬에만 추가(더미) */
   onSendReply?: (text: string) => void | Promise<void>;
 };
 
@@ -44,7 +41,7 @@ export function CommentModal({
   onSubmit,
   thread,
   defaultValues,
-  title = "오늘의 코멘트를 남겨주세요!",
+  title = "오늘의 코멘트와 궁금한 점을 남겨주세요!",
   onSendReply,
 }: CommentModalProps) {
   const {
@@ -60,13 +57,11 @@ export function CommentModal({
     },
   });
 
-  // ✅ 답글 입력(로컬 더미)
   const [replyText, setReplyText] = useState("");
   const [localReplies, setLocalReplies] = useState<ThreadMessage[]>([]);
 
   const root = thread?.root ?? null;
 
-  // ✅ root가 있으면 "이미 코멘트 제출한 상태"
   const hasSubmitted = !!root;
 
   const replies = useMemo(() => {
@@ -105,7 +100,6 @@ export function CommentModal({
     const text = replyText.trim();
     if (!text) return;
 
-    // 외부 핸들러가 있으면 그걸로(추후 API), 아니면 로컬에만 추가(더미)
     if (onSendReply) {
       await onSendReply(text);
     } else {
@@ -133,7 +127,6 @@ export function CommentModal({
       />
 
       <div className="absolute left-1/2 top-1/2 w-[86vw] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl bg-white shadow-xl">
-        {/* header */}
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="text-base font-semibold text-gray-900">{title}</h2>
           <button
@@ -146,7 +139,6 @@ export function CommentModal({
           </button>
         </div>
 
-        {/* ✅ 스레드 영역 */}
         <div className="max-h-[38vh] overflow-y-auto px-5 py-4">
           {!root ? (
             <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-600">
@@ -170,7 +162,6 @@ export function CommentModal({
                 </div>
               </div>
 
-              {/* replies */}
               {replies.length > 0 && (
                 <div className="space-y-3 pl-11">
                   {replies.map((r) => (
@@ -200,13 +191,10 @@ export function CommentModal({
           )}
         </div>
 
-        {/* ✅ 코멘트 입력(통합) : root가 없을 때만 보여줌 */}
         {!hasSubmitted && (
           <form
             onSubmit={handleSubmit(async (values) => {
               await onSubmit(values);
-              // ✅ 여기서는 닫지 말고, 부모에서 thread.root 세팅하면 스레드로 전환됨
-              // onClose();
             })}
             className="border-t px-5 py-4"
           >
@@ -237,7 +225,6 @@ export function CommentModal({
           </form>
         )}
 
-        {/* ✅ 답글 입력 : root가 있을 때만 */}
         {hasSubmitted && (
           <div className="border-t px-5 py-4">
             <div className="mb-2 text-xs font-medium text-gray-500">답글</div>
