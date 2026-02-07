@@ -13,7 +13,6 @@ import type { TimeSlot } from "@/api/todos";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { CommentIcon, ListIcon, TimeIcon, UserIcon } from "@/components/icons";
 import { MOCK_INCOMPLETE_ASSIGNMENTS } from "@/data/menteeDetailMock";
-import { incrementQnaCount } from "@/lib/menteeActivityStorage";
 import { getSubmittedAssignments } from "@/lib/menteeAssignmentSubmissionStorage";
 
 export function MenteeMainPage() {
