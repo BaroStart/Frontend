@@ -9,7 +9,7 @@ import { useTodoStore } from "@/stores/useTodoStore";
 import { TimeTable, type TimelineItem } from "@/components/mentee/main/TimeTable";
 import { API_CONFIG } from "@/api/config";
 import type { TimeRangeValue } from "@/components/mentee/TimeRangeModal";
-import type { TimeSlot } from "@/api/todos";
+import type { TimeSlot } from "@/generated";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { CommentIcon, ListIcon, TimeIcon, UserIcon } from "@/components/icons";
 import { MOCK_INCOMPLETE_ASSIGNMENTS } from "@/data/menteeDetailMock";

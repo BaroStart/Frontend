@@ -1,17 +1,14 @@
-import axiosInstance from './axiosInstance';
-import type { ApiEnvelope } from './auth';
+import type { ExampleRes } from '@/generated';
 
-export type ExampleRes = {
-  name: string;
-};
+import type { ApiEnvelope } from './auth';
+import { examplesApi } from './clients';
 
 export async function fetchExamples(): Promise<ApiEnvelope<ExampleRes[]>> {
-  const { data } = await axiosInstance.get<ApiEnvelope<ExampleRes[]>>('/api/v1/examples');
-  return data;
+  const { data } = await examplesApi.getAll();
+  return data as unknown as ApiEnvelope<ExampleRes[]>;
 }
 
 export async function fetchExampleById(id: number): Promise<ApiEnvelope<ExampleRes>> {
-  const { data } = await axiosInstance.get<ApiEnvelope<ExampleRes>>(`/api/v1/examples/${id}`);
-  return data;
+  const { data } = await examplesApi.getById({ id });
+  return data as unknown as ApiEnvelope<ExampleRes>;
 }
-

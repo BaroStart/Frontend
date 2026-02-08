@@ -1,78 +1,64 @@
-import type { components } from '@/types/api.generated';
+import type {
+  AssignmentCreateReq,
+  AssignmentCreateRes,
+  AssignmentMaterialRes,
+  AssignmentMenteeDetailRes,
+  AssignmentMenteeListRes,
+  AssignmentSubmitReq,
+  GetAllMaterialsSubjectEnum,
+  GetMenteeAssignmentsSubjectEnum,
+} from '@/generated';
 
 import type { ApiEnvelope } from './auth';
-import axiosInstance from './axiosInstance';
+import { assignmentsApi } from './clients';
 
-// ── generated 타입 re-export ──
-
-export type AssignmentCreateReq = components['schemas']['AssignmentCreateReq'];
-export type AssignmentCreateRes = components['schemas']['AssignmentCreateRes'];
-export type AssignmentSubmitReq = components['schemas']['AssignmentSubmitReq'];
-export type AssignmentMenteeListRes = components['schemas']['AssignmentMenteeListRes'];
-export type AssignmentFileRes = components['schemas']['AssignmentFileRes'];
-export type AssignmentMenteeDetailRes = components['schemas']['AssignmentMenteeDetailRes'];
-export type AssignmentMaterialRes = components['schemas']['AssignmentMaterialRes'];
-
-// ── API 함수 ──
-
-/** 과제 생성 (멘토) */
+// 과제 생성 (멘토)
 export async function createAssignment(body: AssignmentCreateReq) {
-  const { data } = await axiosInstance.post<ApiEnvelope<AssignmentCreateRes>>(
-    '/api/v1/assignments',
-    body,
-  );
-  return data;
+  const { data } = await assignmentsApi.createAssignment({ assignmentCreateReq: body });
+  return data as unknown as ApiEnvelope<AssignmentCreateRes>;
 }
 
-/** 멘티 과제 목록 조회 */
+// 멘티 과제 목록 조회
 export async function fetchMenteeAssignments(params?: {
   subject?: AssignmentCreateReq['subject'];
   dueDate?: string;
 }) {
-  const { data } = await axiosInstance.get<ApiEnvelope<AssignmentMenteeListRes[]>>(
-    '/api/v1/assignments/mentee',
-    { params },
-  );
-  return data.result ?? [];
+  const { data } = await assignmentsApi.getMenteeAssignments({
+    subject: params?.subject as GetMenteeAssignmentsSubjectEnum,
+    dueDate: params?.dueDate,
+  });
+  return (data as unknown as ApiEnvelope<AssignmentMenteeListRes[]>).result ?? [];
 }
 
-/** 멘티 과제 상세 조회 */
+// 멘티 과제 상세 조회
 export async function fetchMenteeAssignmentDetail(assignmentId: number) {
-  const { data } = await axiosInstance.get<ApiEnvelope<AssignmentMenteeDetailRes>>(
-    `/api/v1/assignments/mentee/${assignmentId}`,
-  );
-  return data.result ?? null;
+  const { data } = await assignmentsApi.getMenteeAssignmentDetail({ assignmentId });
+  return (data as unknown as ApiEnvelope<AssignmentMenteeDetailRes>).result ?? null;
 }
 
-/** 과제 제출 (멘티) */
+// 과제 제출 (멘티)
 export async function submitAssignment(assignmentId: number, body: AssignmentSubmitReq) {
-  const { data } = await axiosInstance.post<ApiEnvelope<null>>(
-    `/api/v1/assignments/${assignmentId}/submit`,
-    body,
-  );
-  return data;
+  const { data } = await assignmentsApi.submitAssignment({ assignmentId, assignmentSubmitReq: body });
+  return data as unknown as ApiEnvelope<null>;
 }
 
-/** 학습자료 전체 조회 (멘토) */
+// 학습자료 전체 조회 (멘토)
 export async function fetchAssignmentMaterials(params?: {
   subject?: AssignmentCreateReq['subject'];
 }) {
-  const { data } = await axiosInstance.get<ApiEnvelope<AssignmentMaterialRes[]>>(
-    '/api/v1/assignments/materials',
-    { params },
-  );
-  return data.result ?? [];
+  const { data } = await assignmentsApi.getAllMaterials({
+    subject: params?.subject as GetAllMaterialsSubjectEnum,
+  });
+  return (data as unknown as ApiEnvelope<AssignmentMaterialRes[]>).result ?? [];
 }
 
-/** 파일 다운로드 URL 조회 */
+// 파일 다운로드 URL 조회
 export async function fetchAssignmentFileDownloadUrl(assignmentFileId: number) {
-  const { data } = await axiosInstance.get<ApiEnvelope<string>>(
-    `/api/v1/assignments/files/${assignmentFileId}/download`,
-  );
-  return data.result ?? null;
+  const { data } = await assignmentsApi.getAssignmentFileDownloadUrl({ assignmentFileId });
+  return (data as unknown as ApiEnvelope<string>).result ?? null;
 }
 
-// ── 과제 등록 헬퍼 (AssignmentRegisterPage 전용) ──
+// 과제 등록 헬퍼 (AssignmentRegisterPage 전용)
 
 const SUBJECT_MAP: Record<string, AssignmentCreateReq['subject']> = {
   국어: 'KOREAN',
@@ -103,7 +89,7 @@ export type RegisterAssignmentResult = {
   message?: string;
 };
 
-/** 폼 데이터 → API 요청 변환 후 과제 등록 */
+// 폼 데이터 -> API 요청 변환 후 과제 등록
 export async function registerAssignment(
   payload: RegisterAssignmentPayload,
 ): Promise<RegisterAssignmentResult> {

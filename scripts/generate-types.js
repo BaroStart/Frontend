@@ -1,4 +1,6 @@
 import { execSync } from 'child_process';
+import { readdirSync, readFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
 import { config } from 'dotenv';
 
 config();
@@ -10,13 +12,36 @@ if (!API_URL) {
   process.exit(1);
 }
 
-const command = `openapi-typescript ${API_URL}/v3/api-docs -o src/types/api.generated.ts`;
+const specUrl = `${API_URL}/v3/api-docs`;
+const outDir = 'src/generated';
 
-console.log(`Generating types from: ${API_URL}/v3/api-docs`);
+const command = [
+  'npx openapi-generator-cli generate',
+  `-i ${specUrl}`,
+  '-g typescript-axios',
+  `-o ${outDir}`,
+  '--skip-validate-spec',
+  '--additional-properties=supportsES6=true,withInterfaces=true,useSingleRequestParameter=true',
+].join(' ');
+
+console.log(`Generating API client from: ${specUrl}`);
 
 try {
   execSync(command, { stdio: 'inherit' });
 } catch (error) {
-  console.error('Failed to generate types');
+  console.error('Failed to generate API client');
   process.exit(1);
 }
+
+// Post-process: add @ts-nocheck to generated .ts files
+// (generated code may violate strict tsconfig rules like noUnusedLocals, verbatimModuleSyntax)
+const tsFiles = readdirSync(outDir).filter((f) => f.endsWith('.ts'));
+for (const file of tsFiles) {
+  const filePath = join(outDir, file);
+  const content = readFileSync(filePath, 'utf-8');
+  if (!content.startsWith('// @ts-nocheck')) {
+    writeFileSync(filePath, `// @ts-nocheck\n${content}`);
+  }
+}
+
+console.log('✓ Generated successfully in src/generated/');

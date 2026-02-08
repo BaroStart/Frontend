@@ -1,16 +1,10 @@
 import { create } from 'zustand';
 
 import { API_CONFIG } from '@/api/config';
-import {
-  changeTodoStatus,
-  createTodo,
-  deleteTodo,
-  fetchTodos,
-  updateTodo,
-  type TimeSlot,
-} from '@/api/todos';
 import { isApiSuccess } from '@/api/response';
+import { changeTodoStatus, createTodo, deleteTodo, fetchTodos, updateTodo } from '@/api/todos';
 import { STORAGE_KEYS } from '@/constants';
+import type { TimeSlot } from '@/generated';
 
 export type TodoItem = {
   id: number;
@@ -78,7 +72,7 @@ function writeMockTodosByDate(v: Record<string, TodoItem[]>) {
 
 export const useTodoStore = create<TodoState>((set, get) => ({
   selectedDate: API_CONFIG.useMock ? '2026-02-02' : toYmdLocal(new Date()),
-  todosByDate: API_CONFIG.useMock ? readMockTodosByDate() ?? MOCK_TODOS_BY_DATE : {},
+  todosByDate: API_CONFIG.useMock ? (readMockTodosByDate() ?? MOCK_TODOS_BY_DATE) : {},
   todos: API_CONFIG.useMock ? (MOCK_TODOS_BY_DATE['2026-02-02'] ?? []) : [],
 
   setSelectedDate: async (date) => {
@@ -113,7 +107,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       // swagger 스키마엔 id가 없지만, 실제 서버에선 내려올 가능성이 커서 optional로 뒀음
       // id가 없으면 임시로 음수 id를 만들어 표시만 하고(수정/삭제는 동작 보장 X)
       id: typeof t.id === 'number' ? t.id : -(idx + 1),
-      title: t.title,
+      title: t.title ?? '',
       done: t.status === 'COMPLETED',
       timeList: t.timeList ?? undefined,
     }));
@@ -128,7 +122,10 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     if (API_CONFIG.useMock) {
       const dateKey = get().selectedDate;
       set((s) => {
-        const next = [{ id: Date.now(), title: trimmed, done: false }, ...(s.todosByDate[dateKey] ?? [])];
+        const next = [
+          { id: Date.now(), title: trimmed, done: false },
+          ...(s.todosByDate[dateKey] ?? []),
+        ];
         const nextByDate = { ...s.todosByDate, [dateKey]: next };
         writeMockTodosByDate(nextByDate);
         return {

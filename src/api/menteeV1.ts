@@ -1,18 +1,11 @@
-import axiosInstance from './axiosInstance';
-import type { ApiEnvelope } from './auth';
+import type { GetMenteeInfoResponseDto } from '@/generated';
 
-export type GetMenteeInfoResult = {
-  menteeName: string;
-  menteeGrade: string;
-  lastAccess: number;
-  mentoringStartDate: string;
-  totalStudyTime: number;
-  assignmentAchieveRate: number;
-  averageScore: number;
-};
+import type { ApiEnvelope } from './auth';
+import { menteeApi } from './clients';
+
+export type GetMenteeInfoResult = GetMenteeInfoResponseDto;
 
 export async function fetchMenteeInfo(menteeId: number): Promise<ApiEnvelope<GetMenteeInfoResult>> {
-  const { data } = await axiosInstance.get<ApiEnvelope<GetMenteeInfoResult>>(`/api/v1/mentee/${menteeId}`);
-  return data;
+  const { data } = await menteeApi.getMenteeInfo({ menteeId });
+  return data as unknown as ApiEnvelope<GetMenteeInfoResult>;
 }
-

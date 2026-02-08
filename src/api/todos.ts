@@ -1,59 +1,45 @@
-import axiosInstance from './axiosInstance';
+import type {
+  CreateToDoReq,
+  ToDoRes,
+  UpdateToDoReq,
+  UpdateToDoStatusReq,
+} from '@/generated';
+
 import type { ApiEnvelope } from './auth';
+import axiosInstance from './axiosInstance';
+import { todosApi } from './clients';
 
-export type TodoStatus = 'COMPLETED' | 'NOT_COMPLETED';
+// generated ToDoRes에 id가 없어서 확장 (실제 응답에는 포함됨)
+export type ToDoResWithId = ToDoRes & { id?: number };
 
-export type TimeSlot = {
-  startTime: string; // date-time
-  endTime: string; // date-time
-};
-
-export type TodoRes = {
-  /** swagger schema엔 없지만, 실제로는 내려올 가능성이 높아서 optional로 둠 */
-  id?: number;
-  title: string;
-  status: TodoStatus;
-  timeList?: TimeSlot[];
-};
-
-export type CreateTodoReq = {
-  title: string;
-};
-
-export type UpdateTodoReq = {
-  id: number;
-  title: string;
-  timeList?: TimeSlot[];
-};
-
-export type UpdateTodoStatusReq = {
-  id: number;
-  status: TodoStatus;
-  timeList?: TimeSlot[];
-};
-
-export async function fetchTodos(): Promise<ApiEnvelope<TodoRes[]>> {
-  const { data } = await axiosInstance.get<ApiEnvelope<TodoRes[]>>('/api/v1/todos');
-  return data;
+export async function fetchTodos(): Promise<ApiEnvelope<ToDoResWithId[]>> {
+  const { data } = await todosApi.getTodayToDoList();
+  return data as unknown as ApiEnvelope<ToDoResWithId[]>;
 }
 
-export async function createTodo(body: CreateTodoReq): Promise<ApiEnvelope<null>> {
-  const { data } = await axiosInstance.post<ApiEnvelope<null>>('/api/v1/todos', body);
-  return data;
+export async function createTodo(body: CreateToDoReq): Promise<ApiEnvelope<null>> {
+  const { data } = await todosApi.createToDo({ createToDoReq: body });
+  return data as unknown as ApiEnvelope<null>;
 }
 
-export async function updateTodo(body: UpdateTodoReq): Promise<ApiEnvelope<null>> {
-  const { data } = await axiosInstance.put<ApiEnvelope<null>>('/api/v1/todos', body);
-  return data;
+export async function updateTodo(body: UpdateToDoReq): Promise<ApiEnvelope<null>> {
+  const { data } = await todosApi.updateToDo({ updateToDoReq: body });
+  return data as unknown as ApiEnvelope<null>;
 }
 
-export async function changeTodoStatus(id: number, body: UpdateTodoStatusReq): Promise<ApiEnvelope<null>> {
-  const { data } = await axiosInstance.patch<ApiEnvelope<null>>(`/api/v1/todos/${id}/status`, body);
+// changeTodoStatus: generated 코드에 {id} path parameter 누락 (백엔드 스펙 이슈) -> 수동 호출 유지
+export async function changeTodoStatus(
+  id: number,
+  body: UpdateToDoStatusReq,
+): Promise<ApiEnvelope<null>> {
+  const { data } = await axiosInstance.patch<ApiEnvelope<null>>(
+    `/api/v1/todos/${id}/status`,
+    body,
+  );
   return data;
 }
 
 export async function deleteTodo(id: number): Promise<ApiEnvelope<null>> {
-  const { data } = await axiosInstance.delete<ApiEnvelope<null>>(`/api/v1/todos/${id}`);
-  return data;
+  const { data } = await todosApi.deleteToDo({ id });
+  return data as unknown as ApiEnvelope<null>;
 }
-
