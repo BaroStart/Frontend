@@ -3,9 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { Bell, LogOut, Menu } from 'lucide-react';
 
-import { UserIcon } from '@/components/icons';
-import { API_CONFIG } from '@/api/config';
 import { logout as logoutApi } from '@/api/auth';
+import { UserIcon } from '@/components/icons';
 import { MOCK_NOTIFICATIONS } from '@/data/menteeDetailMock';
 import { useAuthStore } from '@/stores/useAuthStore';
 
@@ -45,9 +44,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   const handleLogout = async () => {
     try {
-      if (!API_CONFIG.useMock) {
-        await logoutApi();
-      }
+      await logoutApi();
     } catch {
       // ignore
     } finally {
@@ -68,7 +65,9 @@ export function Header({ onMenuClick }: HeaderProps) {
           >
             <Menu size={20} />
           </button>
-          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-foreground sm:text-xl">{title}</h1>
+          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-foreground sm:text-xl">
+            {title}
+          </h1>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -102,7 +101,9 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <div className="absolute right-0 top-full z-20 mt-2 w-80 overflow-hidden rounded-lg border border-border bg-white shadow-lg">
                   <div className="border-b border-border px-4 py-3">
                     <h3 className="text-sm font-semibold text-foreground">알림</h3>
-                    <p className="text-xs text-muted-foreground">최근 알림 {MOCK_NOTIFICATIONS.length}개</p>
+                    <p className="text-xs text-muted-foreground">
+                      최근 알림 {MOCK_NOTIFICATIONS.length}개
+                    </p>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
                     {MOCK_NOTIFICATIONS.length === 0 ? (

@@ -3,8 +3,8 @@ import axios from 'axios';
 import { useApiErrorStore } from '@/stores/useApiErrorStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 
-import { API_CONFIG } from './config';
 import { refresh as refreshApi } from './auth';
+import { API_CONFIG } from './config';
 import { isApiSuccess } from './response';
 
 const axiosInstance = axios.create({
@@ -64,7 +64,7 @@ axiosInstance.interceptors.response.use(
     const originalRequest = error.config;
 
     // 401이면 1회에 한해 refresh 시도 후 재요청
-    if (status === 401 && originalRequest && !originalRequest._retry && !API_CONFIG.useMock) {
+    if (status === 401 && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
@@ -80,16 +80,14 @@ axiosInstance.interceptors.response.use(
 
       useAuthStore.getState().logout();
       return Promise.reject(error);
-    } else if (!API_CONFIG.useMock) {
+    } else {
       const message =
-        error.response?.data?.message ??
-        error.message ??
-        '요청을 처리하는 중 오류가 발생했습니다.';
+        error.response?.data?.message ?? error.message ?? '요청을 처리하는 중 오류가 발생했습니다.';
       useApiErrorStore.getState().setError(message, status);
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default axiosInstance;

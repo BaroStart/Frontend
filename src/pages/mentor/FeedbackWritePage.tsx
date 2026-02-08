@@ -17,7 +17,6 @@ import {
   ZoomOut,
 } from 'lucide-react';
 
-import { API_CONFIG } from '@/api/config';
 import { AuthPhotoViewer } from '@/components/mentor/AuthPhotoViewer';
 import { Button } from '@/components/ui/Button';
 import { Calendar as CalendarComponent } from '@/components/ui/Calendar';
@@ -200,43 +199,18 @@ export function FeedbackWritePage() {
     }
     setSaving(true);
     try {
-      const items: FeedbackItem[] = feedbackItems.map((item) => ({
-        id: item.id,
-        text: item.text,
-        isImportant: item.isImportant,
-      }));
       const feedbackText = feedbackItems.map((i) => i.text).join('\n\n');
-      if (API_CONFIG.useMock) {
-        saveMentorFeedback({
-          menteeId,
-          assignmentId,
-          feedbackText,
-          feedbackItems: items,
-          status,
-          feedbackDate: new Date().toLocaleString('ko-KR'),
-          isDraft: false,
-          assignmentTitle: title,
-          subject,
-          submittedAt: assignmentFromList?.submittedAt,
-        });
-        queryClient.invalidateQueries({ queryKey: ['submittedAssignments'] });
-        queryClient.invalidateQueries({ queryKey: ['feedbackItems', menteeId] });
-        queryClient.invalidateQueries({ queryKey: ['mentees'] });
-        toast.success('피드백이 저장되었습니다. 멘티에게 알림이 발송됩니다.');
-        window.history.back();
-      } else {
-        const { submitFeedback } = await import('@/api/feedback');
-        await submitFeedback(menteeId, assignmentId, {
-          feedbackText,
-          status,
-          progress: status === 'partial' ? 50 : undefined,
-        });
-        queryClient.invalidateQueries({ queryKey: ['submittedAssignments'] });
-        queryClient.invalidateQueries({ queryKey: ['feedbackItems', menteeId] });
-        queryClient.invalidateQueries({ queryKey: ['mentees'] });
-        toast.success('피드백이 저장되었습니다.');
-        window.history.back();
-      }
+      const { submitFeedback } = await import('@/api/feedback');
+      await submitFeedback(menteeId, assignmentId, {
+        feedbackText,
+        status,
+        progress: status === 'partial' ? 50 : undefined,
+      });
+      queryClient.invalidateQueries({ queryKey: ['submittedAssignments'] });
+      queryClient.invalidateQueries({ queryKey: ['feedbackItems', menteeId] });
+      queryClient.invalidateQueries({ queryKey: ['mentees'] });
+      toast.success('피드백이 저장되었습니다.');
+      window.history.back();
     } catch (err) {
       console.error(err);
       toast.error('저장 중 오류가 발생했습니다.');
