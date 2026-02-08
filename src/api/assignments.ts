@@ -33,7 +33,10 @@ export async function fetchMenteeAssignmentDetail(assignmentId: number) {
 
 // 과제 제출 (멘티)
 export async function submitAssignment(assignmentId: number, body: AssignmentSubmitReq) {
-  const { data } = await assignmentsApi.submitAssignment({ assignmentId, assignmentSubmitReq: body });
+  const { data } = await assignmentsApi.submitAssignment({
+    assignmentId,
+    assignmentSubmitReq: body,
+  });
   return data;
 }
 
