@@ -7,7 +7,6 @@
 - `VITE_USE_MOCK=true` (기본값): mock 데이터 사용
 - `VITE_USE_MOCK=false`: 실제 백엔드 API 호출
 - `VITE_API_URL`: API 베이스 URL (예: `https://api.example.com`)
-- `VITE_API_PROXY_TARGET`: 개발 시 `/api` 프록시 대상 (기본: `http://localhost:3000`)
 
 `.env` 파일에 설정하거나 빌드 시 환경 변수로 전달하세요.
 

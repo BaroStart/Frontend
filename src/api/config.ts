@@ -13,5 +13,5 @@ export const API_CONFIG = {
   // - VITE_USE_MOCK_MENTOR='true'면, VITE_USE_MOCK=false여도 멘토 쪽 데이터는 mock 사용
   // - 기본값: useMock 값을 따름
   useMockMentor: import.meta.env.VITE_USE_MOCK_MENTOR === 'true' ? true : import.meta.env.VITE_USE_MOCK !== 'false',
-  baseURL: import.meta.env.VITE_API_URL ?? '',
+  baseURL: import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? ''),
 } as const;

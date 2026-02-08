@@ -7,9 +7,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
 
   // 개발 중 CORS 회피용: /api -> backend 로 프록시
-  // - VITE_API_PROXY_TARGET 있으면 우선 사용
-  // - 없으면 VITE_API_URL을 프록시 대상으로 사용
-  const proxyTarget = env.VITE_API_PROXY_TARGET || env.VITE_API_URL || 'http://localhost:3000';
+  const proxyTarget = env.VITE_API_URL || 'http://localhost:3000';
 
   return {
     plugins: [react()],

@@ -15,12 +15,11 @@
 | 환경 변수 | 설명 | 권장(개발) | 권장(배포) |
 |---|---|---:|---:|
 | `VITE_USE_MOCK` | `false`면 실제 백엔드 호출 | `false` | `false` |
-| `VITE_API_URL` | axios baseURL (직접 호출용) | 비움(권장) | `https://158.180.75.132.nip.io` |
-| `VITE_API_PROXY_TARGET` | 개발 시 `/api` 프록시 대상 | `https://158.180.75.132.nip.io` | 사용 안 함 |
+| `VITE_API_URL` | 백엔드 URL (개발: 프록시 대상 / 배포: axios baseURL) | `https://158.180.75.132.nip.io` | `https://158.180.75.132.nip.io` |
 
 ### 개발(CORS 우회) 권장 설정
 - 브라우저 CORS를 피하려면 **프론트는 `/api/...`로 호출**하고, Vite가 백엔드로 프록시하도록 설정합니다.
-- 권장: `VITE_API_URL=`(빈 값) + `VITE_API_PROXY_TARGET=https://158.180.75.132.nip.io`
+- 개발 환경에서는 `config.ts`가 자동으로 axios baseURL을 비워서 프록시를 타게 합니다.
 
 ---
 
