@@ -17,6 +17,8 @@ import {
   Upload,
 } from 'lucide-react';
 
+import { fetchAssignmentMaterials } from '@/api/assignments';
+import { getSubjectLabel } from '@/lib/subjectLabels';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/Dialog';
@@ -31,8 +33,6 @@ import { getTodayDateStr } from '@/lib/dateUtils';
 import {
   deleteMaterial,
   getMaterialBlob,
-  getMaterialsMeta,
-  initializeSeolstudyMaterials,
   type MaterialMeta,
   saveMaterial,
 } from '@/lib/materialStorage';
@@ -145,9 +145,28 @@ export function AssignmentManagePage() {
 
   // 초기화 + URL 탭 동기화 (마운트 시 1회)
   useEffect(() => {
-    initializeSeolstudyMaterials();
     initialize(CURRENT_MENTOR_ID);
-    setMaterials(getMaterialsMeta());
+
+    // 학습자료 조회
+    fetchAssignmentMaterials()
+      .then((apiMaterials) => {
+        const mapped: MaterialMeta[] = apiMaterials.map((m) => ({
+          id: `api-${m.assignmentId}`,
+          title: m.assignmentTitle ?? m.fileName ?? '제목 없음',
+          fileName: m.fileName ?? '',
+          fileSize: '',
+          fileType: (m.fileName?.endsWith('.pdf') ? 'pdf' : 'other') as MaterialMeta['fileType'],
+          subject: getSubjectLabel(m.subject),
+          subCategory: '',
+          uploadedAt: '',
+          source: 'seolstudy' as const,
+        }));
+        setMaterials(mapped);
+      })
+      .catch(() => {
+        setMaterials([]);
+      });
+
     const tab = searchParams.get('tab') as TabType | null;
     if (tab && TABS.some((t) => t.id === tab)) setActiveTab(tab);
     // eslint-disable-next-line react-hooks/exhaustive-deps

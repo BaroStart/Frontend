@@ -5,6 +5,8 @@ import type {
   GetMenteeAssignmentsSubjectEnum,
 } from '@/generated';
 
+import { getSubjectEnum } from '@/lib/subjectLabels';
+
 import { assignmentsApi } from './clients';
 
 // 과제 생성 (멘토)
@@ -58,11 +60,6 @@ export async function fetchAssignmentFileDownloadUrl(assignmentFileId: number) {
 
 // 과제 등록 헬퍼 (AssignmentRegisterPage 전용)
 
-const SUBJECT_MAP: Record<string, AssignmentCreateReq['subject']> = {
-  국어: 'KOREAN',
-  영어: 'ENGLISH',
-  수학: 'MATH',
-};
 
 export type RegisterAssignmentPayload = {
   menteeId: string;
@@ -92,7 +89,7 @@ export async function registerAssignment(
   payload: RegisterAssignmentPayload,
 ): Promise<RegisterAssignmentResult> {
   const menteeId = Number(payload.menteeId);
-  const subject = SUBJECT_MAP[payload.subject] ?? 'COMMON';
+  const subject = getSubjectEnum(payload.subject) as AssignmentCreateReq['subject'];
 
   const toReq = (date: string, time: string): AssignmentCreateReq => ({
     menteeId,

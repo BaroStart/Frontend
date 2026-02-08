@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { Send, X } from 'lucide-react';
 
@@ -40,7 +41,7 @@ export function ChatModal({ isOpen, onClose, menteeName, initialContext }: ChatM
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
       <div className="relative z-10 flex h-[480px] w-full max-w-md flex-col rounded-xl border border-slate-200 bg-white shadow-xl">
@@ -100,6 +101,7 @@ export function ChatModal({ isOpen, onClose, menteeName, initialContext }: ChatM
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
