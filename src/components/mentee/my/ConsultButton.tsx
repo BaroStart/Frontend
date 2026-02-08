@@ -10,12 +10,12 @@ export function ConsultButton({ formUrl, className }: Props) {
         className ?? "",
       ].join(" ")}
     >
-      <div className="flex justify-end px-4 pointer-events-auto">
+      <div className="flex justify-end px-4">
         <button
           type="button"
           onClick={() => window.open(formUrl, "_blank", "noopener,noreferrer")}
           aria-label="상담 신청"
-          className="grid h-14 w-14 place-items-center rounded-full bg-gray-900 text-white shadow-lg transition active:scale-[0.98]"
+          className="pointer-events-auto grid h-14 w-14 place-items-center rounded-full bg-gray-900 text-white shadow-lg transition active:scale-[0.98]"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
             <path
