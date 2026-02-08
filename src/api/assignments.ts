@@ -1,21 +1,16 @@
 import type {
   AssignmentCreateReq,
-  AssignmentCreateRes,
-  AssignmentMaterialRes,
-  AssignmentMenteeDetailRes,
-  AssignmentMenteeListRes,
   AssignmentSubmitReq,
   GetAllMaterialsSubjectEnum,
   GetMenteeAssignmentsSubjectEnum,
 } from '@/generated';
 
-import type { ApiEnvelope } from './auth';
 import { assignmentsApi } from './clients';
 
 // 과제 생성 (멘토)
 export async function createAssignment(body: AssignmentCreateReq) {
   const { data } = await assignmentsApi.createAssignment({ assignmentCreateReq: body });
-  return data as unknown as ApiEnvelope<AssignmentCreateRes>;
+  return data;
 }
 
 // 멘티 과제 목록 조회
@@ -27,19 +22,19 @@ export async function fetchMenteeAssignments(params?: {
     subject: params?.subject as GetMenteeAssignmentsSubjectEnum,
     dueDate: params?.dueDate,
   });
-  return (data as unknown as ApiEnvelope<AssignmentMenteeListRes[]>).result ?? [];
+  return data.result ?? [];
 }
 
 // 멘티 과제 상세 조회
 export async function fetchMenteeAssignmentDetail(assignmentId: number) {
   const { data } = await assignmentsApi.getMenteeAssignmentDetail({ assignmentId });
-  return (data as unknown as ApiEnvelope<AssignmentMenteeDetailRes>).result ?? null;
+  return data.result ?? null;
 }
 
 // 과제 제출 (멘티)
 export async function submitAssignment(assignmentId: number, body: AssignmentSubmitReq) {
   const { data } = await assignmentsApi.submitAssignment({ assignmentId, assignmentSubmitReq: body });
-  return data as unknown as ApiEnvelope<null>;
+  return data;
 }
 
 // 학습자료 전체 조회 (멘토)
@@ -49,13 +44,13 @@ export async function fetchAssignmentMaterials(params?: {
   const { data } = await assignmentsApi.getAllMaterials({
     subject: params?.subject as GetAllMaterialsSubjectEnum,
   });
-  return (data as unknown as ApiEnvelope<AssignmentMaterialRes[]>).result ?? [];
+  return data.result ?? [];
 }
 
 // 파일 다운로드 URL 조회
 export async function fetchAssignmentFileDownloadUrl(assignmentFileId: number) {
   const { data } = await assignmentsApi.getAssignmentFileDownloadUrl({ assignmentFileId });
-  return (data as unknown as ApiEnvelope<string>).result ?? null;
+  return data.result ?? null;
 }
 
 // 과제 등록 헬퍼 (AssignmentRegisterPage 전용)

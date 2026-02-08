@@ -1,8 +1,8 @@
-import type { LoginRequestDto, SignupRequestDto, TokenPairResponseDto } from '@/generated';
+import type { LoginRequestDto, SignupRequestDto } from '@/generated';
 
 import { authApi } from './clients';
 
-// 공용 응답 래퍼 (generated에 generic 없어서 유지)
+// 공용 응답 래퍼 (changeTodoStatus 등 수동 axios 호출에서만 사용)
 export type ApiEnvelope<T> = {
   status: number;
   code: string;
@@ -10,22 +10,22 @@ export type ApiEnvelope<T> = {
   result: T;
 };
 
-export async function signup(body: SignupRequestDto): Promise<ApiEnvelope<string>> {
+export async function signup(body: SignupRequestDto) {
   const { data } = await authApi.signup({ signupRequestDto: body });
-  return data as unknown as ApiEnvelope<string>;
+  return data;
 }
 
-export async function login(body: LoginRequestDto): Promise<ApiEnvelope<TokenPairResponseDto>> {
+export async function login(body: LoginRequestDto) {
   const { data } = await authApi.login({ loginRequestDto: body });
-  return data as unknown as ApiEnvelope<TokenPairResponseDto>;
+  return data;
 }
 
-export async function refresh(token: string): Promise<ApiEnvelope<TokenPairResponseDto>> {
+export async function refresh(token: string) {
   const { data } = await authApi.refresh({ token });
-  return data as unknown as ApiEnvelope<TokenPairResponseDto>;
+  return data;
 }
 
-export async function logout(): Promise<ApiEnvelope<string>> {
+export async function logout() {
   const { data } = await authApi.logout();
-  return data as unknown as ApiEnvelope<string>;
+  return data;
 }

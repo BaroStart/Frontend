@@ -1,9 +1,4 @@
-import type {
-  CreateToDoReq,
-  ToDoRes,
-  UpdateToDoReq,
-  UpdateToDoStatusReq,
-} from '@/generated';
+import type { CreateToDoReq, ToDoRes, UpdateToDoReq, UpdateToDoStatusReq } from '@/generated';
 
 import type { ApiEnvelope } from './auth';
 import axiosInstance from './axiosInstance';
@@ -12,26 +7,23 @@ import { todosApi } from './clients';
 // generated ToDoRes에 id가 없어서 확장 (실제 응답에는 포함됨)
 export type ToDoResWithId = ToDoRes & { id?: number };
 
-export async function fetchTodos(): Promise<ApiEnvelope<ToDoResWithId[]>> {
+export async function fetchTodos() {
   const { data } = await todosApi.getTodayToDoList();
-  return data as unknown as ApiEnvelope<ToDoResWithId[]>;
+  return data;
 }
 
-export async function createTodo(body: CreateToDoReq): Promise<ApiEnvelope<null>> {
+export async function createTodo(body: CreateToDoReq) {
   const { data } = await todosApi.createToDo({ createToDoReq: body });
-  return data as unknown as ApiEnvelope<null>;
+  return data;
 }
 
-export async function updateTodo(body: UpdateToDoReq): Promise<ApiEnvelope<null>> {
+export async function updateTodo(body: UpdateToDoReq) {
   const { data } = await todosApi.updateToDo({ updateToDoReq: body });
-  return data as unknown as ApiEnvelope<null>;
+  return data;
 }
 
 // changeTodoStatus: generated 코드에 {id} path parameter 누락 (백엔드 스펙 이슈) -> 수동 호출 유지
-export async function changeTodoStatus(
-  id: number,
-  body: UpdateToDoStatusReq,
-): Promise<ApiEnvelope<null>> {
+export async function changeTodoStatus(id: number, body: UpdateToDoStatusReq) {
   const { data } = await axiosInstance.patch<ApiEnvelope<null>>(
     `/api/v1/todos/${id}/status`,
     body,
@@ -39,7 +31,7 @@ export async function changeTodoStatus(
   return data;
 }
 
-export async function deleteTodo(id: number): Promise<ApiEnvelope<null>> {
+export async function deleteTodo(id: number) {
   const { data } = await todosApi.deleteToDo({ id });
-  return data as unknown as ApiEnvelope<null>;
+  return data;
 }

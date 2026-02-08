@@ -4,7 +4,7 @@ import { API_CONFIG } from '@/api/config';
 import { isApiSuccess } from '@/api/response';
 import { changeTodoStatus, createTodo, deleteTodo, fetchTodos, updateTodo } from '@/api/todos';
 import { STORAGE_KEYS } from '@/constants';
-import type { TimeSlot } from '@/generated';
+import type { TimeSlot, ToDoRes } from '@/generated';
 
 export type TodoItem = {
   id: number;
@@ -103,7 +103,8 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     const res = await fetchTodos();
     if (!isApiSuccess(res)) return;
 
-    const mapped: TodoItem[] = (res.result ?? []).map((t, idx) => ({
+    const items = (res.result ?? []) as (ToDoRes & { id?: number })[];
+    const mapped: TodoItem[] = items.map((t, idx) => ({
       // swagger 스키마엔 id가 없지만, 실제 서버에선 내려올 가능성이 커서 optional로 뒀음
       // id가 없으면 임시로 음수 id를 만들어 표시만 하고(수정/삭제는 동작 보장 X)
       id: typeof t.id === 'number' ? t.id : -(idx + 1),
