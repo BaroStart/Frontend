@@ -14,9 +14,7 @@ import {
   Hexagon,
   List,
   Plus,
-  RotateCcw,
   Trash2,
-  Upload,
 } from 'lucide-react';
 
 import { LearningAnalyticsSection } from '@/components/mentor/LearningAnalyticsSection';
@@ -563,7 +561,6 @@ export function FeedbackManagePage() {
       {(templateModal?.mode === 'create' || templateModal?.mode === 'edit') && (
         <TemplateEditModal
           template={templateModal.mode === 'edit' ? templateModal.template : null}
-          existingTemplates={templates}
           onClose={() => setTemplateModal(null)}
           onSave={(t) => {
             saveFeedbackTemplate(t);
@@ -586,12 +583,10 @@ export function FeedbackManagePage() {
 
 function TemplateEditModal({
   template,
-  existingTemplates,
   onClose,
   onSave,
 }: {
   template: FeedbackTemplate | null;
-  existingTemplates: FeedbackTemplate[];
   onClose: () => void;
   onSave: (
     t: Omit<FeedbackTemplate, 'useCount'> & { useCount?: number; isDefault?: boolean },
@@ -600,8 +595,6 @@ function TemplateEditModal({
   const [name, setName] = useState(template?.name ?? '');
   const [subject, setSubject] = useState<FeedbackTemplate['subject']>(template?.subject ?? '국어');
   const [content, setContent] = useState(template?.content ?? DEFAULT_TEMPLATE_CONTENT);
-  const [loadTemplateOpen, setLoadTemplateOpen] = useState(false);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !content.trim()) return;
@@ -614,18 +607,6 @@ function TemplateEditModal({
       useCount: template?.useCount ?? 0,
     });
   };
-
-  const handleLoadTemplate = (t: FeedbackTemplate) => {
-    setContent(t.content);
-    setSubject(t.subject);
-    setLoadTemplateOpen(false);
-  };
-
-  const handleReset = () => {
-    setContent(DEFAULT_TEMPLATE_CONTENT);
-  };
-
-  const templatesToLoad = existingTemplates.filter((t) => t.id !== template?.id);
 
   return (
     <Dialog open onClose={onClose} maxWidth="max-w-2xl">
@@ -672,52 +653,6 @@ function TemplateEditModal({
             <label className="mb-1 block text-sm font-medium text-foreground/80">
               템플릿 본문 <span className="text-red-500">*</span>
             </label>
-            <div className="mb-2 flex gap-2">
-              <div className="relative">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  icon={Upload}
-                  onClick={() => setLoadTemplateOpen((v) => !v)}
-                >
-                  템플릿 불러오기
-                </Button>
-                {loadTemplateOpen && templatesToLoad.length > 0 && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setLoadTemplateOpen(false)}
-                      aria-hidden
-                    />
-                    <div className="absolute left-0 top-full z-20 mt-1 max-h-48 w-72 overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-lg">
-                      {templatesToLoad.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => handleLoadTemplate(t)}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground/80 hover:bg-secondary/50"
-                        >
-                          <span className="rounded bg-secondary px-1.5 py-0.5 text-xs font-medium text-foreground/60">
-                            {t.subject}
-                          </span>
-                          <span className="truncate">{t.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                icon={RotateCcw}
-                onClick={handleReset}
-              >
-                초기화
-              </Button>
-            </div>
             <RichTextEditor
               content={content}
               onChange={setContent}
