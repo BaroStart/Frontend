@@ -1,5 +1,6 @@
 import {
   AssignmentAPIApi,
+  AssignmentTemplateAPIApi,
   AuthAPIApi,
   CommentAPIApi,
   Configuration,
@@ -20,3 +21,4 @@ export const examplesApi = new ExampleAPIApi(config, '', axiosInstance);
 export const menteeApi = new MenteeAPIApi(config, '', axiosInstance);
 export const storagesApi = new ObjectStorageAPIApi(config, '', axiosInstance);
 export const todosApi = new ToDoAPIApi(config, '', axiosInstance);
+export const assignmentTemplatesApi = new AssignmentTemplateAPIApi(config, '', axiosInstance);

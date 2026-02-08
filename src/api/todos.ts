@@ -1,11 +1,12 @@
-import type { CreateToDoReq, ToDoRes, UpdateToDoReq, UpdateToDoStatusReq } from '@/generated';
+import type {
+  ApiResponseUnit,
+  CreateToDoReq,
+  UpdateToDoReq,
+  UpdateToDoStatusReq,
+} from '@/generated';
 
-import type { ApiEnvelope } from './auth';
 import axiosInstance from './axiosInstance';
 import { todosApi } from './clients';
-
-// generated ToDoRes에 id가 없어서 확장 (실제 응답에는 포함됨)
-export type ToDoResWithId = ToDoRes & { id?: number };
 
 export async function fetchTodos() {
   const { data } = await todosApi.getTodayToDoList();
@@ -24,7 +25,7 @@ export async function updateTodo(body: UpdateToDoReq) {
 
 // changeTodoStatus: generated 코드에 {id} path parameter 누락 (백엔드 스펙 이슈) -> 수동 호출 유지
 export async function changeTodoStatus(id: number, body: UpdateToDoStatusReq) {
-  const { data } = await axiosInstance.patch<ApiEnvelope<null>>(
+  const { data } = await axiosInstance.patch<ApiResponseUnit>(
     `/api/v1/todos/${id}/status`,
     body,
   );

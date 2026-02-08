@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Copy, FileText, FileUp, Save } from 'lucide-react';
 
 import { registerAssignment } from '@/api/assignments';
+import { fetchTemplateList } from '@/api/assignmentTemplates';
 import { ColumnEditor } from '@/components/mentor/ColumnEditor';
 import { LoadFromDateModal } from '@/components/mentor/LoadFromDateModal';
 import { TempSaveListModal } from '@/components/mentor/TempSaveListModal';
@@ -29,21 +30,21 @@ import {
   SUBJECT_COLUMN_TEMPLATES,
 } from '@/data/assignmentRegisterMock';
 import { MOCK_MENTEE_TASKS } from '@/data/menteeDetailMock';
+import type { AssignmentTemplateListRes } from '@/generated';
 import { useIncompleteAssignments, useMenteeKpi } from '@/hooks/useMenteeDetail';
 import { useMentees } from '@/hooks/useMentees';
 import { getTodayDateStr } from '@/lib/dateUtils';
 import { uploadFileViaPreAuthenticatedUrl } from '@/lib/storageUpload';
+import { getSubjectLabel } from '@/lib/subjectLabels';
 import { cn } from '@/lib/utils';
-import { getMaterialsByIds, useLearningGoalStore } from '@/stores/useLearningGoalStore';
 
 const MAIN_SUBJECTS = ['국어', '영어', '수학'] as const;
 type MainSubject = (typeof MAIN_SUBJECTS)[number];
-const CURRENT_MENTOR_ID = 'mentor1'; // TODO: API 연결 — useAuthStore에서 멘토 ID 가져오기
 
 interface FormState {
   menteeId: string;
   title: string;
-  goal: string;
+  templateName: string;
   subject: MainSubject;
   improvementPointId: string;
   description: string;
@@ -61,7 +62,7 @@ interface FormState {
 const createInitialForm = (menteeId?: string): FormState => ({
   menteeId: menteeId ?? '',
   title: '',
-  goal: '',
+  templateName: '',
   subject: '국어',
   improvementPointId: '',
   description: '',
@@ -85,7 +86,7 @@ export function AssignmentRegisterPage() {
   // 외부 데이터
   const { data: mentees = [] } = useMentees();
   const { data: kpi } = useMenteeKpi(urlMenteeId);
-  const { goals: _storeGoals, getGoalsByMentor, initialize } = useLearningGoalStore();
+  const [allGoals, setAllGoals] = useState<AssignmentTemplateListRes[]>([]);
 
   // 폼 상태 (하나의 객체로 관리)
   const [form, setForm] = useState<FormState>(() => createInitialForm(urlMenteeId));
@@ -105,7 +106,9 @@ export function AssignmentRegisterPage() {
 
   // 초기화 + URL menteeId 동기화
   useEffect(() => {
-    initialize(CURRENT_MENTOR_ID);
+    fetchTemplateList()
+      .then(setAllGoals)
+      .catch(() => setAllGoals([]));
 
     // location.state에서 편집할 과제 데이터 적용
     const editData = (location.state as { editAssignment?: Partial<FormState> })?.editAssignment;
@@ -122,19 +125,15 @@ export function AssignmentRegisterPage() {
   }, [urlMenteeId]);
 
   // 파생 데이터 (useMemo로 컴포넌트 내에서 계산)
-  const allLearningGoals = useMemo(
-    () => getGoalsByMentor(CURRENT_MENTOR_ID),
-    [_storeGoals, getGoalsByMentor],
-  );
   const learningGoals = useMemo(
-    () => allLearningGoals.filter((g) => g.subject === form.subject),
-    [allLearningGoals, form.subject],
+    () => allGoals.filter((g) => getSubjectLabel(g.subject) === form.subject),
+    [allGoals, form.subject],
   );
   const selectedMentee = mentees.find((m) => m.id === form.menteeId);
-  const matchedMaterials = useMemo(() => {
-    const goal = allLearningGoals.find((g) => g.id === form.improvementPointId);
-    return goal ? getMaterialsByIds(goal.materialIds || []) : [];
-  }, [form.improvementPointId, allLearningGoals]);
+  const matchedFileNames = useMemo(() => {
+    const goal = allGoals.find((g) => String(g.id) === form.improvementPointId);
+    return goal?.fileNames ?? [];
+  }, [form.improvementPointId, allGoals]);
   const highlightDates = useMemo(
     () =>
       form.menteeId
@@ -159,45 +158,22 @@ export function AssignmentRegisterPage() {
 
   // 과제 목표 선택 시 관련 데이터 자동 설정
   const handleGoalSelect = (goalId: string) => {
-    const goal = allLearningGoals.find((g) => g.id === goalId);
-    let formattedDescription = '';
-    if (goal) {
-      formattedDescription = `<h3>오늘의 목표: ${goal.name}</h3>`;
-      if (goal.columnTemplate) {
-        // TODO: DOM 파싱 대신 서버에서 구조화된 데이터로 받기
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = goal.columnTemplate;
-        const listElements = tempDiv.querySelectorAll('ul, ol');
-        listElements.forEach((list) => {
-          const listType = list.tagName.toLowerCase();
-          formattedDescription += `<${listType}>`;
-          list.querySelectorAll('li').forEach((li) => {
-            formattedDescription += `<li>${li.textContent?.trim()}</li>`;
-          });
-          formattedDescription += `</${listType}>`;
-        });
-        const paragraphs = tempDiv.querySelectorAll('p');
-        paragraphs.forEach((p) => {
-          const text = p.textContent?.trim();
-          if (text && text.includes('제출')) {
-            formattedDescription += `<p><strong>${text}</strong></p>`;
-          }
-        });
-      } else {
-        if (goal.description) formattedDescription += `<p>${goal.description}</p>`;
-        if (goal.weakness) formattedDescription += `<p>보완점: ${goal.weakness}</p>`;
-      }
-    }
+    const goal = allGoals.find((g) => String(g.id) === goalId);
+    const subjectLabel = goal ? getSubjectLabel(goal.subject) : undefined;
+    const formattedDescription = goal
+      ? `<h3>오늘의 목표: ${goal.name}</h3>${goal.description ? `<p>${goal.description}</p>` : ''}`
+      : '';
+
     setForm((prev) => ({
       ...prev,
       improvementPointId: goalId,
       motivationalTemplateId: '',
-      goal: goal?.name ?? prev.goal,
-      subject: (goal?.subject as MainSubject) ?? prev.subject,
+      templateName: goal?.name ?? prev.templateName,
+      subject: (subjectLabel as MainSubject) ?? prev.subject,
       description: formattedDescription,
     }));
     setDescriptionKey((k) => k + 1);
-    if (goal?.materialIds && goal.materialIds.length > 0) {
+    if (goal?.fileNames && goal.fileNames.length > 0) {
       setMaterialTab('pdf');
     }
   };
@@ -221,7 +197,7 @@ export function AssignmentRegisterPage() {
       setForm((prev) => ({
         ...prev,
         title: task.title,
-        goal: `${task.subject} 학습`,
+        templateName: `${task.subject} 학습`,
         subject: mapped,
       }));
       applyTemplate(
@@ -306,10 +282,10 @@ export function AssignmentRegisterPage() {
         recurringEndDate: form.dateMode === 'recurring' ? form.recurringEndDate : undefined,
         recurringEndTime: form.dateMode === 'recurring' ? form.recurringEndTime : undefined,
         title: form.title.trim(),
-        goal: form.goal.trim(),
+        templateName: form.templateName.trim(),
         subject: form.subject,
-        description: form.description.trim() || undefined,
-        content: form.columnContent.trim() || undefined,
+        content: form.description.trim() || undefined,
+        seolStudyColumn: form.columnContent.trim() || undefined,
         fileUrls,
       });
 
@@ -324,8 +300,6 @@ export function AssignmentRegisterPage() {
             registeredDate: form.dateMode === 'single' ? form.singleDate : form.recurringStartDate,
           },
         });
-      } else {
-        setSubmitError(result.message ?? '과제 등록에 실패했습니다.');
       }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : '과제 등록 중 오류가 발생했습니다.');
@@ -528,10 +502,10 @@ export function AssignmentRegisterPage() {
                     placeholder="과제 목표를 선택하세요"
                     className="mt-1.5"
                     options={learningGoals.map((g) => ({
-                      value: g.id,
-                      label: g.materialIds?.length
-                        ? `${g.name} (${g.materialIds.length}개 학습자료)`
-                        : g.name,
+                      value: String(g.id),
+                      label: g.fileNames?.length
+                        ? `${g.name} (${g.fileNames.length}개 학습자료)`
+                        : (g.name ?? ''),
                     }))}
                   />
                 )}
@@ -614,31 +588,17 @@ export function AssignmentRegisterPage() {
             </div>
           ) : (
             <div className="mt-4 space-y-4">
-              {matchedMaterials.length > 0 && (
+              {matchedFileNames.length > 0 && (
                 <div>
-                  <p className="mb-2 text-sm font-medium text-foreground/80">자동 매칭된 학습지</p>
+                  <p className="mb-2 text-sm font-medium text-foreground/80">자동 매칭된 학습자료</p>
                   <div className="space-y-2">
-                    {matchedMaterials.map((m) => (
+                    {matchedFileNames.map((fileName, idx) => (
                       <div
-                        key={m.id}
+                        key={idx}
                         className="flex items-center gap-3 rounded-lg border border-border/50 p-3"
                       >
                         <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{m.title}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>설스터디 학습자료</span>
-                            {m.fileSize && (
-                              <>
-                                <span>·</span>
-                                <span>{m.fileSize}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <Button size="sm" variant="outline" className="shrink-0">
-                          다운로드
-                        </Button>
+                        <p className="min-w-0 flex-1 truncate text-sm font-medium">{fileName}</p>
                       </div>
                     ))}
                   </div>

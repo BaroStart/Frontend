@@ -4,7 +4,6 @@ import type {
   GetAllMaterialsSubjectEnum,
   GetMenteeAssignmentsSubjectEnum,
 } from '@/generated';
-
 import { getSubjectEnum } from '@/lib/subjectLabels';
 
 import { assignmentsApi } from './clients';
@@ -59,9 +58,8 @@ export async function fetchAssignmentFileDownloadUrl(assignmentFileId: number) {
 }
 
 // 과제 등록 헬퍼 (AssignmentRegisterPage 전용)
-
-
-export type RegisterAssignmentPayload = {
+// 폼 데이터 -> API 요청 변환 후 과제 등록
+export async function registerAssignment(payload: {
   menteeId: string;
   dateMode: 'single' | 'recurring';
   singleDate?: string;
@@ -71,23 +69,12 @@ export type RegisterAssignmentPayload = {
   recurringEndDate?: string;
   recurringEndTime?: string;
   title: string;
-  goal: string;
+  templateName: string;
   subject: string;
-  description?: string;
   content?: string;
+  seolStudyColumn?: string;
   fileUrls?: string[];
-};
-
-export type RegisterAssignmentResult = {
-  success: boolean;
-  taskIds: string[];
-  message?: string;
-};
-
-// 폼 데이터 -> API 요청 변환 후 과제 등록
-export async function registerAssignment(
-  payload: RegisterAssignmentPayload,
-): Promise<RegisterAssignmentResult> {
+}): Promise<{ success: boolean; taskIds: string[] }> {
   const menteeId = Number(payload.menteeId);
   const subject = getSubjectEnum(payload.subject) as AssignmentCreateReq['subject'];
 
@@ -96,9 +83,9 @@ export async function registerAssignment(
     title: payload.title,
     subject,
     dueDate: `${date}T${time}`,
-    goal: payload.goal || undefined,
-    content: payload.description || undefined,
-    seolStudyColumn: payload.content || undefined,
+    templateName: payload.templateName,
+    content: payload.content,
+    seolStudyColumn: payload.seolStudyColumn,
     fileUrls: payload.fileUrls,
   });
 

@@ -36,6 +36,12 @@ export interface ApiResponseAssignmentMenteeDetailRes {
     'message'?: string;
     'result'?: AssignmentMenteeDetailRes;
 }
+export interface ApiResponseAssignmentTemplateDetailRes {
+    'status'?: number;
+    'code'?: string;
+    'message'?: string;
+    'result'?: AssignmentTemplateDetailRes;
+}
 export interface ApiResponseCreateCommentResponseDto {
     'status'?: number;
     'code'?: string;
@@ -53,6 +59,12 @@ export interface ApiResponseExampleRes {
     'code'?: string;
     'message'?: string;
     'result'?: ExampleRes;
+}
+export interface ApiResponseFeedbackTemplateRes {
+    'status'?: number;
+    'code'?: string;
+    'message'?: string;
+    'result'?: FeedbackTemplateRes;
 }
 export interface ApiResponseGetMenteeInfoResponseDto {
     'status'?: number;
@@ -72,11 +84,35 @@ export interface ApiResponseListAssignmentMenteeListRes {
     'message'?: string;
     'result'?: Array<AssignmentMenteeListRes>;
 }
+export interface ApiResponseListAssignmentTemplateFileListRes {
+    'status'?: number;
+    'code'?: string;
+    'message'?: string;
+    'result'?: Array<AssignmentTemplateFileListRes>;
+}
+export interface ApiResponseListAssignmentTemplateListRes {
+    'status'?: number;
+    'code'?: string;
+    'message'?: string;
+    'result'?: Array<AssignmentTemplateListRes>;
+}
+export interface ApiResponseListBadgeInfoResponse {
+    'status'?: number;
+    'code'?: string;
+    'message'?: string;
+    'result'?: Array<BadgeInfoResponse>;
+}
 export interface ApiResponseListExampleRes {
     'status'?: number;
     'code'?: string;
     'message'?: string;
     'result'?: Array<ExampleRes>;
+}
+export interface ApiResponseListFeedbackTemplateListRes {
+    'status'?: number;
+    'code'?: string;
+    'message'?: string;
+    'result'?: Array<FeedbackTemplateListRes>;
 }
 export interface ApiResponseListGetCommentResponseDto {
     'status'?: number;
@@ -146,9 +182,9 @@ export interface AssignmentCreateReq {
      */
     'dueDate': string;
     /**
-     * 과제 목표(보완점/목표 텍스트)
+     * 선택한 과제 템플릿 이름 (과제 목표)
      */
-    'goal'?: string;
+    'templateName': string;
     /**
      * 과제 내용
      */
@@ -254,9 +290,9 @@ export interface AssignmentMenteeDetailRes {
      */
     'dueDate'?: string;
     /**
-     * 과제 목표
+     * 과제 템플릿 이름 (과제 목표)
      */
-    'goal'?: string;
+    'templateName'?: string;
     /**
      * 과제 내용
      */
@@ -265,6 +301,10 @@ export interface AssignmentMenteeDetailRes {
      * 학습자료 목록
      */
     'materials'?: Array<AssignmentFileRes>;
+    /**
+     * 설스터디 가이드
+     */
+    'seolStudyContext'?: string;
     /**
      * 제출 완료 시간
      */
@@ -305,13 +345,17 @@ export interface AssignmentMenteeListRes {
      */
     'title'?: string;
     /**
+     * 과제 설명
+     */
+    'content'?: string;
+    /**
      * 제출 여부
      */
     'status'?: AssignmentMenteeListResStatusEnum;
     /**
-     * 과제 목표
+     * 과제 템플릿명(과제 목표)
      */
-    'goal'?: string;
+    'templateName'?: string;
     /**
      * 제출 완료 시간 (미제출 시 null)
      */
@@ -343,6 +387,10 @@ export interface AssignmentSubmitReq {
      */
     'assignmentId': number;
     /**
+     * 학습 시간 구간
+     */
+    'timeSlot': TimeSlot;
+    /**
      * 메모(선택)
      */
     'memo'?: string;
@@ -350,6 +398,220 @@ export interface AssignmentSubmitReq {
      * 제출 파일 URL 목록
      */
     'fileUrls'?: Array<string>;
+}
+/**
+ * 과제 템플릿 생성 요청 DTO
+ */
+export interface AssignmentTemplateCreateReq {
+    /**
+     * 과목
+     */
+    'subject': AssignmentTemplateCreateReqSubjectEnum;
+    /**
+     * 템플릿 이름
+     */
+    'name': string;
+    /**
+     * 템플릿 설명
+     */
+    'description': string;
+    /**
+     * 과제 제목(과제 title로 복사)
+     */
+    'title': string;
+    /**
+     * 과제 내용(과제 content로 복사)
+     */
+    'content': string;
+    /**
+     * 과제 템플릿에 포함될 파일 목록
+     */
+    'files'?: Array<AssignmentTemplateFileReq>;
+}
+
+export const AssignmentTemplateCreateReqSubjectEnum = {
+    Korean: 'KOREAN',
+    English: 'ENGLISH',
+    Math: 'MATH',
+    Common: 'COMMON'
+} as const;
+
+export type AssignmentTemplateCreateReqSubjectEnum = typeof AssignmentTemplateCreateReqSubjectEnum[keyof typeof AssignmentTemplateCreateReqSubjectEnum];
+
+/**
+ * 과제 템플릿 상세 조회 응답 DTO
+ */
+export interface AssignmentTemplateDetailRes {
+    /**
+     * 템플릿 식별자
+     */
+    'id'?: number;
+    /**
+     * 과목
+     */
+    'subject'?: AssignmentTemplateDetailResSubjectEnum;
+    /**
+     * 템플릿 이름
+     */
+    'name'?: string;
+    /**
+     * 템플릿 설명
+     */
+    'description'?: string;
+    /**
+     * 과제 제목
+     */
+    'title'?: string;
+    /**
+     * 과제 내용
+     */
+    'content'?: string;
+    /**
+     * 템플릿에 첨부된 학습 자료 파일 목록
+     */
+    'files'?: Array<AssignmentTemplateFileRes>;
+}
+
+export const AssignmentTemplateDetailResSubjectEnum = {
+    Korean: 'KOREAN',
+    English: 'ENGLISH',
+    Math: 'MATH',
+    Common: 'COMMON'
+} as const;
+
+export type AssignmentTemplateDetailResSubjectEnum = typeof AssignmentTemplateDetailResSubjectEnum[keyof typeof AssignmentTemplateDetailResSubjectEnum];
+
+/**
+ * 과제 템플릿 학습자료 목록 조회 응답
+ */
+export interface AssignmentTemplateFileListRes {
+    /**
+     * 과목
+     */
+    'subject'?: AssignmentTemplateFileListResSubjectEnum;
+    /**
+     * 파일명
+     */
+    'fileName'?: string;
+    /**
+     * 파일 다운로드 URL
+     */
+    'url'?: string;
+}
+
+export const AssignmentTemplateFileListResSubjectEnum = {
+    Korean: 'KOREAN',
+    English: 'ENGLISH',
+    Math: 'MATH',
+    Common: 'COMMON'
+} as const;
+
+export type AssignmentTemplateFileListResSubjectEnum = typeof AssignmentTemplateFileListResSubjectEnum[keyof typeof AssignmentTemplateFileListResSubjectEnum];
+
+/**
+ * 과제 템플릿 파일 요청 DTO
+ */
+export interface AssignmentTemplateFileReq {
+    /**
+     * 파일명
+     */
+    'fileName': string;
+    /**
+     * 파일 URL
+     */
+    'url': string;
+}
+/**
+ * 과제 템플릿 첨부 파일 정보
+ */
+export interface AssignmentTemplateFileRes {
+    /**
+     * 파일명
+     */
+    'fileName'?: string;
+    /**
+     * 파일 접근 URL
+     */
+    'url'?: string;
+}
+/**
+ * 과제 템플릿 목록 조회 응답
+ */
+export interface AssignmentTemplateListRes {
+    /**
+     * 과제 템플릿 ID
+     */
+    'id'?: number;
+    /**
+     * 과목
+     */
+    'subject'?: AssignmentTemplateListResSubjectEnum;
+    /**
+     * 템플릿 이름
+     */
+    'name'?: string;
+    /**
+     * 템플릿 설명 (목록에 노출)
+     */
+    'description'?: string;
+    /**
+     * 템플릿에 첨부된 학습 자료 파일 목록
+     */
+    'fileNames'?: Array<string>;
+}
+
+export const AssignmentTemplateListResSubjectEnum = {
+    Korean: 'KOREAN',
+    English: 'ENGLISH',
+    Math: 'MATH',
+    Common: 'COMMON'
+} as const;
+
+export type AssignmentTemplateListResSubjectEnum = typeof AssignmentTemplateListResSubjectEnum[keyof typeof AssignmentTemplateListResSubjectEnum];
+
+/**
+ * 과제 템플릿 수정 요청 DTO
+ */
+export interface AssignmentTemplateUpdateReq {
+    /**
+     * 과목
+     */
+    'subject': AssignmentTemplateUpdateReqSubjectEnum;
+    /**
+     * 템플릿 이름
+     */
+    'name': string;
+    /**
+     * 템플릿 설명
+     */
+    'description': string;
+    /**
+     * 과제 제목
+     */
+    'title': string;
+    /**
+     * 과제 내용
+     */
+    'content': string;
+    /**
+     * 첨부 파일 목록 (선택)
+     */
+    'files'?: Array<AssignmentTemplateFileReq>;
+}
+
+export const AssignmentTemplateUpdateReqSubjectEnum = {
+    Korean: 'KOREAN',
+    English: 'ENGLISH',
+    Math: 'MATH',
+    Common: 'COMMON'
+} as const;
+
+export type AssignmentTemplateUpdateReqSubjectEnum = typeof AssignmentTemplateUpdateReqSubjectEnum[keyof typeof AssignmentTemplateUpdateReqSubjectEnum];
+
+export interface BadgeInfoResponse {
+    'badgeId'?: number;
+    'name'?: string;
+    'active'?: boolean;
 }
 export interface CreateCommentRequestDto {
     /**
@@ -391,6 +653,120 @@ export interface ExampleRes {
      */
     'name'?: string;
 }
+/**
+ * 피드백 템플릿 생성 요청 DTO
+ */
+export interface FeedbackTemplateCreateReq {
+    /**
+     * 피드백 템플릿 이름
+     */
+    'name': string;
+    /**
+     * 과목
+     */
+    'subject': FeedbackTemplateCreateReqSubjectEnum;
+    /**
+     * 피드백 템플릿 본문
+     */
+    'content': string;
+}
+
+export const FeedbackTemplateCreateReqSubjectEnum = {
+    Korean: 'KOREAN',
+    English: 'ENGLISH',
+    Math: 'MATH',
+    Common: 'COMMON'
+} as const;
+
+export type FeedbackTemplateCreateReqSubjectEnum = typeof FeedbackTemplateCreateReqSubjectEnum[keyof typeof FeedbackTemplateCreateReqSubjectEnum];
+
+/**
+ * 피드백 템플릿 목록 조회 응답 DTO
+ */
+export interface FeedbackTemplateListRes {
+    /**
+     * 피드백 템플릿 ID
+     */
+    'id'?: number;
+    /**
+     * 피드백 템플릿 이름
+     */
+    'name'?: string;
+    /**
+     * 과목
+     */
+    'subject'?: FeedbackTemplateListResSubjectEnum;
+    /**
+     * 피드백 템플릿 미리보기
+     */
+    'preview'?: string;
+    /**
+     * 생성일
+     */
+    'createdAt'?: string;
+    /**
+     * 사용 횟수
+     */
+    'usageCount'?: number;
+}
+
+export const FeedbackTemplateListResSubjectEnum = {
+    Korean: 'KOREAN',
+    English: 'ENGLISH',
+    Math: 'MATH',
+    Common: 'COMMON'
+} as const;
+
+export type FeedbackTemplateListResSubjectEnum = typeof FeedbackTemplateListResSubjectEnum[keyof typeof FeedbackTemplateListResSubjectEnum];
+
+/**
+ * 피드백 템플릿 응답 DTO
+ */
+export interface FeedbackTemplateRes {
+    'id'?: number;
+    'name'?: string;
+    'subject'?: FeedbackTemplateResSubjectEnum;
+    'content'?: string;
+    'usageCount'?: number;
+    'createdAt'?: string;
+}
+
+export const FeedbackTemplateResSubjectEnum = {
+    Korean: 'KOREAN',
+    English: 'ENGLISH',
+    Math: 'MATH',
+    Common: 'COMMON'
+} as const;
+
+export type FeedbackTemplateResSubjectEnum = typeof FeedbackTemplateResSubjectEnum[keyof typeof FeedbackTemplateResSubjectEnum];
+
+/**
+ * 피드백 템플릿 수정 요청 DTO
+ */
+export interface FeedbackTemplateUpdateReq {
+    /**
+     * 피드백 템플릿 이름
+     */
+    'name': string;
+    /**
+     * 과목
+     */
+    'subject': FeedbackTemplateUpdateReqSubjectEnum;
+    /**
+     * 피드백 템플릿 본문
+     */
+    'content': string;
+}
+
+export const FeedbackTemplateUpdateReqSubjectEnum = {
+    Korean: 'KOREAN',
+    English: 'ENGLISH',
+    Math: 'MATH',
+    Common: 'COMMON'
+} as const;
+
+export type FeedbackTemplateUpdateReqSubjectEnum = typeof FeedbackTemplateUpdateReqSubjectEnum[keyof typeof FeedbackTemplateUpdateReqSubjectEnum];
+
 export interface GetCommentResponseDto {
     'content'?: string;
     'name'?: string;
@@ -405,6 +781,7 @@ export interface GetMenteeInfoResponseDto {
     'averageScore'?: number;
 }
 export interface GetSubCommentResponseDto {
+    'subCommentId'?: number;
     'name'?: string;
     'subContent'?: string;
     'userType'?: string;
@@ -481,6 +858,10 @@ export interface TimeSlot {
  */
 export interface ToDoRes {
     /**
+     * 할 일 식별자
+     */
+    'id'?: number;
+    /**
      * 할 일 제목
      */
     'title'?: string;
@@ -556,6 +937,146 @@ export const UpdateToDoStatusReqStatusEnum = {
 } as const;
 
 export type UpdateToDoStatusReqStatusEnum = typeof UpdateToDoStatusReqStatusEnum[keyof typeof UpdateToDoStatusReqStatusEnum];
+
+
+/**
+ * AdminControllerApi - axios parameter creator
+ */
+export const AdminControllerApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 테스트를 위해 회원가입한 멘토, 멘티를 매핑합니다.
+         * @summary 테스트용 멘토, 멘티 매핑
+         * @param {number} mentorId 
+         * @param {number} menteeId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        mappingMentorMentee: async (mentorId: number, menteeId: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'mentorId' is not null or undefined
+            assertParamExists('mappingMentorMentee', 'mentorId', mentorId)
+            // verify required parameter 'menteeId' is not null or undefined
+            assertParamExists('mappingMentorMentee', 'menteeId', menteeId)
+            const localVarPath = `/admin/mapping`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication JWT required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (mentorId !== undefined) {
+                localVarQueryParameter['mentorId'] = mentorId;
+            }
+
+            if (menteeId !== undefined) {
+                localVarQueryParameter['menteeId'] = menteeId;
+            }
+
+            localVarHeaderParameter['Accept'] = '*/*';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * AdminControllerApi - functional programming interface
+ */
+export const AdminControllerApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = AdminControllerApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * 테스트를 위해 회원가입한 멘토, 멘티를 매핑합니다.
+         * @summary 테스트용 멘토, 멘티 매핑
+         * @param {number} mentorId 
+         * @param {number} menteeId 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async mappingMentorMentee(mentorId: number, menteeId: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResponseUnit>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.mappingMentorMentee(mentorId, menteeId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AdminControllerApi.mappingMentorMentee']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * AdminControllerApi - factory interface
+ */
+export const AdminControllerApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = AdminControllerApiFp(configuration)
+    return {
+        /**
+         * 테스트를 위해 회원가입한 멘토, 멘티를 매핑합니다.
+         * @summary 테스트용 멘토, 멘티 매핑
+         * @param {AdminControllerApiMappingMentorMenteeRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        mappingMentorMentee(requestParameters: AdminControllerApiMappingMentorMenteeRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseUnit> {
+            return localVarFp.mappingMentorMentee(requestParameters.mentorId, requestParameters.menteeId, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * AdminControllerApi - interface
+ */
+export interface AdminControllerApiInterface {
+    /**
+     * 테스트를 위해 회원가입한 멘토, 멘티를 매핑합니다.
+     * @summary 테스트용 멘토, 멘티 매핑
+     * @param {AdminControllerApiMappingMentorMenteeRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    mappingMentorMentee(requestParameters: AdminControllerApiMappingMentorMenteeRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseUnit>;
+
+}
+
+/**
+ * Request parameters for mappingMentorMentee operation in AdminControllerApi.
+ */
+export interface AdminControllerApiMappingMentorMenteeRequest {
+    readonly mentorId: number
+
+    readonly menteeId: number
+}
+
+/**
+ * AdminControllerApi - object-oriented interface
+ */
+export class AdminControllerApi extends BaseAPI implements AdminControllerApiInterface {
+    /**
+     * 테스트를 위해 회원가입한 멘토, 멘티를 매핑합니다.
+     * @summary 테스트용 멘토, 멘티 매핑
+     * @param {AdminControllerApiMappingMentorMenteeRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public mappingMentorMentee(requestParameters: AdminControllerApiMappingMentorMenteeRequest, options?: RawAxiosRequestConfig) {
+        return AdminControllerApiFp(this.configuration).mappingMentorMentee(requestParameters.mentorId, requestParameters.menteeId, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
 
 
 /**
@@ -642,7 +1163,7 @@ export const AssignmentAPIApiAxiosParamCreator = function (configuration?: Confi
             };
         },
         /**
-         * 과제에 첨부된 파일의 다운로드 URL을 발급합니다.
+         * 과제에 첨부된 파일의 다운로드 URL을 발급합니다.(assignmentFileId는 과제 파일 식별자입니다.)
          * @summary 과제 파일 다운로드 URL 조회
          * @param {number} assignmentFileId 
          * @param {*} [options] Override http request option.
@@ -842,7 +1363,7 @@ export const AssignmentAPIApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * 과제에 첨부된 파일의 다운로드 URL을 발급합니다.
+         * 과제에 첨부된 파일의 다운로드 URL을 발급합니다.(assignmentFileId는 과제 파일 식별자입니다.)
          * @summary 과제 파일 다운로드 URL 조회
          * @param {number} assignmentFileId 
          * @param {*} [options] Override http request option.
@@ -925,7 +1446,7 @@ export const AssignmentAPIApiFactory = function (configuration?: Configuration, 
             return localVarFp.getAllMaterials(requestParameters.subject, options).then((request) => request(axios, basePath));
         },
         /**
-         * 과제에 첨부된 파일의 다운로드 URL을 발급합니다.
+         * 과제에 첨부된 파일의 다운로드 URL을 발급합니다.(assignmentFileId는 과제 파일 식별자입니다.)
          * @summary 과제 파일 다운로드 URL 조회
          * @param {AssignmentAPIApiGetAssignmentFileDownloadUrlRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -990,7 +1511,7 @@ export interface AssignmentAPIApiInterface {
     getAllMaterials(requestParameters?: AssignmentAPIApiGetAllMaterialsRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseListAssignmentMaterialRes>;
 
     /**
-     * 과제에 첨부된 파일의 다운로드 URL을 발급합니다.
+     * 과제에 첨부된 파일의 다운로드 URL을 발급합니다.(assignmentFileId는 과제 파일 식별자입니다.)
      * @summary 과제 파일 다운로드 URL 조회
      * @param {AssignmentAPIApiGetAssignmentFileDownloadUrlRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -1100,7 +1621,7 @@ export class AssignmentAPIApi extends BaseAPI implements AssignmentAPIApiInterfa
     }
 
     /**
-     * 과제에 첨부된 파일의 다운로드 URL을 발급합니다.
+     * 과제에 첨부된 파일의 다운로드 URL을 발급합니다.(assignmentFileId는 과제 파일 식별자입니다.)
      * @summary 과제 파일 다운로드 URL 조회
      * @param {AssignmentAPIApiGetAssignmentFileDownloadUrlRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -1158,6 +1679,649 @@ export const GetMenteeAssignmentsSubjectEnum = {
     Common: 'COMMON'
 } as const;
 export type GetMenteeAssignmentsSubjectEnum = typeof GetMenteeAssignmentsSubjectEnum[keyof typeof GetMenteeAssignmentsSubjectEnum];
+
+
+/**
+ * AssignmentTemplateAPIApi - axios parameter creator
+ */
+export const AssignmentTemplateAPIApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 멘토가 과제 템플릿을 생성합니다.
+         * @summary 과제 템플릿 생성
+         * @param {AssignmentTemplateCreateReq} assignmentTemplateCreateReq 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createTemplate: async (assignmentTemplateCreateReq: AssignmentTemplateCreateReq, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'assignmentTemplateCreateReq' is not null or undefined
+            assertParamExists('createTemplate', 'assignmentTemplateCreateReq', assignmentTemplateCreateReq)
+            const localVarPath = `/api/v1/assignment-templates`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication JWT required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = '*/*';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(assignmentTemplateCreateReq, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 멘토 본인이 생성한 과제 템플릿을 삭제합니다.
+         * @summary 과제 템플릿 삭제
+         * @param {number} id 과제 템플릿 ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteTemplate: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('deleteTemplate', 'id', id)
+            const localVarPath = `/api/v1/assignment-templates/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication JWT required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            localVarHeaderParameter['Accept'] = '*/*';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 멘토 본인이 생성한 특정 과제 템플릿의 상세 정보를 조회합니다.
+         * @summary 과제 템플릿 상세 조회
+         * @param {number} id 과제 템플릿 ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTemplateDetail: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('getTemplateDetail', 'id', id)
+            const localVarPath = `/api/v1/assignment-templates/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication JWT required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            localVarHeaderParameter['Accept'] = '*/*';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 멘토 본인이 생성한 과제 템플릿 목록을 조회합니다. 과목 필터 가능
+         * @summary 과제 템플릿 목록 조회
+         * @param {GetTemplateListSubjectEnum} [subject] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTemplateList: async (subject?: GetTemplateListSubjectEnum, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v1/assignment-templates`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication JWT required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (subject !== undefined) {
+                localVarQueryParameter['subject'] = subject;
+            }
+
+            localVarHeaderParameter['Accept'] = '*/*';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 멘토 본인이 생성한 과제 템플릿의 텍스트 및 첨부 파일을 수정합니다.
+         * @summary 과제 템플릿 수정
+         * @param {number} id 과제 템플릿 ID
+         * @param {AssignmentTemplateUpdateReq} assignmentTemplateUpdateReq 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateTemplate: async (id: number, assignmentTemplateUpdateReq: AssignmentTemplateUpdateReq, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('updateTemplate', 'id', id)
+            // verify required parameter 'assignmentTemplateUpdateReq' is not null or undefined
+            assertParamExists('updateTemplate', 'assignmentTemplateUpdateReq', assignmentTemplateUpdateReq)
+            const localVarPath = `/api/v1/assignment-templates/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication JWT required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = '*/*';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(assignmentTemplateUpdateReq, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * AssignmentTemplateAPIApi - functional programming interface
+ */
+export const AssignmentTemplateAPIApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = AssignmentTemplateAPIApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * 멘토가 과제 템플릿을 생성합니다.
+         * @summary 과제 템플릿 생성
+         * @param {AssignmentTemplateCreateReq} assignmentTemplateCreateReq 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createTemplate(assignmentTemplateCreateReq: AssignmentTemplateCreateReq, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResponseAssignmentTemplateDetailRes>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createTemplate(assignmentTemplateCreateReq, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AssignmentTemplateAPIApi.createTemplate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 멘토 본인이 생성한 과제 템플릿을 삭제합니다.
+         * @summary 과제 템플릿 삭제
+         * @param {number} id 과제 템플릿 ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteTemplate(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResponseUnit>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteTemplate(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AssignmentTemplateAPIApi.deleteTemplate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 멘토 본인이 생성한 특정 과제 템플릿의 상세 정보를 조회합니다.
+         * @summary 과제 템플릿 상세 조회
+         * @param {number} id 과제 템플릿 ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getTemplateDetail(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResponseAssignmentTemplateDetailRes>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTemplateDetail(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AssignmentTemplateAPIApi.getTemplateDetail']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 멘토 본인이 생성한 과제 템플릿 목록을 조회합니다. 과목 필터 가능
+         * @summary 과제 템플릿 목록 조회
+         * @param {GetTemplateListSubjectEnum} [subject] 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getTemplateList(subject?: GetTemplateListSubjectEnum, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResponseListAssignmentTemplateListRes>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTemplateList(subject, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AssignmentTemplateAPIApi.getTemplateList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 멘토 본인이 생성한 과제 템플릿의 텍스트 및 첨부 파일을 수정합니다.
+         * @summary 과제 템플릿 수정
+         * @param {number} id 과제 템플릿 ID
+         * @param {AssignmentTemplateUpdateReq} assignmentTemplateUpdateReq 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async updateTemplate(id: number, assignmentTemplateUpdateReq: AssignmentTemplateUpdateReq, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResponseAssignmentTemplateDetailRes>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateTemplate(id, assignmentTemplateUpdateReq, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AssignmentTemplateAPIApi.updateTemplate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * AssignmentTemplateAPIApi - factory interface
+ */
+export const AssignmentTemplateAPIApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = AssignmentTemplateAPIApiFp(configuration)
+    return {
+        /**
+         * 멘토가 과제 템플릿을 생성합니다.
+         * @summary 과제 템플릿 생성
+         * @param {AssignmentTemplateAPIApiCreateTemplateRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createTemplate(requestParameters: AssignmentTemplateAPIApiCreateTemplateRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseAssignmentTemplateDetailRes> {
+            return localVarFp.createTemplate(requestParameters.assignmentTemplateCreateReq, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 멘토 본인이 생성한 과제 템플릿을 삭제합니다.
+         * @summary 과제 템플릿 삭제
+         * @param {AssignmentTemplateAPIApiDeleteTemplateRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteTemplate(requestParameters: AssignmentTemplateAPIApiDeleteTemplateRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseUnit> {
+            return localVarFp.deleteTemplate(requestParameters.id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 멘토 본인이 생성한 특정 과제 템플릿의 상세 정보를 조회합니다.
+         * @summary 과제 템플릿 상세 조회
+         * @param {AssignmentTemplateAPIApiGetTemplateDetailRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTemplateDetail(requestParameters: AssignmentTemplateAPIApiGetTemplateDetailRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseAssignmentTemplateDetailRes> {
+            return localVarFp.getTemplateDetail(requestParameters.id, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 멘토 본인이 생성한 과제 템플릿 목록을 조회합니다. 과목 필터 가능
+         * @summary 과제 템플릿 목록 조회
+         * @param {AssignmentTemplateAPIApiGetTemplateListRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTemplateList(requestParameters: AssignmentTemplateAPIApiGetTemplateListRequest = {}, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseListAssignmentTemplateListRes> {
+            return localVarFp.getTemplateList(requestParameters.subject, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 멘토 본인이 생성한 과제 템플릿의 텍스트 및 첨부 파일을 수정합니다.
+         * @summary 과제 템플릿 수정
+         * @param {AssignmentTemplateAPIApiUpdateTemplateRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateTemplate(requestParameters: AssignmentTemplateAPIApiUpdateTemplateRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseAssignmentTemplateDetailRes> {
+            return localVarFp.updateTemplate(requestParameters.id, requestParameters.assignmentTemplateUpdateReq, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * AssignmentTemplateAPIApi - interface
+ */
+export interface AssignmentTemplateAPIApiInterface {
+    /**
+     * 멘토가 과제 템플릿을 생성합니다.
+     * @summary 과제 템플릿 생성
+     * @param {AssignmentTemplateAPIApiCreateTemplateRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createTemplate(requestParameters: AssignmentTemplateAPIApiCreateTemplateRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseAssignmentTemplateDetailRes>;
+
+    /**
+     * 멘토 본인이 생성한 과제 템플릿을 삭제합니다.
+     * @summary 과제 템플릿 삭제
+     * @param {AssignmentTemplateAPIApiDeleteTemplateRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    deleteTemplate(requestParameters: AssignmentTemplateAPIApiDeleteTemplateRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseUnit>;
+
+    /**
+     * 멘토 본인이 생성한 특정 과제 템플릿의 상세 정보를 조회합니다.
+     * @summary 과제 템플릿 상세 조회
+     * @param {AssignmentTemplateAPIApiGetTemplateDetailRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getTemplateDetail(requestParameters: AssignmentTemplateAPIApiGetTemplateDetailRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseAssignmentTemplateDetailRes>;
+
+    /**
+     * 멘토 본인이 생성한 과제 템플릿 목록을 조회합니다. 과목 필터 가능
+     * @summary 과제 템플릿 목록 조회
+     * @param {AssignmentTemplateAPIApiGetTemplateListRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getTemplateList(requestParameters?: AssignmentTemplateAPIApiGetTemplateListRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseListAssignmentTemplateListRes>;
+
+    /**
+     * 멘토 본인이 생성한 과제 템플릿의 텍스트 및 첨부 파일을 수정합니다.
+     * @summary 과제 템플릿 수정
+     * @param {AssignmentTemplateAPIApiUpdateTemplateRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateTemplate(requestParameters: AssignmentTemplateAPIApiUpdateTemplateRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseAssignmentTemplateDetailRes>;
+
+}
+
+/**
+ * Request parameters for createTemplate operation in AssignmentTemplateAPIApi.
+ */
+export interface AssignmentTemplateAPIApiCreateTemplateRequest {
+    readonly assignmentTemplateCreateReq: AssignmentTemplateCreateReq
+}
+
+/**
+ * Request parameters for deleteTemplate operation in AssignmentTemplateAPIApi.
+ */
+export interface AssignmentTemplateAPIApiDeleteTemplateRequest {
+    /**
+     * 과제 템플릿 ID
+     */
+    readonly id: number
+}
+
+/**
+ * Request parameters for getTemplateDetail operation in AssignmentTemplateAPIApi.
+ */
+export interface AssignmentTemplateAPIApiGetTemplateDetailRequest {
+    /**
+     * 과제 템플릿 ID
+     */
+    readonly id: number
+}
+
+/**
+ * Request parameters for getTemplateList operation in AssignmentTemplateAPIApi.
+ */
+export interface AssignmentTemplateAPIApiGetTemplateListRequest {
+    readonly subject?: GetTemplateListSubjectEnum
+}
+
+/**
+ * Request parameters for updateTemplate operation in AssignmentTemplateAPIApi.
+ */
+export interface AssignmentTemplateAPIApiUpdateTemplateRequest {
+    /**
+     * 과제 템플릿 ID
+     */
+    readonly id: number
+
+    readonly assignmentTemplateUpdateReq: AssignmentTemplateUpdateReq
+}
+
+/**
+ * AssignmentTemplateAPIApi - object-oriented interface
+ */
+export class AssignmentTemplateAPIApi extends BaseAPI implements AssignmentTemplateAPIApiInterface {
+    /**
+     * 멘토가 과제 템플릿을 생성합니다.
+     * @summary 과제 템플릿 생성
+     * @param {AssignmentTemplateAPIApiCreateTemplateRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public createTemplate(requestParameters: AssignmentTemplateAPIApiCreateTemplateRequest, options?: RawAxiosRequestConfig) {
+        return AssignmentTemplateAPIApiFp(this.configuration).createTemplate(requestParameters.assignmentTemplateCreateReq, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 멘토 본인이 생성한 과제 템플릿을 삭제합니다.
+     * @summary 과제 템플릿 삭제
+     * @param {AssignmentTemplateAPIApiDeleteTemplateRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public deleteTemplate(requestParameters: AssignmentTemplateAPIApiDeleteTemplateRequest, options?: RawAxiosRequestConfig) {
+        return AssignmentTemplateAPIApiFp(this.configuration).deleteTemplate(requestParameters.id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 멘토 본인이 생성한 특정 과제 템플릿의 상세 정보를 조회합니다.
+     * @summary 과제 템플릿 상세 조회
+     * @param {AssignmentTemplateAPIApiGetTemplateDetailRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getTemplateDetail(requestParameters: AssignmentTemplateAPIApiGetTemplateDetailRequest, options?: RawAxiosRequestConfig) {
+        return AssignmentTemplateAPIApiFp(this.configuration).getTemplateDetail(requestParameters.id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 멘토 본인이 생성한 과제 템플릿 목록을 조회합니다. 과목 필터 가능
+     * @summary 과제 템플릿 목록 조회
+     * @param {AssignmentTemplateAPIApiGetTemplateListRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getTemplateList(requestParameters: AssignmentTemplateAPIApiGetTemplateListRequest = {}, options?: RawAxiosRequestConfig) {
+        return AssignmentTemplateAPIApiFp(this.configuration).getTemplateList(requestParameters.subject, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 멘토 본인이 생성한 과제 템플릿의 텍스트 및 첨부 파일을 수정합니다.
+     * @summary 과제 템플릿 수정
+     * @param {AssignmentTemplateAPIApiUpdateTemplateRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public updateTemplate(requestParameters: AssignmentTemplateAPIApiUpdateTemplateRequest, options?: RawAxiosRequestConfig) {
+        return AssignmentTemplateAPIApiFp(this.configuration).updateTemplate(requestParameters.id, requestParameters.assignmentTemplateUpdateReq, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+export const GetTemplateListSubjectEnum = {
+    Korean: 'KOREAN',
+    English: 'ENGLISH',
+    Math: 'MATH',
+    Common: 'COMMON'
+} as const;
+export type GetTemplateListSubjectEnum = typeof GetTemplateListSubjectEnum[keyof typeof GetTemplateListSubjectEnum];
+
+
+/**
+ * AssignmentTemplateFileAPIApi - axios parameter creator
+ */
+export const AssignmentTemplateFileAPIApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 멘토가 생성한 과제 템플릿에 포함된 학습자료 파일 목록을 조회합니다. 과목 필터링이 가능합니다.
+         * @summary 과제 템플릿 학습자료 목록 조회
+         * @param {GetTemplateFileListSubjectEnum} [subject] 과목 필터 (선택)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTemplateFileList: async (subject?: GetTemplateFileListSubjectEnum, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v1/assignment-template-files`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication JWT required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (subject !== undefined) {
+                localVarQueryParameter['subject'] = subject;
+            }
+
+            localVarHeaderParameter['Accept'] = '*/*';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * AssignmentTemplateFileAPIApi - functional programming interface
+ */
+export const AssignmentTemplateFileAPIApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = AssignmentTemplateFileAPIApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * 멘토가 생성한 과제 템플릿에 포함된 학습자료 파일 목록을 조회합니다. 과목 필터링이 가능합니다.
+         * @summary 과제 템플릿 학습자료 목록 조회
+         * @param {GetTemplateFileListSubjectEnum} [subject] 과목 필터 (선택)
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getTemplateFileList(subject?: GetTemplateFileListSubjectEnum, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResponseListAssignmentTemplateFileListRes>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTemplateFileList(subject, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['AssignmentTemplateFileAPIApi.getTemplateFileList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * AssignmentTemplateFileAPIApi - factory interface
+ */
+export const AssignmentTemplateFileAPIApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = AssignmentTemplateFileAPIApiFp(configuration)
+    return {
+        /**
+         * 멘토가 생성한 과제 템플릿에 포함된 학습자료 파일 목록을 조회합니다. 과목 필터링이 가능합니다.
+         * @summary 과제 템플릿 학습자료 목록 조회
+         * @param {AssignmentTemplateFileAPIApiGetTemplateFileListRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTemplateFileList(requestParameters: AssignmentTemplateFileAPIApiGetTemplateFileListRequest = {}, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseListAssignmentTemplateFileListRes> {
+            return localVarFp.getTemplateFileList(requestParameters.subject, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * AssignmentTemplateFileAPIApi - interface
+ */
+export interface AssignmentTemplateFileAPIApiInterface {
+    /**
+     * 멘토가 생성한 과제 템플릿에 포함된 학습자료 파일 목록을 조회합니다. 과목 필터링이 가능합니다.
+     * @summary 과제 템플릿 학습자료 목록 조회
+     * @param {AssignmentTemplateFileAPIApiGetTemplateFileListRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getTemplateFileList(requestParameters?: AssignmentTemplateFileAPIApiGetTemplateFileListRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseListAssignmentTemplateFileListRes>;
+
+}
+
+/**
+ * Request parameters for getTemplateFileList operation in AssignmentTemplateFileAPIApi.
+ */
+export interface AssignmentTemplateFileAPIApiGetTemplateFileListRequest {
+    /**
+     * 과목 필터 (선택)
+     */
+    readonly subject?: GetTemplateFileListSubjectEnum
+}
+
+/**
+ * AssignmentTemplateFileAPIApi - object-oriented interface
+ */
+export class AssignmentTemplateFileAPIApi extends BaseAPI implements AssignmentTemplateFileAPIApiInterface {
+    /**
+     * 멘토가 생성한 과제 템플릿에 포함된 학습자료 파일 목록을 조회합니다. 과목 필터링이 가능합니다.
+     * @summary 과제 템플릿 학습자료 목록 조회
+     * @param {AssignmentTemplateFileAPIApiGetTemplateFileListRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getTemplateFileList(requestParameters: AssignmentTemplateFileAPIApiGetTemplateFileListRequest = {}, options?: RawAxiosRequestConfig) {
+        return AssignmentTemplateFileAPIApiFp(this.configuration).getTemplateFileList(requestParameters.subject, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+export const GetTemplateFileListSubjectEnum = {
+    Korean: 'KOREAN',
+    English: 'ENGLISH',
+    Math: 'MATH',
+    Common: 'COMMON'
+} as const;
+export type GetTemplateFileListSubjectEnum = typeof GetTemplateFileListSubjectEnum[keyof typeof GetTemplateFileListSubjectEnum];
 
 
 /**
@@ -1534,6 +2698,118 @@ export class AuthAPIApi extends BaseAPI implements AuthAPIApiInterface {
      */
     public signup(requestParameters: AuthAPIApiSignupRequest, options?: RawAxiosRequestConfig) {
         return AuthAPIApiFp(this.configuration).signup(requestParameters.signupRequestDto, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
+ * BadgeAPIApi - axios parameter creator
+ */
+export const BadgeAPIApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 현재 사용자가 획득한 뱃지 정보를 포함하여 전체 뱃지 목록을 조회합니다.
+         * @summary 내 뱃지 목록 조회
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getMyBadges: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v1/badges`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication JWT required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            localVarHeaderParameter['Accept'] = '*/*';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * BadgeAPIApi - functional programming interface
+ */
+export const BadgeAPIApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = BadgeAPIApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * 현재 사용자가 획득한 뱃지 정보를 포함하여 전체 뱃지 목록을 조회합니다.
+         * @summary 내 뱃지 목록 조회
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getMyBadges(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResponseListBadgeInfoResponse>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getMyBadges(options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['BadgeAPIApi.getMyBadges']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * BadgeAPIApi - factory interface
+ */
+export const BadgeAPIApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = BadgeAPIApiFp(configuration)
+    return {
+        /**
+         * 현재 사용자가 획득한 뱃지 정보를 포함하여 전체 뱃지 목록을 조회합니다.
+         * @summary 내 뱃지 목록 조회
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getMyBadges(options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseListBadgeInfoResponse> {
+            return localVarFp.getMyBadges(options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * BadgeAPIApi - interface
+ */
+export interface BadgeAPIApiInterface {
+    /**
+     * 현재 사용자가 획득한 뱃지 정보를 포함하여 전체 뱃지 목록을 조회합니다.
+     * @summary 내 뱃지 목록 조회
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getMyBadges(options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseListBadgeInfoResponse>;
+
+}
+
+/**
+ * BadgeAPIApi - object-oriented interface
+ */
+export class BadgeAPIApi extends BaseAPI implements BadgeAPIApiInterface {
+    /**
+     * 현재 사용자가 획득한 뱃지 정보를 포함하여 전체 뱃지 목록을 조회합니다.
+     * @summary 내 뱃지 목록 조회
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getMyBadges(options?: RawAxiosRequestConfig) {
+        return BadgeAPIApiFp(this.configuration).getMyBadges(options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -2507,6 +3783,514 @@ export class ExampleAPIApi extends BaseAPI implements ExampleAPIApiInterface {
     }
 }
 
+
+
+/**
+ * FeedbackTemplateAPIApi - axios parameter creator
+ */
+export const FeedbackTemplateAPIApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * 
+         * @summary 피드백 템플릿 삭제
+         * @param {number} templateId 피드백 템플릿 ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        _delete: async (templateId: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'templateId' is not null or undefined
+            assertParamExists('_delete', 'templateId', templateId)
+            const localVarPath = `/api/v1/feedback-templates/{templateId}`
+                .replace(`{${"templateId"}}`, encodeURIComponent(String(templateId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication JWT required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            localVarHeaderParameter['Accept'] = '*/*';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary 피드백 템플릿 생성
+         * @param {FeedbackTemplateCreateReq} feedbackTemplateCreateReq 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        create: async (feedbackTemplateCreateReq: FeedbackTemplateCreateReq, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'feedbackTemplateCreateReq' is not null or undefined
+            assertParamExists('create', 'feedbackTemplateCreateReq', feedbackTemplateCreateReq)
+            const localVarPath = `/api/v1/feedback-templates`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication JWT required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = '*/*';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(feedbackTemplateCreateReq, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary 피드백 템플릿 상세 조회
+         * @param {number} templateId 피드백 템플릿 ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTemplate: async (templateId: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'templateId' is not null or undefined
+            assertParamExists('getTemplate', 'templateId', templateId)
+            const localVarPath = `/api/v1/feedback-templates/{templateId}`
+                .replace(`{${"templateId"}}`, encodeURIComponent(String(templateId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication JWT required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            localVarHeaderParameter['Accept'] = '*/*';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 과목별로 피드백 템플릿 목록을 조회합니다.
+         * @summary 피드백 템플릿 목록 조회
+         * @param {GetTemplatesSubjectEnum} [subject] 과목 필터
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTemplates: async (subject?: GetTemplatesSubjectEnum, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v1/feedback-templates`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication JWT required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            if (subject !== undefined) {
+                localVarQueryParameter['subject'] = subject;
+            }
+
+            localVarHeaderParameter['Accept'] = '*/*';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 
+         * @summary 피드백 템플릿 수정
+         * @param {number} templateId 피드백 템플릿 ID
+         * @param {FeedbackTemplateUpdateReq} feedbackTemplateUpdateReq 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        update: async (templateId: number, feedbackTemplateUpdateReq: FeedbackTemplateUpdateReq, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'templateId' is not null or undefined
+            assertParamExists('update', 'templateId', templateId)
+            // verify required parameter 'feedbackTemplateUpdateReq' is not null or undefined
+            assertParamExists('update', 'feedbackTemplateUpdateReq', feedbackTemplateUpdateReq)
+            const localVarPath = `/api/v1/feedback-templates/{templateId}`
+                .replace(`{${"templateId"}}`, encodeURIComponent(String(templateId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication JWT required
+            // http bearer authentication required
+            await setBearerAuthToObject(localVarHeaderParameter, configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = '*/*';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(feedbackTemplateUpdateReq, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * FeedbackTemplateAPIApi - functional programming interface
+ */
+export const FeedbackTemplateAPIApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = FeedbackTemplateAPIApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * 
+         * @summary 피드백 템플릿 삭제
+         * @param {number} templateId 피드백 템플릿 ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async _delete(templateId: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResponseFeedbackTemplateRes>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator._delete(templateId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FeedbackTemplateAPIApi._delete']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
+         * @summary 피드백 템플릿 생성
+         * @param {FeedbackTemplateCreateReq} feedbackTemplateCreateReq 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async create(feedbackTemplateCreateReq: FeedbackTemplateCreateReq, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResponseFeedbackTemplateRes>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.create(feedbackTemplateCreateReq, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FeedbackTemplateAPIApi.create']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
+         * @summary 피드백 템플릿 상세 조회
+         * @param {number} templateId 피드백 템플릿 ID
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getTemplate(templateId: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResponseFeedbackTemplateRes>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTemplate(templateId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FeedbackTemplateAPIApi.getTemplate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 과목별로 피드백 템플릿 목록을 조회합니다.
+         * @summary 피드백 템플릿 목록 조회
+         * @param {GetTemplatesSubjectEnum} [subject] 과목 필터
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getTemplates(subject?: GetTemplatesSubjectEnum, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResponseListFeedbackTemplateListRes>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getTemplates(subject, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FeedbackTemplateAPIApi.getTemplates']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 
+         * @summary 피드백 템플릿 수정
+         * @param {number} templateId 피드백 템플릿 ID
+         * @param {FeedbackTemplateUpdateReq} feedbackTemplateUpdateReq 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async update(templateId: number, feedbackTemplateUpdateReq: FeedbackTemplateUpdateReq, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApiResponseFeedbackTemplateRes>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.update(templateId, feedbackTemplateUpdateReq, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['FeedbackTemplateAPIApi.update']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * FeedbackTemplateAPIApi - factory interface
+ */
+export const FeedbackTemplateAPIApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = FeedbackTemplateAPIApiFp(configuration)
+    return {
+        /**
+         * 
+         * @summary 피드백 템플릿 삭제
+         * @param {FeedbackTemplateAPIApiDeleteRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        _delete(requestParameters: FeedbackTemplateAPIApiDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseFeedbackTemplateRes> {
+            return localVarFp._delete(requestParameters.templateId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary 피드백 템플릿 생성
+         * @param {FeedbackTemplateAPIApiCreateRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        create(requestParameters: FeedbackTemplateAPIApiCreateRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseFeedbackTemplateRes> {
+            return localVarFp.create(requestParameters.feedbackTemplateCreateReq, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary 피드백 템플릿 상세 조회
+         * @param {FeedbackTemplateAPIApiGetTemplateRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTemplate(requestParameters: FeedbackTemplateAPIApiGetTemplateRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseFeedbackTemplateRes> {
+            return localVarFp.getTemplate(requestParameters.templateId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 과목별로 피드백 템플릿 목록을 조회합니다.
+         * @summary 피드백 템플릿 목록 조회
+         * @param {FeedbackTemplateAPIApiGetTemplatesRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getTemplates(requestParameters: FeedbackTemplateAPIApiGetTemplatesRequest = {}, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseListFeedbackTemplateListRes> {
+            return localVarFp.getTemplates(requestParameters.subject, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 
+         * @summary 피드백 템플릿 수정
+         * @param {FeedbackTemplateAPIApiUpdateRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        update(requestParameters: FeedbackTemplateAPIApiUpdateRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseFeedbackTemplateRes> {
+            return localVarFp.update(requestParameters.templateId, requestParameters.feedbackTemplateUpdateReq, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * FeedbackTemplateAPIApi - interface
+ */
+export interface FeedbackTemplateAPIApiInterface {
+    /**
+     * 
+     * @summary 피드백 템플릿 삭제
+     * @param {FeedbackTemplateAPIApiDeleteRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    _delete(requestParameters: FeedbackTemplateAPIApiDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseFeedbackTemplateRes>;
+
+    /**
+     * 
+     * @summary 피드백 템플릿 생성
+     * @param {FeedbackTemplateAPIApiCreateRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    create(requestParameters: FeedbackTemplateAPIApiCreateRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseFeedbackTemplateRes>;
+
+    /**
+     * 
+     * @summary 피드백 템플릿 상세 조회
+     * @param {FeedbackTemplateAPIApiGetTemplateRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getTemplate(requestParameters: FeedbackTemplateAPIApiGetTemplateRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseFeedbackTemplateRes>;
+
+    /**
+     * 과목별로 피드백 템플릿 목록을 조회합니다.
+     * @summary 피드백 템플릿 목록 조회
+     * @param {FeedbackTemplateAPIApiGetTemplatesRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getTemplates(requestParameters?: FeedbackTemplateAPIApiGetTemplatesRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseListFeedbackTemplateListRes>;
+
+    /**
+     * 
+     * @summary 피드백 템플릿 수정
+     * @param {FeedbackTemplateAPIApiUpdateRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    update(requestParameters: FeedbackTemplateAPIApiUpdateRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApiResponseFeedbackTemplateRes>;
+
+}
+
+/**
+ * Request parameters for _delete operation in FeedbackTemplateAPIApi.
+ */
+export interface FeedbackTemplateAPIApiDeleteRequest {
+    /**
+     * 피드백 템플릿 ID
+     */
+    readonly templateId: number
+}
+
+/**
+ * Request parameters for create operation in FeedbackTemplateAPIApi.
+ */
+export interface FeedbackTemplateAPIApiCreateRequest {
+    readonly feedbackTemplateCreateReq: FeedbackTemplateCreateReq
+}
+
+/**
+ * Request parameters for getTemplate operation in FeedbackTemplateAPIApi.
+ */
+export interface FeedbackTemplateAPIApiGetTemplateRequest {
+    /**
+     * 피드백 템플릿 ID
+     */
+    readonly templateId: number
+}
+
+/**
+ * Request parameters for getTemplates operation in FeedbackTemplateAPIApi.
+ */
+export interface FeedbackTemplateAPIApiGetTemplatesRequest {
+    /**
+     * 과목 필터
+     */
+    readonly subject?: GetTemplatesSubjectEnum
+}
+
+/**
+ * Request parameters for update operation in FeedbackTemplateAPIApi.
+ */
+export interface FeedbackTemplateAPIApiUpdateRequest {
+    /**
+     * 피드백 템플릿 ID
+     */
+    readonly templateId: number
+
+    readonly feedbackTemplateUpdateReq: FeedbackTemplateUpdateReq
+}
+
+/**
+ * FeedbackTemplateAPIApi - object-oriented interface
+ */
+export class FeedbackTemplateAPIApi extends BaseAPI implements FeedbackTemplateAPIApiInterface {
+    /**
+     * 
+     * @summary 피드백 템플릿 삭제
+     * @param {FeedbackTemplateAPIApiDeleteRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public _delete(requestParameters: FeedbackTemplateAPIApiDeleteRequest, options?: RawAxiosRequestConfig) {
+        return FeedbackTemplateAPIApiFp(this.configuration)._delete(requestParameters.templateId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary 피드백 템플릿 생성
+     * @param {FeedbackTemplateAPIApiCreateRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public create(requestParameters: FeedbackTemplateAPIApiCreateRequest, options?: RawAxiosRequestConfig) {
+        return FeedbackTemplateAPIApiFp(this.configuration).create(requestParameters.feedbackTemplateCreateReq, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary 피드백 템플릿 상세 조회
+     * @param {FeedbackTemplateAPIApiGetTemplateRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getTemplate(requestParameters: FeedbackTemplateAPIApiGetTemplateRequest, options?: RawAxiosRequestConfig) {
+        return FeedbackTemplateAPIApiFp(this.configuration).getTemplate(requestParameters.templateId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 과목별로 피드백 템플릿 목록을 조회합니다.
+     * @summary 피드백 템플릿 목록 조회
+     * @param {FeedbackTemplateAPIApiGetTemplatesRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getTemplates(requestParameters: FeedbackTemplateAPIApiGetTemplatesRequest = {}, options?: RawAxiosRequestConfig) {
+        return FeedbackTemplateAPIApiFp(this.configuration).getTemplates(requestParameters.subject, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 
+     * @summary 피드백 템플릿 수정
+     * @param {FeedbackTemplateAPIApiUpdateRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public update(requestParameters: FeedbackTemplateAPIApiUpdateRequest, options?: RawAxiosRequestConfig) {
+        return FeedbackTemplateAPIApiFp(this.configuration).update(requestParameters.templateId, requestParameters.feedbackTemplateUpdateReq, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+export const GetTemplatesSubjectEnum = {
+    Korean: 'KOREAN',
+    English: 'ENGLISH',
+    Math: 'MATH',
+    Common: 'COMMON'
+} as const;
+export type GetTemplatesSubjectEnum = typeof GetTemplatesSubjectEnum[keyof typeof GetTemplatesSubjectEnum];
 
 
 /**

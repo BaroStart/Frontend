@@ -18,7 +18,14 @@ import {
 } from 'lucide-react';
 
 import { fetchAssignmentMaterials } from '@/api/assignments';
-import { getSubjectLabel } from '@/lib/subjectLabels';
+import {
+  createTemplate,
+  deleteTemplate,
+  fetchTemplateDetail,
+  fetchTemplateList,
+  updateTemplate,
+} from '@/api/assignmentTemplates';
+import { getSubjectEnum, getSubjectLabel } from '@/lib/subjectLabels';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/Dialog';
@@ -36,18 +43,17 @@ import {
   type MaterialMeta,
   saveMaterial,
 } from '@/lib/materialStorage';
-import {
-  getMaterialsByIds,
-  type LearningGoal,
-  useLearningGoalStore,
-} from '@/stores/useLearningGoalStore';
+import type {
+  AssignmentTemplateCreateReqSubjectEnum,
+  AssignmentTemplateDetailRes,
+  AssignmentTemplateListRes,
+} from '@/generated';
 
 type TabType = 'materials' | 'goals' | 'templates';
-const CURRENT_MENTOR_ID = 'mentor1'; // TODO: API 연결 — useAuthStore에서 멘토 ID 가져오기
 const TABS = [
   { id: 'materials' as TabType, label: '학습 자료', icon: FolderOpen },
   { id: 'goals' as TabType, label: '과제 목표', icon: Target },
-  { id: 'templates' as TabType, label: '과제 템플릿', icon: Layers },
+  // { id: 'templates' as TabType, label: '과제 템플릿', icon: Layers },
 ];
 
 // TODO: API 연결 — localStorage 기반 커스텀 템플릿 저장을 서버 API로 교체
@@ -87,14 +93,6 @@ function saveCustomTemplates(templates: AssignmentTemplate[]) {
 
 export function AssignmentManagePage() {
   const [searchParams] = useSearchParams();
-  const {
-    goals: _storeGoals,
-    getGoalsByMentor,
-    addGoal,
-    updateGoal,
-    deleteGoal,
-    initialize,
-  } = useLearningGoalStore();
 
   // 탭 상태
   const [activeTab, setActiveTab] = useState<TabType>(() => {
@@ -123,12 +121,13 @@ export function AssignmentManagePage() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
-  // 과제 목표 상태
+  // 과제 목표 상태 (API 연동)
+  const [goals, setGoals] = useState<AssignmentTemplateListRes[]>([]);
   const [goalSearch, setGoalSearch] = useState('');
-  const [goalModal, setGoalModal] = useState<{ open: boolean; editing: LearningGoal | null }>({
-    open: false,
-    editing: null,
-  });
+  const [goalModal, setGoalModal] = useState<{
+    open: boolean;
+    editing: AssignmentTemplateDetailRes | null;
+  }>({ open: false, editing: null });
 
   // 템플릿(커스텀) 상태
   const [customTemplates, setCustomTemplates] = useState<AssignmentTemplate[]>(() =>
@@ -143,10 +142,15 @@ export function AssignmentManagePage() {
     submitRule: '',
   });
 
+  // 과제 목표 목록 새로고침 헬퍼
+  const loadGoals = () => {
+    fetchTemplateList()
+      .then(setGoals)
+      .catch(() => setGoals([]));
+  };
+
   // 초기화 + URL 탭 동기화 (마운트 시 1회)
   useEffect(() => {
-    initialize(CURRENT_MENTOR_ID);
-
     // 학습자료 조회
     fetchAssignmentMaterials()
       .then((apiMaterials) => {
@@ -160,6 +164,7 @@ export function AssignmentManagePage() {
           subCategory: '',
           uploadedAt: '',
           source: 'seolstudy' as const,
+          fileUrl: m.fileUrl ?? undefined,
         }));
         setMaterials(mapped);
       })
@@ -167,16 +172,20 @@ export function AssignmentManagePage() {
         setMaterials([]);
       });
 
+    // 과제 목표(템플릿) 목록 조회
+    loadGoals();
+
     const tab = searchParams.get('tab') as TabType | null;
     if (tab && TABS.some((t) => t.id === tab)) setActiveTab(tab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 파생 데이터
-  const goals = useMemo(() => getGoalsByMentor(CURRENT_MENTOR_ID), [_storeGoals, getGoalsByMentor]);
   const filteredGoals = useMemo(
     () =>
-      goals.filter((g) => !goalSearch || g.name.toLowerCase().includes(goalSearch.toLowerCase())),
+      goals.filter(
+        (g) => !goalSearch || (g.name ?? '').toLowerCase().includes(goalSearch.toLowerCase()),
+      ),
     [goals, goalSearch],
   );
   const filteredMaterials = useMemo(() => {
@@ -244,17 +253,59 @@ export function AssignmentManagePage() {
     setMaterials((prev) => prev.filter((m) => m.id !== material.id));
   };
 
-  const handleSaveGoal = (data: Omit<LearningGoal, 'id' | 'createdAt'>) => {
-    if (goalModal.editing) {
-      updateGoal(goalModal.editing.id, data);
-    } else {
-      addGoal(data);
+  const handleSaveGoal = async (req: {
+    subject: string;
+    name: string;
+    files: { fileName: string; url: string }[];
+  }) => {
+    const subjectEnum = getSubjectEnum(req.subject) as AssignmentTemplateCreateReqSubjectEnum;
+    try {
+      if (goalModal.editing?.id != null) {
+        await updateTemplate(goalModal.editing.id, {
+          subject: subjectEnum,
+          name: req.name,
+          title: req.name,
+          description: '',
+          content: '',
+          files: req.files,
+        });
+        toast.success('과제 목표가 수정되었습니다.');
+      } else {
+        await createTemplate({
+          subject: subjectEnum,
+          name: req.name,
+          title: req.name,
+          description: '',
+          content: '',
+          files: req.files,
+        });
+        toast.success('과제 목표가 추가되었습니다.');
+      }
+      setGoalModal({ open: false, editing: null });
+      loadGoals();
+    } catch {
+      toast.error('저장에 실패했습니다.');
     }
-    setGoalModal({ open: false, editing: null });
   };
 
-  const handleDeleteGoal = (id: string) => {
-    if (window.confirm('이 과제 목표를 삭제하시겠습니까?')) deleteGoal(id);
+  const handleDeleteGoal = async (id: number) => {
+    if (!window.confirm('이 과제 목표를 삭제하시겠습니까?')) return;
+    try {
+      await deleteTemplate(id);
+      toast.success('과제 목표가 삭제되었습니다.');
+      loadGoals();
+    } catch {
+      toast.error('삭제에 실패했습니다.');
+    }
+  };
+
+  const handleEditGoal = async (goalId: number) => {
+    try {
+      const detail = await fetchTemplateDetail(goalId);
+      setGoalModal({ open: true, editing: detail });
+    } catch {
+      toast.error('상세 조회에 실패했습니다.');
+    }
   };
 
   const closePreview = () => {
@@ -518,9 +569,8 @@ export function AssignmentManagePage() {
                   <LearningGoalCard
                     key={goal.id}
                     goal={goal}
-                    materials={getMaterialsByIds(goal.materialIds || [])}
-                    onEdit={() => setGoalModal({ open: true, editing: goal })}
-                    onDelete={() => handleDeleteGoal(goal.id)}
+                    onEdit={() => goal.id != null && handleEditGoal(goal.id)}
+                    onDelete={() => goal.id != null && handleDeleteGoal(goal.id)}
                   />
                 ))}
               </div>
@@ -532,7 +582,6 @@ export function AssignmentManagePage() {
                 materials={materials}
                 onSave={handleSaveGoal}
                 onClose={() => setGoalModal({ open: false, editing: null })}
-                mentorId={CURRENT_MENTOR_ID}
               />
             )}
           </div>
@@ -944,15 +993,14 @@ function MaterialUploadModal({
 // 과제 목표 카드
 function LearningGoalCard({
   goal,
-  materials,
   onEdit,
   onDelete,
 }: {
-  goal: LearningGoal;
-  materials: { id: string; title: string; source: 'seolstudy' | 'mentor' }[];
+  goal: AssignmentTemplateListRes;
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const subjectLabel = getSubjectLabel(goal.subject);
   return (
     <div className="group rounded-xl border border-border/50 bg-secondary/30 p-5 transition-all hover:shadow-soft">
       <div className="flex items-start gap-3">
@@ -962,15 +1010,12 @@ function LearningGoalCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-foreground">{goal.name}</h3>
-            {goal.subject && (
+            {subjectLabel && (
               <span className="shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
-                {goal.subject}
+                {subjectLabel}
               </span>
             )}
           </div>
-          {goal.description && (
-            <p className="mt-1 line-clamp-2 text-xs text-foreground/60">{goal.description}</p>
-          )}
         </div>
         <div className="ml-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
           <button
@@ -989,33 +1034,21 @@ function LearningGoalCard({
           </button>
         </div>
       </div>
-      {(goal.weakness || materials.length > 0) && (
-        <div className="mt-3 space-y-2.5 border-t border-border/50 pt-3">
-          {goal.weakness && (
-            <div className="rounded-md bg-secondary/70 px-2.5 py-2">
-              <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/40">
-                보완점
-              </p>
-              <p className="text-xs text-foreground/70">{goal.weakness}</p>
-            </div>
-          )}
-          {materials.length > 0 && (
-            <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/40">
-                추가자료
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {materials.map((mat) => (
-                  <span
-                    key={mat.id}
-                    className={`inline-flex items-center rounded-md border px-2 py-1 text-[11px] ${mat.source === 'seolstudy' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-border/60 bg-secondary/50 text-foreground/60'}`}
-                  >
-                    {mat.title}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+      {(goal.fileNames?.length ?? 0) > 0 && (
+        <div className="mt-3 border-t border-border/50 pt-3">
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/40">
+            추가자료
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {goal.fileNames!.map((fileName, idx) => (
+              <span
+                key={idx}
+                className="inline-flex items-center rounded-md border border-border/60 bg-secondary/50 px-2 py-1 text-[11px] text-foreground/60"
+              >
+                {fileName}
+              </span>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -1028,37 +1061,35 @@ function LearningGoalModal({
   materials,
   onSave,
   onClose,
-  mentorId,
 }: {
-  goal: LearningGoal | null;
+  goal: AssignmentTemplateDetailRes | null;
   materials: MaterialMeta[];
-  onSave: (data: Omit<LearningGoal, 'id' | 'createdAt'>) => void;
+  onSave: (data: {
+    subject: string;
+    name: string;
+    files: { fileName: string; url: string }[];
+  }) => void;
   onClose: () => void;
-  mentorId: string;
 }) {
   const [name, setName] = useState(goal?.name || '');
-  const [description, setDescription] = useState(goal?.description || '');
-  const [weakness, setWeakness] = useState(goal?.weakness || '');
-  const [selectedIds, setSelectedIds] = useState<string[]>(goal?.materialIds || []);
-  const [subject, setSubject] = useState(goal?.subject || '국어');
+  const [subject, setSubject] = useState(
+    goal?.subject ? getSubjectLabel(goal.subject) : '국어',
+  );
 
-  useEffect(() => {
-    if (goal) {
-      setSubject(goal.subject || '국어');
-    }
-  }, [goal]);
+  // 수정 시: 기존 파일 URL 목록으로 초기 선택 복원
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => {
+    if (!goal?.files?.length) return [];
+    const existingUrls = new Set(goal.files.map((f) => f.url));
+    return materials.filter((m) => m.fileUrl && existingUrls.has(m.fileUrl)).map((m) => m.id);
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    onSave({
-      mentorId,
-      subject,
-      name: name.trim(),
-      description: description.trim() || undefined,
-      weakness: weakness.trim() || undefined,
-      materialIds: selectedIds,
-    });
+    const files = materials
+      .filter((m) => selectedIds.includes(m.id) && m.fileUrl)
+      .map((m) => ({ fileName: m.fileName, url: m.fileUrl! }));
+    onSave({ subject, name: name.trim(), files });
   };
 
   const toggleMaterial = (id: string) => {
@@ -1095,26 +1126,6 @@ function LearningGoalModal({
               placeholder="예: 비문학 지문 구조 파악"
               className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
               required
-            />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-foreground/80">설명 (선택)</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="과제 목표에 대한 간단한 설명"
-              rows={2}
-              className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
-            />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-foreground/80">보완점</label>
-            <input
-              type="text"
-              value={weakness}
-              onChange={(e) => setWeakness(e.target.value)}
-              placeholder="예: 비문학 구조 파악, 어휘력 부족 (쉼표로 구분)"
-              className="w-full rounded-lg border border-border px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/20"
             />
           </div>
           <div>

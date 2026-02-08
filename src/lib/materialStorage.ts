@@ -18,6 +18,7 @@ export interface MaterialMeta {
   subCategory: string;
   uploadedAt: string;
   source: 'seolstudy' | 'mentor';
+  fileUrl?: string;
 }
 
 let db: IDBDatabase | null = null;
