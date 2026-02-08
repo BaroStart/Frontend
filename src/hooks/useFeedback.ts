@@ -1,17 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { API_CONFIG } from '@/api/config';
 import {
   fetchFeedbackDetail,
   submitFeedback,
   type SubmitFeedbackPayload,
 } from '@/api/feedback';
 
-/** 피드백 상세 조회 (API 모드에서만 호출, Mock 시 null) */
+/** 피드백 상세 조회 */
 export function useFeedbackDetail(
   menteeId: string | undefined,
   assignmentId: string | undefined,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: ['feedbackDetail', menteeId, assignmentId],
@@ -19,11 +18,7 @@ export function useFeedbackDetail(
       if (!menteeId || !assignmentId) return Promise.resolve(null);
       return fetchFeedbackDetail(menteeId, assignmentId);
     },
-    enabled:
-      (options?.enabled ?? true) &&
-      !!menteeId &&
-      !!assignmentId &&
-      !API_CONFIG.useMockMentor,
+    enabled: (options?.enabled ?? true) && !!menteeId && !!assignmentId,
   });
 }
 
