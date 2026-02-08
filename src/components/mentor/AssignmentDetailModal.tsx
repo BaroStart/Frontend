@@ -1,8 +1,9 @@
-import { Check, Lightbulb, Pencil, X } from 'lucide-react';
+import { Check, Lightbulb, Pencil } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui/Button';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/Dialog';
 import { Input } from '@/components/ui/Input';
 import { useAssignmentDetail } from '@/hooks/useAssignmentDetail';
 import type { AssignmentDetail } from '@/types';
@@ -71,7 +72,7 @@ export function AssignmentDetailModal({
   if (!detail && !isLoading) return null;
 
   const showLoading = isLoading && !detail;
-  const d = detail!; // 렌더 시점에 detail이 있음 (위 early return으로 보장)
+  const d = detail!;
 
   const handleEditClick = () => {
     if (source === 'incomplete' && menteeId) {
@@ -153,107 +154,87 @@ export function AssignmentDetailModal({
   };
 
   const isCompleted = source === 'feedback';
-  const showFullDetail = isCompleted; // 완료: 전체 디자인, 미완료: 과제 내용만
+  const showFullDetail = isCompleted;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
-      <div
-        className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {showLoading ? (
-          <>
-            <div className="absolute right-4 top-4 z-10">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex flex-1 items-center justify-center p-12">
-              <p className="text-sm text-slate-500">과제 정보를 불러오는 중...</p>
-            </div>
-          </>
-        ) : (
-          <>
-        {/* 헤더: 수정/닫기 */}
-        <div className="absolute right-4 top-4 z-10 flex gap-1">
-          {!isEditing && (onSave || (source === 'incomplete' && menteeId)) && (
-            <button
-              type="button"
-              onClick={handleEditClick}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-800"
-            >
-              <Pencil className="h-4 w-4" />
-              수정
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {/* 상단: 과목 태그, 날짜, 제목, 목표 */}
-          <div className="border-b border-slate-100 bg-white p-5 pb-6">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="rounded-md bg-slate-800 px-2.5 py-1 text-xs font-medium text-white">
+    <Dialog open onClose={onClose} maxWidth="max-w-2xl">
+      {showLoading ? (
+        <>
+          <DialogHeader onClose={onClose}>
+            <h2 className="text-lg font-semibold text-foreground">과제 상세</h2>
+          </DialogHeader>
+          <div className="flex flex-1 items-center justify-center p-12">
+            <p className="text-sm text-muted-foreground">과제 정보를 불러오는 중...</p>
+          </div>
+        </>
+      ) : (
+        <>
+          <DialogHeader onClose={onClose}>
+            <div className="flex items-center gap-2">
+              <span className="rounded-md bg-foreground px-2.5 py-1 text-xs font-medium text-white">
                 {d.subject}
               </span>
-              <span className="text-sm text-slate-500">{d.date}</span>
+              <span className="text-sm text-muted-foreground">{d.date}</span>
+              {!isEditing && (onSave || (source === 'incomplete' && menteeId)) && (
+                <button
+                  type="button"
+                  onClick={handleEditClick}
+                  className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
+                >
+                  <Pencil className="h-4 w-4" />
+                  수정
+                </button>
+              )}
             </div>
-            {isEditing ? (
-              <div className="space-y-3">
-                <Input
-                  id="edit-title"
-                  label="제목"
-                  value={editForm.title}
-                  onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
-                />
-                <Input
-                  id="edit-goal"
-                  label="목표"
-                  value={editForm.goal}
-                  onChange={(e) => setEditForm((p) => ({ ...p, goal: e.target.value }))}
-                />
+          </DialogHeader>
+
+          <DialogBody className="space-y-4">
+            {/* 제목, 목표 */}
+            <div className="border-b border-border/50 pb-4">
+              {isEditing ? (
+                <div className="space-y-3">
+                  <Input
+                    id="edit-title"
+                    label="제목"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
+                  />
+                  <Input
+                    id="edit-goal"
+                    label="목표"
+                    value={editForm.goal}
+                    onChange={(e) => setEditForm((p) => ({ ...p, goal: e.target.value }))}
+                  />
+                </div>
+              ) : (
+                <>
+                  <h2 className="text-xl font-bold text-foreground">{d.title}</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">목표: {d.goal}</p>
+                </>
+              )}
+            </div>
+
+            {/* 완료된 과제만 탭 표시 */}
+            {showFullDetail && !isEditing && (
+              <div className="-mx-6 flex border-b border-border/50">
+                <button
+                  type="button"
+                  className="border-b-2 border-foreground px-6 py-3 text-sm font-medium text-foreground"
+                >
+                  과제 정보
+                </button>
+                <button
+                  type="button"
+                  className="border-b-2 border-transparent px-6 py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+                >
+                  피드백
+                </button>
               </div>
-            ) : (
-              <>
-                <h2 className="text-xl font-bold text-slate-900">{d.title}</h2>
-                <p className="mt-2 text-sm text-slate-600">목표: {d.goal}</p>
-              </>
             )}
-          </div>
 
-          {/* 완료된 과제만 탭 표시 */}
-          {showFullDetail && !isEditing && (
-            <div className="flex border-b border-slate-200">
-              <button
-                type="button"
-                className="border-b-2 border-slate-800 px-6 py-3 text-sm font-medium text-slate-900"
-              >
-                과제 정보
-              </button>
-              <button
-                type="button"
-                className="border-b-2 border-transparent px-6 py-3 text-sm font-medium text-slate-500 hover:text-slate-700"
-              >
-                피드백
-              </button>
-            </div>
-          )}
-
-          <div className="space-y-4 p-5">
             {/* 과제 내용 */}
-            <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-              <h3 className="mb-3 text-sm font-semibold text-slate-800">과제 내용</h3>
+            <div className="rounded-xl border border-border/50 bg-secondary/30 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">과제 내용</h3>
               {isEditing ? (
                 <div className="space-y-3">
                   {editForm.contentChecklist.length > 0 ? (
@@ -269,9 +250,9 @@ export function AssignmentDetailModal({
                           <button
                             type="button"
                             onClick={() => removeChecklistItem(i)}
-                            className="rounded p-2 text-slate-400 hover:bg-slate-200 hover:text-red-600"
+                            className="rounded p-2 text-muted-foreground hover:bg-secondary hover:text-red-600"
                           >
-                            <X className="h-4 w-4" />
+                            <span className="text-sm">✕</span>
                           </button>
                         </div>
                       ))}
@@ -303,7 +284,7 @@ export function AssignmentDetailModal({
                           setEditForm((p) => ({ ...p, content: e.target.value }))
                         }
                         rows={4}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                         placeholder="과제 내용을 입력하세요"
                       />
                       <Button
@@ -326,15 +307,15 @@ export function AssignmentDetailModal({
               ) : d.contentChecklist && d.contentChecklist.length > 0 ? (
                 <ul className="space-y-2">
                   {d.contentChecklist.map((item, i) => (
-                    <li key={i} className="flex gap-2 text-sm text-slate-700">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-slate-600" />
+                    <li key={i} className="flex gap-2 text-sm text-foreground/80">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-foreground/60" />
                       <span>{item}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
                 <div
-                  className="prose prose-sm max-w-none text-slate-700 prose-p:my-1 prose-ul:my-2"
+                  className="prose prose-sm max-w-none text-foreground/80 prose-p:my-1 prose-ul:my-2"
                   dangerouslySetInnerHTML={{ __html: d.content }}
                 />
               )}
@@ -350,7 +331,7 @@ export function AssignmentDetailModal({
                       <button
                         key={r.id}
                         type="button"
-                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                        className="rounded-lg border border-border/50 bg-white px-3 py-2 text-sm text-foreground/80 transition-colors hover:bg-secondary/50"
                       >
                         {r.name}
                       </button>
@@ -360,18 +341,18 @@ export function AssignmentDetailModal({
 
                 {/* 설스터디 칼럼 */}
                 {d.studyColumn && (
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+                  <div className="rounded-xl border border-border/50 bg-secondary/30 p-4">
                     <div className="mb-2 flex items-center gap-2">
                       <Lightbulb className="h-4 w-4 text-amber-500" />
-                      <h3 className="text-sm font-semibold text-slate-800">
+                      <h3 className="text-sm font-semibold text-foreground">
                         {d.studyColumn.title}
                       </h3>
                     </div>
-                    <p className="text-sm text-slate-600">{d.studyColumn.content}</p>
+                    <p className="text-sm text-muted-foreground">{d.studyColumn.content}</p>
                     {d.studyColumn.readMoreLink && (
                       <a
                         href={d.studyColumn.readMoreLink}
-                        className="mt-2 inline-block text-sm text-slate-600 underline hover:text-slate-800"
+                        className="mt-2 inline-block text-sm text-muted-foreground underline hover:text-foreground"
                       >
                         전체 읽기
                       </a>
@@ -382,12 +363,12 @@ export function AssignmentDetailModal({
                 {/* 학생 제출 사진 */}
                 {d.studentPhotos.length > 0 && (
                   <div>
-                    <h3 className="mb-2 text-sm font-semibold text-slate-800">학생 제출 사진</h3>
+                    <h3 className="mb-2 text-sm font-semibold text-foreground">학생 제출 사진</h3>
                     <div className="flex gap-3 overflow-x-auto pb-2">
                       {d.studentPhotos.map((photo) => (
                         <div
                           key={photo.id}
-                          className="h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
+                          className="h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-border/50 bg-secondary"
                         >
                           <img
                             src={photo.url}
@@ -403,61 +384,52 @@ export function AssignmentDetailModal({
                 {/* 메모 */}
                 {d.studentMemo && (
                   <div>
-                    <h3 className="mb-2 text-sm font-semibold text-slate-800">메모</h3>
-                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <p className="text-sm text-slate-600">{d.studentMemo}</p>
+                    <h3 className="mb-2 text-sm font-semibold text-foreground">메모</h3>
+                    <div className="rounded-xl border border-border/50 bg-white p-4">
+                      <p className="text-sm text-muted-foreground">{d.studentMemo}</p>
                     </div>
                   </div>
                 )}
               </>
             )}
-          </div>
-        </div>
+          </DialogBody>
 
-        {/* 하단 버튼 */}
-        <div className="flex gap-2 border-t border-slate-200 p-4">
-          {isEditing ? (
-            <>
-              <Button variant="outline" onClick={cancelEdit} className="flex-1">
-                취소
-              </Button>
-              <Button onClick={saveEdit} className="flex-1">
-                저장
-              </Button>
-            </>
-          ) : isCompleted ? (
-            feedbackStatus === 'completed' ? (
-              <Link
-                to={`/mentor/mentees/${menteeId}/feedback/${assignmentId}`}
-                className="w-full"
-              >
-                <Button variant="outline" className="w-full" onClick={onClose}>
-                  전체 피드백 보기
+          <DialogFooter>
+            {isEditing ? (
+              <>
+                <Button variant="outline" size="sm" onClick={cancelEdit}>
+                  취소
                 </Button>
-              </Link>
-            ) : menteeId ? (
-              <Link
-                to={`/mentor/mentees/${menteeId}/feedback/${assignmentId}`}
-                className="w-full"
-              >
-                <Button className="w-full" onClick={onClose}>
-                  피드백 작성하기
+                <Button size="sm" onClick={saveEdit}>
+                  저장
                 </Button>
-              </Link>
+              </>
+            ) : isCompleted ? (
+              feedbackStatus === 'completed' ? (
+                <Link to={`/mentor/mentees/${menteeId}/feedback/${assignmentId}`}>
+                  <Button variant="outline" size="sm" onClick={onClose}>
+                    전체 피드백 보기
+                  </Button>
+                </Link>
+              ) : menteeId ? (
+                <Link to={`/mentor/mentees/${menteeId}/feedback/${assignmentId}`}>
+                  <Button size="sm" onClick={onClose}>
+                    피드백 작성하기
+                  </Button>
+                </Link>
+              ) : (
+                <Button variant="outline" size="sm" onClick={onClose}>
+                  닫기
+                </Button>
+              )
             ) : (
-              <Button className="w-full" onClick={onClose}>
+              <Button variant="outline" size="sm" onClick={onClose}>
                 닫기
               </Button>
-            )
-          ) : (
-            <Button className="w-full" onClick={onClose}>
-              닫기
-            </Button>
-          )}
-        </div>
-          </>
-        )}
-      </div>
-    </div>
+            )}
+          </DialogFooter>
+        </>
+      )}
+    </Dialog>
   );
 }

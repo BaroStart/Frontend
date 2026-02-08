@@ -5,6 +5,7 @@ import { ArrowRight, BarChart3, Calendar, Download, Info } from 'lucide-react';
 
 import { SubjectScoresChart, SUBJECT_TO_KEY } from '@/components/mentor/SubjectScoresChart';
 import { Button } from '@/components/ui/Button';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/Dialog';
 import { useMentee } from '@/hooks/useMentee';
 import { useSubjectStudyTimes, useWeeklyPatterns } from '@/hooks/useLearningAnalysis';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -87,12 +88,11 @@ export function LearningAnalysisModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
-      <div className="relative z-10 flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-        <div className="flex flex-col gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-            <BarChart3 className="h-5 w-5 text-slate-600" />
+    <Dialog open onClose={onClose} maxWidth="max-w-6xl">
+      <DialogHeader onClose={onClose}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+            <BarChart3 className="h-5 w-5 text-muted-foreground" />
             학습 분석 대시보드
           </h2>
           <div className="flex flex-wrap items-center gap-3">
@@ -101,8 +101,8 @@ export function LearningAnalysisModal({
               onClick={() => setPeriod('week')}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
                 period === 'week'
-                  ? 'bg-slate-800 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-foreground text-white'
+                  : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
               }`}
             >
               <Calendar className="h-4 w-4" />
@@ -113,8 +113,8 @@ export function LearningAnalysisModal({
               onClick={() => setPeriod('month')}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-colors ${
                 period === 'month'
-                  ? 'bg-slate-800 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-foreground text-white'
+                  : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
               }`}
             >
               <Calendar className="h-4 w-4" />
@@ -129,101 +129,93 @@ export function LearningAnalysisModal({
             >
               리포트 다운로드
             </Button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-            >
-              ✕
-            </button>
           </div>
         </div>
+      </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto p-5">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {/* 과목별 학습 시간 */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-slate-800">과목별 학습 시간</h3>
-                <Info className="h-4 w-4 text-slate-400" />
-              </div>
-              <div className="space-y-4">
-                {subjectData.map((item) => (
-                  <div key={item.subject}>
-                    <div className="mb-1 flex justify-between text-xs">
-                      <span className="font-medium text-slate-700">{item.subject}</span>
-                      <span className="text-slate-600">{item.hours}h</span>
-                    </div>
-                    <div className="flex h-2 overflow-hidden rounded-full bg-slate-200">
+      <DialogBody>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {/* 과목별 학습 시간 */}
+          <div className="rounded-xl border border-border/50 bg-secondary/30 p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground">과목별 학습 시간</h3>
+              <Info className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="space-y-4">
+              {subjectData.map((item) => (
+                <div key={item.subject}>
+                  <div className="mb-1 flex justify-between text-xs">
+                    <span className="font-medium text-foreground/80">{item.subject}</span>
+                    <span className="text-muted-foreground">{item.hours}h</span>
+                  </div>
+                  <div className="flex h-2 overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className="bg-foreground transition-all duration-300"
+                      style={{ width: `${(item.hours / maxHours) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 주간 학습 패턴 */}
+          <div className="rounded-xl border border-border/50 bg-secondary/30 p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground">주간 학습 패턴</h3>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="space-y-3">
+              {weeklyData.map((item) => (
+                <div key={item.day} className="flex items-center gap-3">
+                  <span className="w-14 shrink-0 text-sm text-foreground/80">{item.day}</span>
+                  <span className="w-12 shrink-0 text-sm font-medium text-foreground">
+                    {item.hours != null ? `${item.hours}h` : '-'}
+                  </span>
+                  <div className="flex flex-1 gap-0.5">
+                    {Array.from({ length: item.totalBlocks ?? 5 }).map((_, i) => (
                       <div
-                        className="bg-slate-800 transition-all duration-300"
-                        style={{ width: `${(item.hours / maxHours) * 100}%` }}
+                        key={i}
+                        className={`h-4 flex-1 rounded-sm ${
+                          i < item.filledBlocks ? 'bg-foreground' : 'bg-secondary'
+                        }`}
                       />
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-
-            {/* 주간 학습 패턴 */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-slate-800">주간 학습 패턴</h3>
-                <Calendar className="h-4 w-4 text-slate-400" />
-              </div>
-              <div className="space-y-3">
-                {weeklyData.map((item) => (
-                  <div key={item.day} className="flex items-center gap-3">
-                    <span className="w-14 shrink-0 text-sm text-slate-700">{item.day}</span>
-                    <span className="w-12 shrink-0 text-sm font-medium text-slate-800">
-                      {item.hours != null ? `${item.hours}h` : '-'}
-                    </span>
-                    <div className="flex flex-1 gap-0.5">
-                      {Array.from({ length: item.totalBlocks ?? 5 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={`h-4 flex-1 rounded-sm ${
-                            i < item.filledBlocks ? 'bg-slate-800' : 'bg-slate-200'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 성적 (그래프) */}
-            {hasScores && scores ? (
-              <SubjectScoresChart
-                scores={scores}
-                subjectKey={subjectKey}
-                subjectLabel={mentorSubject}
-                variant="dashboard"
-              />
-            ) : (
-              <div className="flex min-h-[140px] items-center justify-center rounded-xl border border-slate-200 bg-slate-50/50 p-4 text-sm text-slate-400">
-                성적 데이터 없음
-              </div>
-            )}
           </div>
-        </div>
 
-        {/* 하단 자세히 버튼 */}
-        <div className="border-t border-slate-200 p-4">
-          <Button
-            type="button"
-            onClick={() => {
-              onClose();
-              navigate('/mentor/feedback?tab=analytics');
-            }}
-            className="w-full"
-          >
-            자세히
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+          {/* 성적 (그래프) */}
+          {hasScores && scores ? (
+            <SubjectScoresChart
+              scores={scores}
+              subjectKey={subjectKey}
+              subjectLabel={mentorSubject}
+              variant="dashboard"
+            />
+          ) : (
+            <div className="flex min-h-[140px] items-center justify-center rounded-xl border border-border/50 bg-secondary/30 p-4 text-sm text-muted-foreground">
+              성적 데이터 없음
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+      </DialogBody>
+
+      <DialogFooter>
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => {
+            onClose();
+            navigate('/mentor/feedback?tab=analytics');
+          }}
+        >
+          자세히
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </DialogFooter>
+    </Dialog>
   );
 }

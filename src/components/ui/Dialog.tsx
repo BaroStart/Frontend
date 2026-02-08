@@ -66,7 +66,7 @@ interface DialogHeaderProps {
 
 export function DialogHeader({ children, onClose, className }: DialogHeaderProps) {
   return (
-    <div className={cn('flex items-center justify-between border-b border-border/50 px-6 py-4', className)}>
+    <div className={cn('flex items-center justify-between px-6 py-4', className)}>
       <div className="min-w-0 flex-1">{children}</div>
       {onClose && (
         <button
@@ -98,7 +98,7 @@ interface DialogFooterProps {
 
 export function DialogFooter({ children, className }: DialogFooterProps) {
   return (
-    <div className={cn('flex justify-end gap-2 border-t border-border/50 px-6 py-4', className)}>
+    <div className={cn('flex justify-end gap-2 px-6 py-4', className)}>
       {children}
     </div>
   );
