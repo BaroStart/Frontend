@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import { readdirSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
 
@@ -43,5 +43,14 @@ for (const file of tsFiles) {
     writeFileSync(filePath, `// @ts-nocheck\n${content}`);
   }
 }
+
+// Post-process: remove unnecessary boilerplate files
+const junkFiles = ['git_push.sh', '.npmignore', '.gitignore'];
+for (const junk of junkFiles) {
+  const junkPath = join(outDir, junk);
+  if (existsSync(junkPath)) rmSync(junkPath);
+}
+const docsDir = join(outDir, 'docs');
+if (existsSync(docsDir)) rmSync(docsDir, { recursive: true });
 
 console.log('✓ Generated successfully in src/generated/');
