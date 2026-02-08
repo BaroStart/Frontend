@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { API_CONFIG } from '@/api/config';
-import { signup, type Grade, type JoinType, type SchoolType } from '@/api/auth';
+import { signup } from '@/api/auth';
 import { isApiSuccess } from '@/api/response';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -14,15 +14,15 @@ type FormState = {
   password: string;
   name: string;
   nickname: string;
-  joinType: JoinType;
-  grade: Grade;
-  school: SchoolType;
+  joinType: string;
+  grade: string;
+  school: string;
   hopeMajor: string;
   university: string;
 };
 
-const GRADES: Grade[] = ['FIRST', 'SECOND', 'THIRD'];
-const SCHOOLS: SchoolType[] = ['NORMAL', 'SPECIAL', 'PRIVATE', 'ETC'];
+const GRADES = ['FIRST', 'SECOND', 'THIRD'] as const;
+const SCHOOLS = ['NORMAL', 'SPECIAL', 'PRIVATE', 'ETC'] as const;
 
 export function SignupPage() {
   const navigate = useNavigate();
@@ -186,7 +186,7 @@ export function SignupPage() {
                   <Label>학년</Label>
                   <select
                     value={form.grade}
-                    onChange={(e) => update('grade', e.target.value as Grade)}
+                    onChange={(e) => update('grade', e.target.value)}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                   >
                     {GRADES.map((g) => (
@@ -200,7 +200,7 @@ export function SignupPage() {
                   <Label>학교 유형</Label>
                   <select
                     value={form.school}
-                    onChange={(e) => update('school', e.target.value as SchoolType)}
+                    onChange={(e) => update('school', e.target.value)}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                   >
                     {SCHOOLS.map((s) => (

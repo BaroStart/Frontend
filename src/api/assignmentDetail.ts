@@ -1,14 +1,14 @@
 import type { AssignmentDetail } from '@/types';
 
-import axiosInstance from './axiosInstance';
+import { MOCK_ASSIGNMENT_DETAILS } from '@/data/menteeDetailMock';
+
+// TODO: 백엔드 과제 상세 API 구현 후 실 API 연동
+// 현재 /mentor/mentees/:id/assignments/:id 엔드포인트가 백엔드에 없으므로 mock 데이터 사용
 
 /** 과제 상세 조회 */
 export async function fetchAssignmentDetail(
-  menteeId: string,
-  assignmentId: string
+  _menteeId: string,
+  assignmentId: string,
 ): Promise<AssignmentDetail | null> {
-  const { data } = await axiosInstance.get<AssignmentDetail | null>(
-    `/mentor/mentees/${menteeId}/assignments/${assignmentId}`
-  );
-  return data;
+  return MOCK_ASSIGNMENT_DETAILS[assignmentId] ?? null;
 }

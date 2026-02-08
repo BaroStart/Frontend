@@ -1,4 +1,5 @@
-import axiosInstance from './axiosInstance';
+// TODO: 백엔드 피드백 API 구현 후 실 API 연동
+// 현재 /mentor/mentees/:id/assignments/:id/feedback 엔드포인트가 백엔드에 없으므로 mock 처리
 
 /** 피드백 제출 요청 */
 export interface SubmitFeedbackPayload {
@@ -21,24 +22,25 @@ export interface FeedbackDetail {
 
 /** 피드백 조회 */
 export async function fetchFeedbackDetail(
-  menteeId: string,
-  assignmentId: string
+  _menteeId: string,
+  _assignmentId: string,
 ): Promise<FeedbackDetail | null> {
-  const { data } = await axiosInstance.get<FeedbackDetail | null>(
-    `/mentor/mentees/${menteeId}/assignments/${assignmentId}/feedback`
-  );
-  return data;
+  return null;
 }
 
-/** 피드백 제출 */
+/** 피드백 제출 (mock) */
 export async function submitFeedback(
   menteeId: string,
   assignmentId: string,
-  payload: SubmitFeedbackPayload
+  payload: SubmitFeedbackPayload,
 ): Promise<FeedbackDetail> {
-  const { data } = await axiosInstance.post<FeedbackDetail>(
-    `/mentor/mentees/${menteeId}/assignments/${assignmentId}/feedback`,
-    payload
-  );
-  return data;
+  return {
+    id: `fb-${Date.now()}`,
+    assignmentId,
+    menteeId,
+    feedbackText: payload.feedbackText,
+    status: payload.status,
+    progress: payload.progress,
+    feedbackDate: new Date().toISOString(),
+  };
 }

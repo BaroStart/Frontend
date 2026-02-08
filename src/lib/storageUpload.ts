@@ -1,5 +1,5 @@
-import { getPreAuthenticatedUrl } from '@/api/storages';
 import { isApiSuccess } from '@/api/response';
+import { getPreAuthenticatedUrl } from '@/api/storages';
 
 export async function uploadFileViaPreAuthenticatedUrl(params: {
   file: File;
@@ -28,4 +28,3 @@ export async function uploadFileViaPreAuthenticatedUrl(params: {
 
   return { uploadUrl };
 }
-

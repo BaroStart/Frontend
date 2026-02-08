@@ -1,14 +1,70 @@
 import type {
-  IncompleteAssignment,
-  SubmittedAssignment,
-} from '@/types';
+  AssignmentCreateReq,
+  AssignmentSubmitReq,
+  GetAllMaterialsSubjectEnum,
+  GetMenteeAssignmentsSubjectEnum,
+} from '@/generated';
 
-import { API_CONFIG } from './config';
-import axiosInstance from './axiosInstance';
-import { generateId, useAssignmentStore } from '@/stores/useAssignmentStore';
+import { assignmentsApi } from './clients';
 
-/** 과제 등록 폼 데이터 */
-export interface RegisterAssignmentPayload {
+// 과제 생성 (멘토)
+export async function createAssignment(body: AssignmentCreateReq) {
+  const { data } = await assignmentsApi.createAssignment({ assignmentCreateReq: body });
+  return data;
+}
+
+// 멘티 과제 목록 조회
+export async function fetchMenteeAssignments(params?: {
+  subject?: AssignmentCreateReq['subject'];
+  dueDate?: string;
+}) {
+  const { data } = await assignmentsApi.getMenteeAssignments({
+    subject: params?.subject as GetMenteeAssignmentsSubjectEnum,
+    dueDate: params?.dueDate,
+  });
+  return data.result ?? [];
+}
+
+// 멘티 과제 상세 조회
+export async function fetchMenteeAssignmentDetail(assignmentId: number) {
+  const { data } = await assignmentsApi.getMenteeAssignmentDetail({ assignmentId });
+  return data.result ?? null;
+}
+
+// 과제 제출 (멘티)
+export async function submitAssignment(assignmentId: number, body: AssignmentSubmitReq) {
+  const { data } = await assignmentsApi.submitAssignment({
+    assignmentId,
+    assignmentSubmitReq: body,
+  });
+  return data;
+}
+
+// 학습자료 전체 조회 (멘토)
+export async function fetchAssignmentMaterials(params?: {
+  subject?: AssignmentCreateReq['subject'];
+}) {
+  const { data } = await assignmentsApi.getAllMaterials({
+    subject: params?.subject as GetAllMaterialsSubjectEnum,
+  });
+  return data.result ?? [];
+}
+
+// 파일 다운로드 URL 조회
+export async function fetchAssignmentFileDownloadUrl(assignmentFileId: number) {
+  const { data } = await assignmentsApi.getAssignmentFileDownloadUrl({ assignmentFileId });
+  return data.result ?? null;
+}
+
+// 과제 등록 헬퍼 (AssignmentRegisterPage 전용)
+
+const SUBJECT_MAP: Record<string, AssignmentCreateReq['subject']> = {
+  국어: 'KOREAN',
+  영어: 'ENGLISH',
+  수학: 'MATH',
+};
+
+export type RegisterAssignmentPayload = {
   menteeId: string;
   dateMode: 'single' | 'recurring';
   singleDate?: string;
@@ -22,95 +78,60 @@ export interface RegisterAssignmentPayload {
   subject: string;
   description?: string;
   content?: string;
-}
+  fileUrls?: string[];
+};
 
-export interface RegisterAssignmentResult {
+export type RegisterAssignmentResult = {
   success: boolean;
   taskIds: string[];
   message?: string;
-}
+};
 
-export async function fetchSubmittedAssignments(menteeId?: string): Promise<SubmittedAssignment[]> {
-  const url = menteeId
-    ? `/mentor/mentees/${menteeId}/assignments/submitted`
-    : '/mentor/assignments/submitted';
-  const { data } = await axiosInstance.get<SubmittedAssignment[]>(url);
-  return data;
-}
-
-
+// 폼 데이터 -> API 요청 변환 후 과제 등록
 export async function registerAssignment(
-  payload: RegisterAssignmentPayload
+  payload: RegisterAssignmentPayload,
 ): Promise<RegisterAssignmentResult> {
-  if (API_CONFIG.useMock) {
-    const { addIncomplete } = useAssignmentStore.getState();
-    const incomplete: IncompleteAssignment[] = [];
+  const menteeId = Number(payload.menteeId);
+  const subject = SUBJECT_MAP[payload.subject] ?? 'COMMON';
 
-    if (payload.dateMode === 'single' && payload.singleDate) {
-      const deadlineTime = payload.singleEndTime ?? '23:59';
-      const deadlineStr = formatDeadlineKr(deadlineTime);
-      const taskId = generateId('t');
-      incomplete.push({
-        id: taskId,
-        menteeId: payload.menteeId,
-        title: payload.title,
-        subject: payload.subject,
-        description: payload.description || payload.goal,
-        content: payload.content,
-        deadline: deadlineStr,
-        deadlineDate: payload.singleDate,
-        status: 'not_started',
-      });
-    } else if (
-      payload.dateMode === 'recurring' &&
-      payload.recurringStartDate &&
-      payload.recurringEndDate &&
-      payload.recurringDays?.length
-    ) {
-      const deadlineTime = payload.recurringEndTime ?? '23:59';
-      const deadlineStr = formatDeadlineKr(deadlineTime);
-      const start = new Date(payload.recurringStartDate);
-      const end = new Date(payload.recurringEndDate);
-      const days = payload.recurringDays;
+  const toReq = (date: string, time: string): AssignmentCreateReq => ({
+    menteeId,
+    title: payload.title,
+    subject,
+    dueDate: `${date}T${time}`,
+    goal: payload.goal || undefined,
+    content: payload.description || undefined,
+    seolStudyColumn: payload.content || undefined,
+    fileUrls: payload.fileUrls,
+  });
 
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const dayOfWeek = d.getDay();
-        if (!days.includes(dayOfWeek)) continue;
+  const ids: string[] = [];
 
-        const dateStr = d.toISOString().split('T')[0];
-        const taskId = generateId('t');
+  if (payload.dateMode === 'single' && payload.singleDate) {
+    const res = await createAssignment(toReq(payload.singleDate, payload.singleEndTime ?? '23:59'));
+    if (res.result?.assignmentId != null) ids.push(String(res.result.assignmentId));
+  } else if (
+    payload.dateMode === 'recurring' &&
+    payload.recurringStartDate &&
+    payload.recurringEndDate &&
+    payload.recurringDays?.length
+  ) {
+    const time = payload.recurringEndTime ?? '23:59';
+    const start = new Date(payload.recurringStartDate);
+    const end = new Date(payload.recurringEndDate);
+    const dates: string[] = [];
 
-        incomplete.push({
-          id: taskId,
-          menteeId: payload.menteeId,
-          title: payload.title,
-          subject: payload.subject,
-          description: payload.description || payload.goal,
-          content: payload.content,
-          deadline: deadlineStr,
-          deadlineDate: dateStr,
-          status: 'not_started',
-        });
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      if (payload.recurringDays.includes(d.getDay())) {
+        dates.push(d.toISOString().split('T')[0]);
       }
     }
 
-    addIncomplete(incomplete);
-
-    return {
-      success: true,
-      taskIds: incomplete.map((a) => a.id),
-    };
+    const results = await Promise.all(dates.map((date) => createAssignment(toReq(date, time))));
+    for (const res of results) {
+      if (res.result?.assignmentId != null) ids.push(String(res.result.assignmentId));
+    }
   }
 
-  const { data } = await axiosInstance.post<RegisterAssignmentResult>(
-    `/mentor/mentees/${payload.menteeId}/assignments`,
-    payload
-  );
-  return data;
-}
-
-function formatDeadlineKr(time: string): string {
-  const [h, m] = time.split(':').map(Number);
-  if (h < 12) return `오전 ${h === 0 ? 12 : h}:${String(m).padStart(2, '0')}`;
-  return `오후 ${h === 12 ? 12 : h - 12}:${String(m).padStart(2, '0')}`;
+  return { success: true, taskIds: ids };
 }

@@ -17,6 +17,11 @@ dist-ssr
 .env
 .env.*
 
+# Generated API client (부가 파일만 무시, ts 소스는 커밋)
+src/generated/.openapi-generator/
+src/generated/.openapi-generator-ignore
+src/generated/.gitignore
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

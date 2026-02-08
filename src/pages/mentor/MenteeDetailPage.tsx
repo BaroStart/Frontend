@@ -2,41 +2,30 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  BarChart3,
-  Calendar,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Edit3,
-  FileText,
-  GripVertical,
-  ListChecks,
-  MessageCircle,
-  Pencil,
-  Plus,
-  Trash2,
-  User,
-} from 'lucide-react';
+import { FileText, ListChecks, MessageCircle, Pencil, Plus } from 'lucide-react';
 
 import { UserIcon } from '@/components/icons';
 import { AssignmentDetailModal } from '@/components/mentor/AssignmentDetailModal';
 import { ChatModal } from '@/components/mentor/ChatModal';
 import { FeedbackWriteModal } from '@/components/mentor/FeedbackWriteModal';
 import { LearningAnalysisModal } from '@/components/mentor/LearningAnalysisModal';
+import {
+  CalendarSection,
+  DateNavigation,
+  FeedbackCard,
+  GridCard,
+  IncompleteAssignmentCard,
+  ProfileSection,
+  ScheduleItemCard,
+} from '@/components/mentor/menteeDetail';
 import { ProfileEditModal } from '@/components/mentor/ProfileEditModal';
-import { SUBJECT_TO_KEY } from '@/components/mentor/SubjectScoresChart';
 import {
   type LearningTaskData,
   type PersonalScheduleData,
   ScheduleAddModal,
 } from '@/components/mentor/ScheduleAddModal';
-import { ScheduleCalendar, type ScheduleItem } from '@/components/mentor/ScheduleCalendar';
-import { ScheduleItemContextMenu } from '@/components/mentor/ScheduleItemContextMenu';
+import { type ScheduleItem } from '@/components/mentor/ScheduleCalendar';
 import { Button } from '@/components/ui/Button';
-import { DatePicker } from '@/components/ui/date-picker';
-import { FilterTabs } from '@/components/ui/FilterTabs';
-import { SearchInput } from '@/components/ui/SearchInput';
 import { SUBJECTS } from '@/data/menteeDetailMock';
 import { useMentee } from '@/hooks/useMentee';
 import {
@@ -47,9 +36,6 @@ import {
   useTodayComment,
 } from '@/hooks/useMenteeDetail';
 import {
-  formatDisplayDate,
-  formatMonthOnly,
-  formatWeekRange,
   getMonthRange,
   getTodayDateStr,
   getWeekRange,
@@ -77,8 +63,6 @@ import type {
   PersonalScheduleLocal,
   ScheduleState,
 } from '@/types';
-
-/* -------------------- 메인 컴포넌트 -------------------- */
 
 export function MenteeDetailPage() {
   const { menteeId } = useParams<{ menteeId: string }>();
@@ -267,7 +251,7 @@ export function MenteeDetailPage() {
       scheduleItems.filter((s) => {
         const isCorrectType = s.type === 'learning' || s.type === 'personal';
         if (!isCorrectType) return false;
-        
+
         if (viewMode === 'today') {
           return s.date === getTodayDateStr();
         } else {
@@ -310,8 +294,6 @@ export function MenteeDetailPage() {
     const order = ['deadline_soon', 'not_started', 'in_progress'];
     return [...filtered].sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
   }, [incompleteAssignments, dateRange]);
-
-  /* -------------------- 핸들러 -------------------- */
 
   const openModal = (type: ModalType) => setActiveModal(type);
   const closeModal = () => {
@@ -593,18 +575,14 @@ export function MenteeDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* 프로필 + KPI */}
       <ProfileSection
         mentee={displayMentee}
         kpi={kpi}
-        mentorSubject={
-          user?.role === 'mentor' ? (user.subject ?? '국어') : undefined
-        }
+        mentorSubject={user?.role === 'mentor' ? (user.subject ?? '국어') : undefined}
         onOpenAnalysis={() => openModal('learningAnalysis')}
         onOpenProfile={() => openModal('profileEdit')}
       />
 
-      {/* 날짜 네비게이션 */}
       <DateNavigation
         selectedDate={selectedDate}
         viewMode={viewMode}
@@ -615,7 +593,6 @@ export function MenteeDetailPage() {
         onViewModeChange={handleViewMode}
       />
 
-      {/* 과목 필터 */}
       <div className="ml-6 flex flex-wrap gap-2">
         {SUBJECTS.map((s) => (
           <button
@@ -629,9 +606,7 @@ export function MenteeDetailPage() {
         ))}
       </div>
 
-      {/* 2x2 그리드 */}
       <div className="grid gap-4 sm:grid-cols-2">
-        {/* 피드백 대시보드 */}
         <GridCard
           title="피드백 대시보드"
           icon={<Pencil className="h-4 w-4" />}
@@ -654,7 +629,6 @@ export function MenteeDetailPage() {
           ))}
         </GridCard>
 
-        {/* 미완료 과제 */}
         <GridCard
           title="미완료 과제"
           icon={<FileText className="h-4 w-4" />}
@@ -687,7 +661,6 @@ export function MenteeDetailPage() {
           ))}
         </GridCard>
 
-        {/* 자율 학습 To-Do */}
         <GridCard
           title="할 일"
           icon={<ListChecks className="h-4 w-4" />}
@@ -709,7 +682,6 @@ export function MenteeDetailPage() {
           )}
         </GridCard>
 
-        {/* 오늘의 한마디 */}
         <GridCard title="오늘의 한마디 & 질문" icon={<MessageCircle className="h-4 w-4" />}>
           {todayComment ? (
             <div className="space-y-3">
@@ -739,7 +711,6 @@ export function MenteeDetailPage() {
         </GridCard>
       </div>
 
-      {/* 캘린더 */}
       <CalendarSection
         year={calYear}
         month={calMonth}
@@ -757,7 +728,6 @@ export function MenteeDetailPage() {
         onAddClick={() => openModal('scheduleAdd')}
       />
 
-      {/* 모달들 */}
       <ScheduleAddModal
         isOpen={activeModal === 'scheduleAdd'}
         onClose={closeModal}
@@ -785,9 +755,7 @@ export function MenteeDetailPage() {
         isOpen={activeModal === 'profileEdit'}
         onClose={closeModal}
         mentee={displayMentee}
-        mentorSubject={
-          user?.role === 'mentor' ? (user.subject ?? '국어') : '국어'
-        }
+        mentorSubject={user?.role === 'mentor' ? (user.subject ?? '국어') : '국어'}
         onSave={(data) =>
           setMenteeOverride((prev) => (prev ? { ...prev, ...data } : { ...displayMentee, ...data }))
         }
@@ -820,563 +788,6 @@ export function MenteeDetailPage() {
             : undefined
         }
       />
-    </div>
-  );
-}
-
-/* -------------------- 서브 컴포넌트 -------------------- */
-
-function ProfileSection({
-  mentee,
-  kpi,
-  mentorSubject,
-  onOpenAnalysis,
-  onOpenProfile,
-}: {
-  mentee: MenteeSummary;
-  kpi: {
-    totalStudyHours: number;
-    studyHoursChange: number;
-    assignmentCompletionRate: number;
-    completionRateChange: number;
-    averageScore: number;
-    scoreChange: number;
-    attendanceRate: number;
-    attendanceChange: number;
-  } | null;
-  mentorSubject?: '국어' | '영어' | '수학';
-  onOpenAnalysis: () => void;
-  onOpenProfile: () => void;
-}) {
-  return (
-    <div className="rounded-xl border border-border/50 bg-white p-4 sm:p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex gap-3 sm:gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary sm:h-14 sm:w-14">
-            <UserIcon className="h-7 w-7 text-muted-foreground" />
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-              <span className="text-base font-bold text-foreground sm:text-lg">{mentee.name}</span>
-              <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-foreground/70">
-                {mentee.grade} · {mentee.track}
-              </span>
-              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
-                활동 중
-              </span>
-            </div>
-            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
-                멘토링 시작: {mentee.mentoringStart}
-              </span>
-              <span className="flex items-center gap-1">마지막 접속: {mentee.lastActive}</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-          <Button variant="outline" size="sm" icon={BarChart3} onClick={onOpenAnalysis}>
-            학습 분석
-          </Button>
-          <Button size="sm" icon={User} onClick={onOpenProfile}>
-            프로필 수정
-          </Button>
-        </div>
-      </div>
-
-      {(mentee.scores || kpi) && (
-        <div className="mt-6">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-            {kpi && (
-              <>
-                <KpiCard
-                  title="총 학습 시간"
-                  value={`${kpi.totalStudyHours}h`}
-                />
-                <KpiCard
-                  title="과제 완료율"
-                  value={`${kpi.assignmentCompletionRate}%`}
-                />
-              </>
-            )}
-            {mentee.scores &&
-              mentorSubject &&
-              (() => {
-                const sk = SUBJECT_TO_KEY[mentorSubject];
-                const n = mentee.scores!.naesin?.[sk];
-                const vals =
-                  n && typeof n === 'object'
-                    ? (['midterm1', 'final1', 'midterm2', 'final2'] as const)
-                        .map((k) => n[k])
-                        .filter((v): v is number => typeof v === 'number')
-                    : [];
-                if (vals.length === 0) return null;
-                const avg =
-                  vals.reduce((a, b) => a + b, 0) / vals.length;
-                return (
-                  <KpiCard
-                    title="평균 성적"
-                    value={`${avg % 1 === 0 ? avg : avg.toFixed(1)}`}
-                  />
-                );
-              })()}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DateNavigation({
-  selectedDate,
-  viewMode,
-  dateRange,
-  onDateChange,
-  onPrev,
-  onNext,
-  onViewModeChange,
-}: {
-  selectedDate: string;
-  viewMode: 'today' | 'week' | 'month';
-  dateRange: { start: string; end: string };
-  onDateChange: (date: string) => void;
-  onPrev: () => void;
-  onNext: () => void;
-  onViewModeChange: (mode: 'today' | 'week' | 'month') => void;
-}) {
-  const getDisplayText = () => {
-    if (viewMode === 'week') {
-      return formatWeekRange(dateRange.start, dateRange.end);
-    } else if (viewMode === 'month') {
-      return formatMonthOnly(selectedDate);
-    }
-    return formatDisplayDate(selectedDate);
-  };
-
-  return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border/50 bg-white px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4 sm:px-4">
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onPrev}
-          className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <span className="min-w-0 flex-1 text-center text-base font-semibold text-foreground sm:min-w-[280px] sm:flex-none">
-          {getDisplayText()}
-        </span>
-        <button
-          type="button"
-          onClick={onNext}
-          className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
-        <DatePicker
-          value={selectedDate}
-          onChange={onDateChange}
-          placeholder="날짜 선택"
-          className="ml-1"
-          hideValue
-        />
-      </div>
-      <FilterTabs
-        items={[
-          { id: 'today' as const, label: '오늘' },
-          { id: 'week' as const, label: '주간 보기' },
-          { id: 'month' as const, label: '월간 보기' },
-        ]}
-        value={viewMode}
-        onChange={onViewModeChange}
-      />
-    </div>
-  );
-}
-
-function GridCard({
-  title,
-  icon,
-  badge,
-  actions,
-  children,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  badge?: string;
-  actions?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex h-[420px] flex-col rounded-xl border border-border/50 bg-white">
-      <div className="flex shrink-0 items-center justify-between border-b border-border/30 px-4 py-3">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          {icon}
-          {title}
-        </h3>
-        <div className="flex items-center gap-2">
-          {badge && (
-            <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-medium text-foreground/60">
-              {badge}
-            </span>
-          )}
-          {actions}
-        </div>
-      </div>
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">{children}</div>
-    </div>
-  );
-}
-
-function CalendarSection({
-  year,
-  month,
-  selectedDate,
-  scheduleItems,
-  scheduleState,
-  onDateSelect,
-  onMonthChange,
-  onItemClick,
-  onItemRightClick,
-  onItemDelete,
-  onScheduleStateChange,
-  onScheduleMove,
-  onScheduleCopy,
-  onAddClick,
-}: {
-  year: number;
-  month: number;
-  selectedDate: string;
-  scheduleItems: ScheduleItem[];
-  scheduleState: ScheduleState;
-  onDateSelect: (date: string) => void;
-  onMonthChange: (y: number, m: number) => void;
-  onItemClick: (item: ScheduleItem) => void;
-  onItemRightClick: (e: React.MouseEvent, item: ScheduleItem) => void;
-  onItemDelete: (id: string) => void;
-  onScheduleStateChange: (state: ScheduleState) => void;
-  onScheduleMove: (id: string, date: string, skip?: boolean) => void;
-  onScheduleCopy: (id: string, date: string, skip?: boolean) => void;
-  onAddClick: () => void;
-}) {
-  const { searchQuery, contextMenu, draggedItem } = scheduleState;
-
-  return (
-    <div className="rounded-xl border border-border/50 bg-white">
-      <div className="flex flex-col gap-3 border-b border-border/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Calendar className="h-4 w-4" />
-          일정 캘린더
-        </h3>
-        <div className="flex items-center gap-2">
-          <SearchInput
-            value={searchQuery}
-            onChange={(v) => onScheduleStateChange({ ...scheduleState, searchQuery: v })}
-            placeholder="할일 검색..."
-            className="flex-1 sm:max-w-xs"
-          />
-          <Button variant="outline" icon={Plus} onClick={onAddClick}>
-            일정 추가
-          </Button>
-        </div>
-      </div>
-
-      <div className="p-4">
-      <ScheduleCalendar
-        year={year}
-        month={month}
-        selectedDate={selectedDate}
-        scheduleItems={scheduleItems}
-        searchQuery={searchQuery}
-        onDateSelect={onDateSelect}
-        onMonthChange={onMonthChange}
-        onItemClick={onItemClick}
-        onItemRightClick={onItemRightClick}
-        onItemDelete={onItemDelete}
-        onItemDragStart={(item) => onScheduleStateChange({ ...scheduleState, draggedItem: item })}
-        onItemDragEnd={() => onScheduleStateChange({ ...scheduleState, draggedItem: null })}
-        onDropOnDate={
-          draggedItem && (draggedItem.type === 'personal' || draggedItem.type === 'learning')
-            ? (dateStr, isCopy) => {
-                if (isCopy) onScheduleCopy(draggedItem.id, dateStr, true);
-                else onScheduleMove(draggedItem.id, dateStr, true);
-                onScheduleStateChange({ ...scheduleState, draggedItem: null });
-              }
-            : undefined
-        }
-        draggedItemId={draggedItem?.id}
-      />
-
-      {draggedItem && (
-        <p className="mt-2 text-xs text-muted-foreground">
-          다른 날짜에 놓으면 이동 · <kbd className="rounded border border-border px-1">Ctrl</kbd>
-          +드롭하면 복사
-        </p>
-      )}
-
-      {contextMenu && (
-        <ScheduleItemContextMenu
-          item={contextMenu.item}
-          position={contextMenu.position}
-          onClose={() => onScheduleStateChange({ ...scheduleState, contextMenu: null })}
-          onMove={onScheduleMove}
-          onCopy={onScheduleCopy}
-          onDelete={onItemDelete}
-        />
-      )}
-
-      {searchQuery && (
-        <div className="mt-3 text-sm text-muted-foreground">
-          검색 결과:{' '}
-          {
-            scheduleItems.filter(
-              (item) =>
-                item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                item.subject.toLowerCase().includes(searchQuery.toLowerCase()),
-            ).length
-          }
-          개
-        </div>
-      )}
-      </div>
-    </div>
-  );
-}
-
-function KpiCard({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-border/50 bg-secondary/20 p-3">
-      <p className="text-[11px] font-medium text-muted-foreground">{title}</p>
-      <p className="mt-1 text-xl font-bold text-foreground">{value}</p>
-    </div>
-  );
-}
-
-function ScheduleItemCard({
-  item,
-  onContextMenu,
-  onDelete,
-}: {
-  item: ScheduleItem;
-  onContextMenu: (e: React.MouseEvent) => void;
-  onDelete: () => void;
-}) {
-  const typeLabel =
-    item.type === 'learning' ? '자율학습' : item.type === 'personal' ? '개인' : item.subject;
-  const typeBg =
-    item.type === 'learning'
-      ? 'bg-amber-50 text-amber-700'
-      : item.type === 'personal'
-        ? 'bg-violet-50 text-violet-700'
-        : 'bg-sky-50 text-sky-700';
-  const isCompleted = item.status === 'completed';
-
-  return (
-    <div
-      onContextMenu={onContextMenu}
-      className={`flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 transition-colors hover:bg-secondary/30 ${isCompleted ? 'border-border/20 bg-secondary/10 opacity-60' : 'border-border/40'}`}
-    >
-      <div className="flex shrink-0 cursor-grab touch-none text-muted-foreground/50 hover:text-foreground/50">
-        <GripVertical className="h-4 w-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <p className={`truncate text-[13px] font-medium text-foreground ${isCompleted ? 'line-through' : ''}`}>
-            {item.title}
-          </p>
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${typeBg}`}>
-            {typeLabel}
-          </span>
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (window.confirm(`"${item.title}"을(를) 삭제하시겠습니까?`)) onDelete();
-        }}
-        className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-600"
-        title="삭제"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
-    </div>
-  );
-}
-
-function FeedbackCard({
-  item,
-  onViewAssignment,
-  onFeedbackClick,
-}: {
-  item: FeedbackItem;
-  onViewAssignment: () => void;
-  onFeedbackClick: () => void;
-}) {
-  const statusConfig: Record<string, { label: string; bg: string }> = {
-    urgent: { label: '긴급', bg: 'bg-rose-50 text-rose-700' },
-    pending: { label: '대기중', bg: 'bg-amber-50 text-amber-700' },
-    partial: { label: '부분완료', bg: 'bg-sky-50 text-sky-700' },
-    completed: { label: '완료', bg: 'bg-emerald-50 text-emerald-700' },
-  };
-  const status = statusConfig[item.status] ?? statusConfig.pending;
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      className={`cursor-pointer rounded-lg border p-3 transition-colors hover:bg-secondary/20 ${item.status === 'urgent' ? 'border-rose-200 bg-rose-50/30' : 'border-border/40 hover:border-border'}`}
-      onClick={onViewAssignment}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onViewAssignment();
-        }
-      }}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="truncate text-[13px] font-semibold text-foreground">{item.title}</span>
-            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${status.bg}`}>
-              {status.label}
-            </span>
-          </div>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {item.status === 'completed' && item.feedbackDate
-              ? `피드백 작성일: ${item.feedbackDate}`
-              : `제출일시: ${item.submittedAt}`}{' '}
-            · {item.subject}
-          </p>
-          {item.status === 'completed' && item.feedbackText && (
-            <p className="mt-1 line-clamp-2 text-[11px] text-foreground/60">{item.feedbackText}</p>
-          )}
-        </div>
-      </div>
-      <div className="mt-2 flex gap-1.5" onClick={(e) => e.stopPropagation()}>
-        {item.status !== 'completed' ? (
-          <>
-            <Button size="sm" onClick={onFeedbackClick}>
-              피드백 작성하기
-            </Button>
-            <Button size="sm" variant="outline" onClick={onViewAssignment}>
-              과제 보기
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button size="sm" variant="outline" onClick={onViewAssignment}>
-              과제 보기
-            </Button>
-            <Button size="sm" variant="outline" onClick={onFeedbackClick}>
-              전체 피드백 보기
-            </Button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function IncompleteAssignmentCard({
-  assignment,
-  onComplete,
-  onDelete,
-  onViewAssignment,
-  showDeleteConfirm,
-  onConfirmDelete,
-  onCancelDelete,
-}: {
-  assignment: IncompleteAssignment;
-  onComplete: () => void;
-  onDelete: () => void;
-  onViewAssignment: () => void;
-  showDeleteConfirm: boolean;
-  onConfirmDelete: () => void;
-  onCancelDelete: () => void;
-}) {
-  const isCompleted = assignment.status === 'completed';
-  const isUrgent = assignment.status === 'deadline_soon';
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      className={`cursor-pointer rounded-lg border p-3 transition-colors hover:bg-secondary/20 ${isUrgent ? 'border-rose-200 bg-rose-50/20' : 'border-border/40 hover:border-border'}`}
-      onClick={onViewAssignment}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onViewAssignment();
-        }
-      }}
-    >
-      <div className="flex items-center gap-2.5">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!isCompleted) onComplete();
-          }}
-          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${isCompleted ? 'border-foreground/70 bg-foreground/70 text-white' : 'border-border/60 hover:border-foreground/50'}`}
-        >
-          {isCompleted && <Check className="h-3 w-3" />}
-        </button>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold text-foreground">{assignment.title}</p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {assignment.subject} · {isCompleted ? assignment.completedAt : assignment.deadline}
-            {isUrgent && <span className="ml-1 font-medium text-rose-600">마감 임박</span>}
-          </p>
-        </div>
-        {!isCompleted && (
-          <div className="relative flex shrink-0 gap-0.5">
-            <button
-              type="button"
-              className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground/70"
-              title="수정"
-            >
-              <Edit3 className="h-3.5 w-3.5" />
-            </button>
-            {showDeleteConfirm ? (
-              <div className="absolute right-0 top-8 z-10 flex gap-1 rounded-lg border border-border/50 bg-white p-2 shadow-lg">
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onConfirmDelete();
-                  }}
-                >
-                  삭제
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCancelDelete();
-                  }}
-                >
-                  취소
-                </Button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-600"
-                title="삭제"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

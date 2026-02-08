@@ -3,9 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { Bell, LogOut, Menu } from 'lucide-react';
 
-import { UserIcon } from '@/components/icons';
-import { API_CONFIG } from '@/api/config';
 import { logout as logoutApi } from '@/api/auth';
+import { UserIcon } from '@/components/icons';
 import { MOCK_NOTIFICATIONS } from '@/data/menteeDetailMock';
 import { useAuthStore } from '@/stores/useAuthStore';
 
@@ -13,13 +12,12 @@ interface HeaderProps {
   onMenuClick?: () => void;
 }
 
-const pageTitles: Record<string, { title: string; breadcrumb?: string[] }> = {
-  '/mentor': { title: '대시보드', breadcrumb: ['홈'] },
-  '/mentor/assignments': { title: '과제 관리', breadcrumb: ['홈', '과제'] },
-  '/mentor/assignments/new': { title: '과제 등록', breadcrumb: ['홈', '과제', '새 과제'] },
-  '/mentor/planner': { title: '플래너 관리', breadcrumb: ['홈', '플래너'] },
-  '/mentor/feedback': { title: '피드백 관리', breadcrumb: ['홈', '피드백'] },
-  '/mentor/templates': { title: '템플릿', breadcrumb: ['홈', '템플릿'] },
+const PAGE_TITLES: Record<string, string> = {
+  '/mentor': '대시보드',
+  '/mentor/assignments': '과제 관리',
+  '/mentor/planner': '플래너 관리',
+  '/mentor/feedback': '피드백 관리',
+  '/mentor/templates': '템플릿',
 };
 
 export function Header({ onMenuClick }: HeaderProps) {
@@ -29,25 +27,17 @@ export function Header({ onMenuClick }: HeaderProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
 
-  const getPageInfo = () => {
-    if (location.pathname.includes('/assignments/new')) {
-      return { title: '과제 등록', breadcrumb: ['홈', '과제', '새 과제'] };
-    }
-    if (location.pathname.includes('/feedback/')) {
-      return { title: '피드백 작성', breadcrumb: ['홈', '피드백', '작성'] };
-    }
-    if (location.pathname.startsWith('/mentor/mentees/')) {
-      return { title: '멘티 관리', breadcrumb: ['홈', '멘티', '상세'] };
-    }
-    return pageTitles[location.pathname] ?? { title: '대시보드', breadcrumb: ['홈'] };
+  const getPageTitle = () => {
+    if (location.pathname.includes('/assignments/new')) return '과제 등록';
+    if (location.pathname.includes('/feedback/')) return '피드백 작성';
+    if (location.pathname.startsWith('/mentor/mentees/')) return '멘티 관리';
+    return PAGE_TITLES[location.pathname] ?? '대시보드';
   };
-  const { title } = getPageInfo();
+  const title = getPageTitle();
 
   const handleLogout = async () => {
     try {
-      if (!API_CONFIG.useMock) {
-        await logoutApi();
-      }
+      await logoutApi();
     } catch {
       // ignore
     } finally {
@@ -68,11 +58,13 @@ export function Header({ onMenuClick }: HeaderProps) {
           >
             <Menu size={20} />
           </button>
-          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-foreground sm:text-xl">{title}</h1>
+          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold text-foreground sm:text-xl">
+            {title}
+          </h1>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          {/* 알림 */}
+          {/* TODO: API 연결 — MOCK_NOTIFICATIONS를 실제 알림 API로 교체 */}
           <div className="relative">
             <button
               type="button"
@@ -102,7 +94,9 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <div className="absolute right-0 top-full z-20 mt-2 w-80 overflow-hidden rounded-lg border border-border bg-white shadow-lg">
                   <div className="border-b border-border px-4 py-3">
                     <h3 className="text-sm font-semibold text-foreground">알림</h3>
-                    <p className="text-xs text-muted-foreground">최근 알림 {MOCK_NOTIFICATIONS.length}개</p>
+                    <p className="text-xs text-muted-foreground">
+                      최근 알림 {MOCK_NOTIFICATIONS.length}개
+                    </p>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
                     {MOCK_NOTIFICATIONS.length === 0 ? (
@@ -138,7 +132,6 @@ export function Header({ onMenuClick }: HeaderProps) {
             )}
           </div>
 
-          {/* 프로필 드롭다운 */}
           <div className="relative">
             <button
               type="button"

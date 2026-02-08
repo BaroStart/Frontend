@@ -1,5 +1,8 @@
-import axiosInstance from './axiosInstance';
+import type { LoginRequestDto, SignupRequestDto } from '@/generated';
 
+import { authApi } from './clients';
+
+// 공용 응답 래퍼 (changeTodoStatus 등 수동 axios 호출에서만 사용)
 export type ApiEnvelope<T> = {
   status: number;
   code: string;
@@ -7,51 +10,22 @@ export type ApiEnvelope<T> = {
   result: T;
 };
 
-export type JoinType = 'MENTOR' | 'MENTEE';
-export type Grade = 'FIRST' | 'SECOND' | 'THIRD';
-export type SchoolType = 'NORMAL' | 'SPECIAL' | 'PRIVATE' | 'ETC';
-
-export type SignupRequest = {
-  loginId: string;
-  password: string;
-  name: string;
-  nickname: string;
-  joinType: JoinType;
-  grade: Grade;
-  school: SchoolType;
-  hopeMajor: string;
-  university: string;
-};
-
-export type LoginRequest = {
-  loginId: string;
-  password: string;
-};
-
-export type LoginResult = {
-  accessToken: string;
-  refreshToken: string;
-};
-
-export async function signup(body: SignupRequest): Promise<ApiEnvelope<string>> {
-  const { data } = await axiosInstance.post<ApiEnvelope<string>>('/api/v1/signup', body);
+export async function signup(body: SignupRequestDto) {
+  const { data } = await authApi.signup({ signupRequestDto: body });
   return data;
 }
 
-export async function login(body: LoginRequest): Promise<ApiEnvelope<LoginResult>> {
-  const { data } = await axiosInstance.post<ApiEnvelope<LoginResult>>('/api/v1/login', body);
+export async function login(body: LoginRequestDto) {
+  const { data } = await authApi.login({ loginRequestDto: body });
   return data;
 }
 
-export async function refresh(token: string): Promise<ApiEnvelope<LoginResult>> {
-  const { data } = await axiosInstance.get<ApiEnvelope<LoginResult>>('/api/v1/refresh', {
-    params: { token },
-  });
+export async function refresh(token: string) {
+  const { data } = await authApi.refresh({ token });
   return data;
 }
 
-export async function logout(): Promise<ApiEnvelope<string>> {
-  const { data } = await axiosInstance.get<ApiEnvelope<string>>('/api/v1/logout');
+export async function logout() {
+  const { data } = await authApi.logout();
   return data;
 }
-

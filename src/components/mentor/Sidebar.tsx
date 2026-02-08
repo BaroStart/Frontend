@@ -99,7 +99,6 @@ export function Sidebar({
         borderRight: '1px solid rgba(0, 0, 0, 0.06)',
       }}
     >
-      {/* 로고 헤더 */}
       <div className={`flex h-16 items-center ${collapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
         <Link
           to="/mentor"
@@ -140,7 +139,6 @@ export function Sidebar({
       {!collapsed ? (
         <>
           <div className="flex-1 overflow-y-auto px-3">
-            {/* 메인 메뉴 */}
             <div className="mb-6">
               <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 메인 메뉴
@@ -172,7 +170,6 @@ export function Sidebar({
               </div>
             </div>
 
-            {/* 멘티 섹션 */}
             <div>
               <div className="mb-3 flex items-center justify-between px-1">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -183,7 +180,6 @@ export function Sidebar({
                 </span>
               </div>
 
-              {/* 검색 */}
               <div className="mb-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -195,7 +191,6 @@ export function Sidebar({
                 </div>
               </div>
 
-              {/* 멘티 목록 */}
               <div className="space-y-1">
                 {mentees.map((mentee, index) => (
                   <button
@@ -249,7 +244,7 @@ export function Sidebar({
             </div>
           </div>
 
-          {/* 하단 진행률 */}
+          {/* TODO: API 연결 — 아래 진행률 섹션의 73%, 22/30, 18/25는 하드코딩된 목데이터 */}
           <div className="border-t border-slate-200 p-3">
             <div className="rounded-lg bg-slate-50 p-3">
               <div className="mb-3 flex items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-2">
@@ -320,7 +315,6 @@ export function Sidebar({
             ))}
           </div>
 
-          {/* 펼치기 버튼 */}
           <div className="mt-4">
             <button
               onClick={onToggle}

@@ -1,20 +1,18 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { API_CONFIG } from '@/api/config';
 import { logout as logoutApi } from '@/api/auth';
-import { Button } from '@/components/ui/Button';
-import { useAuthStore } from '@/stores/useAuthStore';
-
-import { WeeklyStudyStatusCard } from '@/components/mentee/my/WeeklyStudyStatusCard';
-import { SubjectAchievementSection } from '@/components/mentee/my/SubjectAchievementSection';
-import { MonthlyStudyCalendar } from '@/components/mentee/my/MonthlyStudyCalendar';
 import { BadgeSection } from '@/components/mentee/my/BadgeSection';
 import { ConsultButton } from '@/components/mentee/my/ConsultButton';
+import { MonthlyStudyCalendar } from '@/components/mentee/my/MonthlyStudyCalendar';
+import { SubjectAchievementSection } from '@/components/mentee/my/SubjectAchievementSection';
+import { WeeklyStudyStatusCard } from '@/components/mentee/my/WeeklyStudyStatusCard';
+import { Button } from '@/components/ui/Button';
+import { MOCK_SUBJECT_STUDY_TIMES } from '@/data/learningAnalysisMock';
+import { MOCK_INCOMPLETE_ASSIGNMENTS } from '@/data/menteeDetailMock';
 import { getAttendanceDates, getQnaCount, toYmdLocal } from '@/lib/menteeActivityStorage';
 import { getSubmittedAssignments } from '@/lib/menteeAssignmentSubmissionStorage';
-import { MOCK_INCOMPLETE_ASSIGNMENTS } from '@/data/menteeDetailMock';
-import { MOCK_SUBJECT_STUDY_TIMES } from '@/data/learningAnalysisMock';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { useTodoStore } from '@/stores/useTodoStore';
 
 export function MyPage() {
@@ -35,18 +33,13 @@ export function MyPage() {
 
     const now = new Date();
     // local date seed (YYYYMMDD) → stable per day
-    const seed =
-      now.getFullYear() * 10000 +
-      (now.getMonth() + 1) * 100 +
-      now.getDate();
+    const seed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
     return quotes[seed % quotes.length];
   }, []);
 
   const handleLogout = async () => {
     try {
-      if (!API_CONFIG.useMock) {
-        await logoutApi();
-      }
+      await logoutApi();
     } catch {
       // ignore
     } finally {
@@ -62,16 +55,16 @@ export function MyPage() {
       completedText: '44/55',
       quote: dailyQuote,
     }),
-    [dailyQuote]
+    [dailyQuote],
   );
 
   const subjects = useMemo(
     () => [
-      { id: "kor", name: "국어", percent: 92, progressText: "44 / 55" },
-      { id: "eng", name: "영어", percent: 78, progressText: "31 / 40" },
-      { id: "math", name: "수학", percent: 65, progressText: "26 / 40" },
+      { id: 'kor', name: '국어', percent: 92, progressText: '44 / 55' },
+      { id: 'eng', name: '영어', percent: 78, progressText: '31 / 40' },
+      { id: 'math', name: '수학', percent: 65, progressText: '26 / 40' },
     ],
-    []
+    [],
   );
 
   const { todosByDate } = useTodoStore();
@@ -80,7 +73,9 @@ export function MyPage() {
     const userKey = (authUser?.id ?? '').trim();
     // mock 데이터는 s1/s2 기반이라, 실 API 로그인(아이디=loginId)인 경우도 s1로 폴백
     const mockMenteeId =
-      authUser?.role === 'mentee' && authUser?.id && /^s\d+$/i.test(authUser.id) ? authUser.id : 's1';
+      authUser?.role === 'mentee' && authUser?.id && /^s\d+$/i.test(authUser.id)
+        ? authUser.id
+        : 's1';
 
     const todayKey = toYmdLocal(new Date());
 
@@ -90,7 +85,7 @@ export function MyPage() {
     const consecutiveEndingToday = (set: Set<string>, untilKey: string) => {
       const [y, m, d] = untilKey.split('-').map(Number);
       if (!y || !m || !d) return 0;
-      let cur = new Date(y, m - 1, d);
+      const cur = new Date(y, m - 1, d);
       let streak = 0;
       while (true) {
         const k = toYmdLocal(cur);
@@ -157,7 +152,8 @@ export function MyPage() {
 
     // 학습시간(목데이터 기반): 과목별 50h, 누적 100h
     const subjectHours = MOCK_SUBJECT_STUDY_TIMES[mockMenteeId] ?? [];
-    const hoursOf = (subject: string) => subjectHours.find((s) => s.subject === subject)?.hours ?? 0;
+    const hoursOf = (subject: string) =>
+      subjectHours.find((s) => s.subject === subject)?.hours ?? 0;
     const korMaster = hoursOf('국어') >= 50;
     const engMaster = hoursOf('영어') >= 50;
     const mathMaster = hoursOf('수학') >= 50;
@@ -208,17 +204,47 @@ export function MyPage() {
     const morningRoutine = morningCount >= 7;
 
     return [
-      { id: 'badge_first_assignment', title: '첫 과제', subtitle: '완료', acquired: firstAssignmentDone },
-      { id: 'badge_attendance_7', title: '7일 연속', subtitle: '출석', acquired: attendanceStreak >= 7 },
-      { id: 'badge_attendance_30', title: '30일 연속', subtitle: '출석', acquired: attendanceStreak >= 30 },
-      { id: 'badge_weekly_goal_7days', title: '주간목표', subtitle: '달성', acquired: weeklyGoalAchieved },
-      { id: 'badge_todo_streak_7', title: '오늘도', subtitle: '한 걸음', acquired: todoStreakAchieved },
+      {
+        id: 'badge_first_assignment',
+        title: '첫 과제',
+        subtitle: '완료',
+        acquired: firstAssignmentDone,
+      },
+      {
+        id: 'badge_attendance_7',
+        title: '7일 연속',
+        subtitle: '출석',
+        acquired: attendanceStreak >= 7,
+      },
+      {
+        id: 'badge_attendance_30',
+        title: '30일 연속',
+        subtitle: '출석',
+        acquired: attendanceStreak >= 30,
+      },
+      {
+        id: 'badge_weekly_goal_7days',
+        title: '주간목표',
+        subtitle: '달성',
+        acquired: weeklyGoalAchieved,
+      },
+      {
+        id: 'badge_todo_streak_7',
+        title: '오늘도',
+        subtitle: '한 걸음',
+        acquired: todoStreakAchieved,
+      },
       { id: 'badge_question_king', title: '질문왕', subtitle: '10회+', acquired: questionKing },
       { id: 'badge_korean_master', title: '국어', subtitle: '마스터', acquired: korMaster },
       { id: 'badge_math_master', title: '수학', subtitle: '마스터', acquired: mathMaster },
       { id: 'badge_english_master', title: '영어', subtitle: '마스터', acquired: engMaster },
       { id: 'badge_total_100h', title: '100시간', subtitle: '학습', acquired: total100h },
-      { id: 'badge_pomodoro_master', title: '포모도로', subtitle: '마스터', acquired: pomodoroMaster },
+      {
+        id: 'badge_pomodoro_master',
+        title: '포모도로',
+        subtitle: '마스터',
+        acquired: pomodoroMaster,
+      },
       { id: 'badge_morning_routine', title: '아침', subtitle: '루틴', acquired: morningRoutine },
     ];
   }, [authUser?.id, authUser?.role, todosByDate]);
@@ -232,21 +258,21 @@ export function MyPage() {
         </div>
 
         <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-gray-200">
-            {authUser?.profileImage ? (
-              <img src={authUser.profileImage} alt="avatar" className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-gray-400">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            )}
+          {authUser?.profileImage ? (
+            <img src={authUser.profileImage} alt="avatar" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-gray-400">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+          )}
         </div>
       </div>
 
@@ -259,7 +285,9 @@ export function MyPage() {
 
       <div className="mt-4 rounded-2xl bg-gray-900 px-5 py-5 text-white shadow-sm ">
         <div className="mb-2 text-3xl leading-none opacity-40">“</div>
-        <p className="whitespace-pre-line text-base font-extrabold leading-7 text-center">{summary.quote}</p>
+        <p className="whitespace-pre-line text-base font-extrabold leading-7 text-center">
+          {summary.quote}
+        </p>
         <div className="mt-2 text-3xl leading-none text-right opacity-40">”</div>
       </div>
 
