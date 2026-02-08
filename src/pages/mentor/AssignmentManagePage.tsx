@@ -42,7 +42,7 @@ import {
 } from '@/stores/useLearningGoalStore';
 
 type TabType = 'materials' | 'goals' | 'templates';
-const CURRENT_MENTOR_ID = 'mentor1';
+const CURRENT_MENTOR_ID = 'mentor1'; // TODO: API 연결 — useAuthStore에서 멘토 ID 가져오기
 const TABS = [
   { id: 'materials' as TabType, label: '학습 자료', icon: FolderOpen },
   { id: 'goals' as TabType, label: '과제 목표', icon: Target },
@@ -59,6 +59,7 @@ type AssignmentTemplate = {
   source?: 'example' | 'custom';
 };
 
+// TODO: API 연결 — 예시 템플릿 데이터를 서버에서 가져오기
 const ASSIGNMENT_TEMPLATES: AssignmentTemplate[] = [
   {
     id: 'tpl-vocab-memo',
@@ -124,6 +125,7 @@ const ASSIGNMENT_TEMPLATES: AssignmentTemplate[] = [
   },
 ];
 
+// TODO: API 연결 — localStorage 기반 커스텀 템플릿 저장을 서버 API로 교체
 const STORAGE_KEY_TEMPLATES = 'assignment-template-storage-v1';
 
 function loadCustomTemplates(): AssignmentTemplate[] {
@@ -450,9 +452,7 @@ export function AssignmentManagePage() {
 
   return (
     <div className="min-w-0">
-      {/* 흰색 카드: 탭 + 콘텐츠 */}
       <div className="rounded-xl border border-border/50 bg-white">
-        {/* 탭 네비게이션 */}
         <div className="px-5 pt-1">
           <Tabs
             items={TABS}
@@ -462,7 +462,6 @@ export function AssignmentManagePage() {
           />
         </div>
 
-        {/* 학습 자료 탭 */}
         {activeTab === 'materials' && (
           <div className="space-y-4 p-5">
             <div className="flex flex-wrap items-center gap-3">
@@ -534,7 +533,6 @@ export function AssignmentManagePage() {
           </div>
         )}
 
-        {/* 과제 목표 탭 */}
         {activeTab === 'goals' && (
           <div className="space-y-4 p-5">
             <div className="flex flex-wrap items-center gap-3">
@@ -591,7 +589,6 @@ export function AssignmentManagePage() {
           </div>
         )}
 
-        {/* 과제 템플릿 탭 */}
         {activeTab === 'templates' && (
           <div className="space-y-4 p-5">
             <div className="flex items-center">
@@ -752,9 +749,7 @@ export function AssignmentManagePage() {
           </div>
         )}
       </div>
-      {/* 흰색 카드 닫기 */}
 
-      {/* 학습자료 미리보기 모달 */}
       <Dialog open={previewOpen} onClose={closePreview} maxWidth="max-w-5xl">
         <DialogHeader onClose={closePreview}>
           <h2 className="truncate text-base font-semibold text-foreground">학습 자료 미리보기</h2>

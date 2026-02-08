@@ -356,7 +356,6 @@ export function FeedbackWritePage() {
           )}
         </div>
 
-        {/* 우측: 마 시간 */}
         {assignmentFromList?.submittedAt && remainingTime && (
           <div
             className={cn(
@@ -391,6 +390,7 @@ export function FeedbackWritePage() {
                 </div>
               )}
             </div>
+            {/* TODO: 줌/회전/전체화면 버튼 onClick 핸들러 미구현 */}
             <div className="flex items-center gap-1">
               <button
                 type="button"
@@ -429,12 +429,11 @@ export function FeedbackWritePage() {
           </div>
         </div>
 
-        {/* 우측: 피드백 작성 영역 */}
         <div className="flex min-h-0 w-1/2 min-w-[400px] flex-1 flex-col bg-white">
-          {/* 피드백 작성 헤더 */}
           <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-5 py-3">
             <h2 className="text-base font-semibold text-foreground">피드백 등록</h2>
             <div className="flex items-center gap-2">
+              {/* TODO: "이전 피드백 보기" 버튼 onClick 핸들러 미구현 */}
               <button
                 type="button"
                 className="flex items-center gap-1.5 rounded-lg border border-border/50 px-3 py-1.5 text-sm text-foreground/70 transition-colors hover:bg-secondary/50"
@@ -453,10 +452,8 @@ export function FeedbackWritePage() {
             </div>
           </div>
 
-          {/* 피드백 폼 */}
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
-              {/* 과목 + 날짜 헤더 */}
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-sm font-medium text-foreground">
@@ -531,7 +528,6 @@ export function FeedbackWritePage() {
               </button>
             </div>
 
-            {/* 하단 버튼 */}
             <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border/50 bg-secondary/30 px-5 py-4">
               <Button type="button" variant="outline" onClick={handleTempSave} disabled={saving}>
                 임시 저장

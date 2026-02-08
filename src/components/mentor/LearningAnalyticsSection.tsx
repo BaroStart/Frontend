@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { BarChart3, Download, Edit, FileText, Save, X } from 'lucide-react';
 
+import { KpiCard } from '@/components/mentor/menteeDetail';
 import { Button } from '@/components/ui/Button';
 import { DefaultSelect } from '@/components/ui/select';
 import { type AnalysisType, useComputedAnalysis } from '@/hooks/useComputedAnalysis';
@@ -201,8 +202,6 @@ export function LearningAnalyticsSection() {
   );
 }
 
-/* -------------------- 공통 컴포넌트 -------------------- */
-
 function EditButtons({
   isEditing,
   onEdit,
@@ -297,8 +296,6 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-/* -------------------- KPI / 차트 -------------------- */
-
 interface KpiData {
   totalStudyHours: number;
   studyHoursChange: number;
@@ -319,42 +316,19 @@ function KpiSummary({ kpi }: { kpi: KpiData | null | undefined }) {
         value={`${kpi.totalStudyHours}시간`}
         change={kpi.studyHoursChange}
         suffix="시간"
+        className="rounded-lg bg-slate-50 p-3 text-center"
       />
       <KpiCard
         title="과제 완료율"
         value={`${kpi.assignmentCompletionRate}%`}
         change={kpi.completionRateChange}
         suffix="%p"
+        className="rounded-lg bg-slate-50 p-3 text-center"
       />
     </div>
   );
 }
 
-function KpiCard({
-  title,
-  value,
-  change,
-  suffix,
-}: {
-  title: string;
-  value: string;
-  change: number;
-  suffix: string;
-}) {
-  return (
-    <div className="rounded-lg bg-slate-50 p-3 text-center">
-      <p className="mb-1 text-xs text-slate-600">{title}</p>
-      <p className="text-lg font-bold text-slate-900">{value}</p>
-      {change !== 0 && (
-        <p className="mt-1 text-xs text-slate-600">
-          {change > 0 ? '+' : ''}
-          {change}
-          {suffix}
-        </p>
-      )}
-    </div>
-  );
-}
 
 function WeeklyPatternsChart({
   weeklyPatterns,
@@ -440,8 +414,6 @@ function SubjectStudyTimesChart({
     </div>
   );
 }
-
-/* -------------------- 분석 섹션들 -------------------- */
 
 interface SectionProps<T> {
   displayAnalysis: AnalysisType;
@@ -615,8 +587,6 @@ function TotalEvaluationSection({
     </div>
   );
 }
-
-/* -------------------- 유틸 컴포넌트 -------------------- */
 
 function TextareaField({
   label,

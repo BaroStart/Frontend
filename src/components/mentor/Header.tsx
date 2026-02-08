@@ -12,13 +12,12 @@ interface HeaderProps {
   onMenuClick?: () => void;
 }
 
-const pageTitles: Record<string, { title: string; breadcrumb?: string[] }> = {
-  '/mentor': { title: '대시보드', breadcrumb: ['홈'] },
-  '/mentor/assignments': { title: '과제 관리', breadcrumb: ['홈', '과제'] },
-  '/mentor/assignments/new': { title: '과제 등록', breadcrumb: ['홈', '과제', '새 과제'] },
-  '/mentor/planner': { title: '플래너 관리', breadcrumb: ['홈', '플래너'] },
-  '/mentor/feedback': { title: '피드백 관리', breadcrumb: ['홈', '피드백'] },
-  '/mentor/templates': { title: '템플릿', breadcrumb: ['홈', '템플릿'] },
+const PAGE_TITLES: Record<string, string> = {
+  '/mentor': '대시보드',
+  '/mentor/assignments': '과제 관리',
+  '/mentor/planner': '플래너 관리',
+  '/mentor/feedback': '피드백 관리',
+  '/mentor/templates': '템플릿',
 };
 
 export function Header({ onMenuClick }: HeaderProps) {
@@ -28,19 +27,13 @@ export function Header({ onMenuClick }: HeaderProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
 
-  const getPageInfo = () => {
-    if (location.pathname.includes('/assignments/new')) {
-      return { title: '과제 등록', breadcrumb: ['홈', '과제', '새 과제'] };
-    }
-    if (location.pathname.includes('/feedback/')) {
-      return { title: '피드백 작성', breadcrumb: ['홈', '피드백', '작성'] };
-    }
-    if (location.pathname.startsWith('/mentor/mentees/')) {
-      return { title: '멘티 관리', breadcrumb: ['홈', '멘티', '상세'] };
-    }
-    return pageTitles[location.pathname] ?? { title: '대시보드', breadcrumb: ['홈'] };
+  const getPageTitle = () => {
+    if (location.pathname.includes('/assignments/new')) return '과제 등록';
+    if (location.pathname.includes('/feedback/')) return '피드백 작성';
+    if (location.pathname.startsWith('/mentor/mentees/')) return '멘티 관리';
+    return PAGE_TITLES[location.pathname] ?? '대시보드';
   };
-  const { title } = getPageInfo();
+  const title = getPageTitle();
 
   const handleLogout = async () => {
     try {
@@ -71,7 +64,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          {/* 알림 */}
+          {/* TODO: API 연결 — MOCK_NOTIFICATIONS를 실제 알림 API로 교체 */}
           <div className="relative">
             <button
               type="button"
@@ -139,7 +132,6 @@ export function Header({ onMenuClick }: HeaderProps) {
             )}
           </div>
 
-          {/* 프로필 드롭다운 */}
           <div className="relative">
             <button
               type="button"

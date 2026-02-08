@@ -18,8 +18,9 @@ import {
 } from 'lucide-react';
 
 import { LearningAnalyticsSection } from '@/components/mentor/LearningAnalyticsSection';
+import { TemplateEditModal } from '@/components/mentor/TemplateEditModal';
+import { TemplateViewModal } from '@/components/mentor/TemplateViewModal';
 import { Button } from '@/components/ui/Button';
-import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/Dialog';
 import { FilterTabs } from '@/components/ui/FilterTabs';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -177,7 +178,6 @@ export function FeedbackManagePage() {
           />
         </div>
 
-        {/* 피드백 목록 탭 */}
         {activeTab === 'feedback' && (
           <div className="space-y-4 p-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -323,7 +323,6 @@ export function FeedbackManagePage() {
                 </table>
               </div>
 
-              {/* 빈 상태 */}
               {((feedbackStatusFilter === 'all' &&
                 pendingFeedback.length === 0 &&
                 completedStoredFeedback.length === 0) ||
@@ -344,10 +343,8 @@ export function FeedbackManagePage() {
           </div>
         )}
 
-        {/* 피드백 템플릿 관리 탭 */}
         {activeTab === 'templates' && (
           <div className="space-y-4 p-5">
-            {/* 상단 툴바 */}
             <div className="flex flex-wrap items-center gap-3">
               <FilterTabs
                 items={['전체', '국어', '영어', '수학', '공통'].map((sub) => ({
@@ -392,7 +389,6 @@ export function FeedbackManagePage() {
               </div>
             </div>
 
-            {/* 템플릿 테이블 */}
             <div className="overflow-hidden rounded-xl border border-border/50">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[600px]">
@@ -499,7 +495,6 @@ export function FeedbackManagePage() {
                 </table>
               </div>
 
-              {/* 페이지네이션 */}
               <div className="flex flex-col gap-4 border-t border-border bg-secondary/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-foreground/60">
@@ -548,16 +543,13 @@ export function FeedbackManagePage() {
           </div>
         )}
 
-        {/* 학습 리포트 탭 */}
         {activeTab === 'analytics' && (
           <div className="p-5">
             <LearningAnalyticsSection />
           </div>
         )}
       </div>
-      {/* 흰색 카드 닫기 */}
 
-      {/* 새 템플릿 / 편집 모달 */}
       {(templateModal?.mode === 'create' || templateModal?.mode === 'edit') && (
         <TemplateEditModal
           template={templateModal.mode === 'edit' ? templateModal.template : null}
@@ -570,7 +562,6 @@ export function FeedbackManagePage() {
         />
       )}
 
-      {/* 보기 모달 */}
       {templateModal?.mode === 'view' && (
         <TemplateViewModal
           template={templateModal.template}
@@ -618,7 +609,6 @@ function TemplateEditModal({
 
       <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-y-auto">
         <div className="space-y-5 px-6 py-4">
-          {/* 템플릿 명칭 */}
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground/80">
               템플릿 명칭 <span className="text-red-500">*</span>
@@ -633,7 +623,6 @@ function TemplateEditModal({
             />
           </div>
 
-          {/* 과목 선택 */}
           <div>
             <label className="mb-2 block text-sm font-medium text-foreground/80">
               과목 선택 <span className="text-red-500">*</span>
@@ -648,7 +637,6 @@ function TemplateEditModal({
             />
           </div>
 
-          {/* 템플릿 본문 */}
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground/80">
               템플릿 본문 <span className="text-red-500">*</span>

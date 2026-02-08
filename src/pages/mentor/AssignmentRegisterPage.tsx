@@ -38,7 +38,7 @@ import { getMaterialsByIds, useLearningGoalStore } from '@/stores/useLearningGoa
 
 const MAIN_SUBJECTS = ['국어', '영어', '수학'] as const;
 type MainSubject = (typeof MAIN_SUBJECTS)[number];
-const CURRENT_MENTOR_ID = 'mentor1';
+const CURRENT_MENTOR_ID = 'mentor1'; // TODO: API 연결 — useAuthStore에서 멘토 ID 가져오기
 
 interface FormState {
   menteeId: string;
@@ -164,6 +164,7 @@ export function AssignmentRegisterPage() {
     if (goal) {
       formattedDescription = `<h3>오늘의 목표: ${goal.name}</h3>`;
       if (goal.columnTemplate) {
+        // TODO: DOM 파싱 대신 서버에서 구조화된 데이터로 받기
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = goal.columnTemplate;
         const listElements = tempDiv.querySelectorAll('ul, ol');
@@ -335,7 +336,6 @@ export function AssignmentRegisterPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-4 pb-12">
-      {/* 상단 버튼 */}
       <div className="flex flex-wrap justify-end gap-2">
         <Button variant="outline" icon={Save} onClick={() => setActiveModal('tempSave')}>
           임시저장 목록
@@ -350,7 +350,6 @@ export function AssignmentRegisterPage() {
         </Button>
       </div>
 
-      {/* 알림 메시지 */}
       {loadMessage && (
         <div
           className={cn(
@@ -368,7 +367,6 @@ export function AssignmentRegisterPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* 기본 정보 */}
         <section className="rounded-xl border border-border/50 bg-white p-5 shadow-sm sm:p-8">
           <h2 className="mb-5 text-lg font-semibold text-foreground">기본 정보</h2>
           <div className="grid items-start gap-6 sm:grid-cols-2">
@@ -487,7 +485,6 @@ export function AssignmentRegisterPage() {
           )}
         </section>
 
-        {/* 과제 상세 정보 */}
         <section className="rounded-xl border border-border/50 bg-white p-5 shadow-sm sm:p-8">
           <h2 className="mb-6 text-lg font-semibold text-foreground">과제 상세 정보</h2>
           <div className="space-y-6">
@@ -555,7 +552,6 @@ export function AssignmentRegisterPage() {
           </div>
         </section>
 
-        {/* 학습 자료 */}
         <section className="rounded-xl border border-border/50 bg-white p-5 shadow-sm sm:p-8">
           <h2 className="mb-4 text-lg font-semibold text-foreground">학습 자료</h2>
           <Tabs
@@ -679,7 +675,6 @@ export function AssignmentRegisterPage() {
           )}
         </section>
 
-        {/* 제출 버튼 */}
         <div className="flex justify-end gap-2">
           <Link to={form.menteeId ? `/mentor/mentees/${form.menteeId}` : '/mentor'}>
             <Button type="button" variant="outline">
@@ -692,7 +687,6 @@ export function AssignmentRegisterPage() {
         </div>
       </form>
 
-      {/* 모달 */}
       <LoadFromDateModal
         isOpen={activeModal === 'loadFromDate'}
         onClose={() => setActiveModal(null)}

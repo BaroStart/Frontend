@@ -220,7 +220,6 @@ function PlannerTimeline({ records }: { records: PlannerRecord[] }) {
 
   return (
     <div className="space-y-3">
-      {/* 범례 */}
       <div className="flex flex-wrap gap-x-3 gap-y-1">
         {usedSubjects.map((subj) => {
           const style = SUBJECT_STYLES[subj] ?? DEFAULT_STYLE;
@@ -233,7 +232,6 @@ function PlannerTimeline({ records }: { records: PlannerRecord[] }) {
         })}
       </div>
 
-      {/* 타임라인 */}
       <div className="overflow-hidden rounded-lg border border-border/40">
         {hours.map((hour, idx) => {
           const blocks = sorted.filter((r) => {

@@ -59,7 +59,7 @@ export function MentorMainPage() {
   ).length;
   const totalAssignments = mentees.reduce((sum, m) => sum + m.todayTotal, 0);
   const completedAssignments = mentees.reduce((sum, m) => sum + m.todaySubmitted, 0);
-  const weeklyCompleted = 8;
+  const weeklyCompleted = 8; // TODO: API 연결 — 주간 완료 과제 수 서버에서 가져오기
 
   const filteredMentees = mentees
     .filter((m) => !deletedMenteeIds.has(m.id))
@@ -70,6 +70,7 @@ export function MentorMainPage() {
       return true;
     });
 
+  // TODO: API 연결 — 현재 클라이언트 Set 기반 삭제 (새로고침 시 복원됨), 서버 API로 교체 필요
   const handleDeleteMentee = (menteeId: string, menteeName: string) => {
     if (
       window.confirm(`"${menteeName}" 멘티를 삭제하시겠습니까?\n삭제된 멘티는 목록에서 제거됩니다.`)
@@ -81,7 +82,6 @@ export function MentorMainPage() {
 
   return (
     <div className="min-w-0 space-y-5">
-      {/* 웰컴 섹션 */}
       <section
         className="relative overflow-hidden rounded-xl border border-border/50 p-6"
         style={{
@@ -99,7 +99,6 @@ export function MentorMainPage() {
             </p>
           </div>
 
-          {/* 빠른 액션 버튼 */}
           <div className="flex shrink-0 gap-2.5">
             <Link
               to={`/mentor/mentees/${mentees[0]?.id}/assignments/new`}
@@ -119,7 +118,6 @@ export function MentorMainPage() {
           </div>
         </div>
 
-        {/* 요약 통계 */}
         <div className="relative mt-5 grid grid-cols-4 gap-3">
           <div className="rounded-lg border border-border/60 bg-white px-3 py-3 text-center">
             <p className="text-lg font-bold text-foreground">
@@ -162,7 +160,6 @@ export function MentorMainPage() {
         </div>
       </section>
 
-      {/* 담당 멘티 현황 */}
       <section>
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h3 className="text-base font-bold text-foreground">담당 멘티 현황</h3>
@@ -271,7 +268,6 @@ function MenteeCard({
       className="group relative overflow-hidden rounded-xl border border-border/50 bg-white p-5 transition-all hover:shadow-soft"
       style={{ animationDelay: `${index * 100}ms` }}
     >
-      {/* 상단: 프로필 */}
       <div className="mb-4 flex items-start justify-between">
         <Link to={`/mentor/mentees/${mentee.id}`} className="flex items-center gap-3">
           <div className="relative">
@@ -345,7 +341,6 @@ function MenteeCard({
         </div>
       </div>
 
-      {/* 진행률 바 */}
       <div className="mb-4">
         <div className="mb-1.5 flex items-center justify-between">
           <span className="text-xs font-medium text-foreground/60">오늘 진행률</span>
@@ -361,7 +356,6 @@ function MenteeCard({
         </div>
       </div>
 
-      {/* 통계 미니 카드 */}
       <div className="mb-4 grid grid-cols-3 gap-2">
         <div className="rounded-lg bg-secondary/70 px-2 py-2.5 text-center">
           <p className="text-sm font-bold text-foreground">{mentee.weeklyAchievement ?? 0}%</p>
@@ -377,7 +371,6 @@ function MenteeCard({
         </div>
       </div>
 
-      {/* 최근 과제 */}
       <div>
         <div className="mb-2.5 flex items-center justify-between">
           <h4 className="text-xs font-bold text-foreground">최근 제출</h4>
@@ -412,7 +405,6 @@ function MenteeCard({
         </div>
       </div>
 
-      {/* 하단 액션 */}
       <div className="mt-4 flex gap-2">
         <Link
           to={`/mentor/mentees/${mentee.id}/assignments/new`}
