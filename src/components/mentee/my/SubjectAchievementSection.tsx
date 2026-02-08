@@ -41,38 +41,42 @@ export function SubjectAchievementSection({
         <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
       </div>
 
-      <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-3">
         {items.map((s) => {
           const p = clampPercent(s.percent);
 
           return (
             <div
               key={s.id}
-              className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+              className="flex flex-col items-center rounded-xl bg-gray-50 p-4"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100">
-                    {iconFor(s.name)}
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{s.name}</p>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-900">{p}%</p>
-                  <p className="text-xs text-gray-400">{s.progressText ?? ""}개</p>
+              <div className="relative flex h-14 w-14 items-center justify-center">
+                <svg className="h-14 w-14 -rotate-90" viewBox="0 0 36 36">
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.9"
+                    fill="none"
+                    stroke="rgb(229 231 235)"
+                    strokeWidth="3"
+                  />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.9"
+                    fill="none"
+                    stroke="rgb(30 41 59)"
+                    strokeWidth="3"
+                    strokeDasharray={`${p * 1.0} 100`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute flex h-10 w-10 items-center justify-center rounded-full bg-white">
+                  {iconFor(s.name)}
                 </div>
               </div>
-
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                <div
-                  className="h-full rounded-full bg-[#0E9ABE]"
-                  style={{ width: `${p}%` }}
-                />
-              </div>
+              <p className="mt-2 text-xs font-bold text-gray-900">{s.name}</p>
+              <p className="text-sm font-extrabold text-gray-700">{p}%</p>
             </div>
           );
         })}

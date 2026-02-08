@@ -93,11 +93,11 @@ export function TodoCard({
     <>
       <div
         className={[
-          "relative w-full rounded-2xl border bg-white p-4 text-left shadow-sm",
+          "relative w-full rounded-2xl border bg-white p-3 text-left shadow-sm",
           isDone ? "border-gray-200" : "border-gray-100",
         ].join(" ")}
       >
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-2.5">
           <button
             type="button"
             onClick={handleClickCheck}
@@ -115,7 +115,7 @@ export function TodoCard({
           </button>
 
           <div className="min-w-0 flex-1">
-            <div className="mb-2 flex items-center gap-2">
+            <div className="mb-1.5 flex items-center gap-2">
               <span className="inline-flex items-center rounded-lg bg-[#0E9ABE] px-2 py-0.5 text-xs font-bold text-white">
                 할 일
               </span>

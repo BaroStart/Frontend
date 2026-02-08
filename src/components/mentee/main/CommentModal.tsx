@@ -139,49 +139,45 @@ export function CommentModal({
           </button>
         </div>
 
-        <div className="max-h-[38vh] overflow-y-auto px-5 py-4">
+        <div className="max-h-[38vh] overflow-y-auto px-4 py-3">
           {!root ? (
-            <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-600">
+            <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-600">
               아직 코멘트가 없어요. 아래에 코멘트를 남기면 멘토 답장이 여기에 표시돼요.
             </div>
           ) : (
             <div className="space-y-4">
-              {/* root */}
-              <div className="flex gap-3">
-                <div className="h-8 w-8 rounded-full bg-gray-200" />
+              {/* root - 인스타그램 댓글 레이아웃: 프로필 + 사용자명·시간 + 본문 */}
+              <div className="flex gap-2.5">
+                <div className="h-8 w-8 shrink-0 rounded-full bg-gray-200" />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex items-baseline gap-1.5">
                     <span className="text-sm font-semibold text-gray-900">{root.author}</span>
                     {root.createdAtText && (
                       <span className="text-xs text-gray-400">{root.createdAtText}</span>
                     )}
                   </div>
-                  <div className="mt-1 whitespace-pre-wrap text-sm text-gray-900">
-                    {root.content}
-                  </div>
+                  <p className="mt-0.5 whitespace-pre-wrap text-sm leading-snug text-gray-900">{root.content}</p>
                 </div>
               </div>
 
               {replies.length > 0 && (
-                <div className="space-y-3 pl-11">
+                <div className="space-y-3 border-l-2 border-gray-100 pl-3 ml-4">
                   {replies.map((r) => (
-                    <div key={r.id} className="flex gap-3">
+                    <div key={r.id} className="flex gap-2.5">
                       <div
                         className={[
-                          "h-8 w-8 rounded-full",
+                          "h-7 w-7 shrink-0 rounded-full",
                           r.author === "멘토" ? "bg-brand/20" : "bg-gray-200",
                         ].join(" ")}
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline gap-2">
+                        <div className="flex items-baseline gap-1.5">
                           <span className="text-sm font-semibold text-gray-900">{r.author}</span>
                           {r.createdAtText && (
                             <span className="text-xs text-gray-400">{r.createdAtText}</span>
                           )}
                         </div>
-                        <div className="mt-1 whitespace-pre-wrap text-sm text-gray-900">
-                          {r.content}
-                        </div>
+                        <p className="mt-0.5 whitespace-pre-wrap text-sm leading-snug text-gray-900">{r.content}</p>
                       </div>
                     </div>
                   ))}
@@ -226,9 +222,7 @@ export function CommentModal({
         )}
 
         {hasSubmitted && (
-          <div className="border-t px-5 py-4">
-            <div className="mb-2 text-xs font-medium text-gray-500">답글</div>
-
+          <div className="border-t px-4 py-3">
             <div className="flex items-end gap-2">
               <textarea
                 value={replyText}

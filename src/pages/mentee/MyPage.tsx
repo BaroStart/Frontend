@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { logout as logoutApi } from '@/api/auth';
@@ -10,8 +10,13 @@ import { WeeklyStudyStatusCard } from '@/components/mentee/my/WeeklyStudyStatusC
 import { Button } from '@/components/ui/Button';
 import { MOCK_SUBJECT_STUDY_TIMES } from '@/data/learningAnalysisMock';
 import { MOCK_INCOMPLETE_ASSIGNMENTS } from '@/data/menteeDetailMock';
+import {
+  getLastSeenBadgeIds,
+  setLastSeenBadgeIds,
+} from '@/lib/badgeCelebrationStorage';
 import { getAttendanceDates, getQnaCount, toYmdLocal } from '@/lib/menteeActivityStorage';
 import { getSubmittedAssignments } from '@/lib/menteeAssignmentSubmissionStorage';
+import { useBadgeCelebrationStore } from '@/stores/useBadgeCelebrationStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useTodoStore } from '@/stores/useTodoStore';
 
@@ -248,6 +253,22 @@ export function MyPage() {
       { id: 'badge_morning_routine', title: '아침', subtitle: '루틴', acquired: morningRoutine },
     ];
   }, [authUser?.id, authUser?.role, todosByDate]);
+
+  const triggerBadgeCelebration = useBadgeCelebrationStore((s) => s.trigger);
+
+  useEffect(() => {
+    const userKey = (authUser?.id ?? '').trim();
+    if (!userKey) return;
+    const acquired = badges.filter((b) => b.acquired).map((b) => b.id);
+    const lastSeen = getLastSeenBadgeIds(userKey);
+    const lastSeenSet = new Set(lastSeen);
+    const newIds = acquired.filter((id) => !lastSeenSet.has(id));
+    if (newIds.length > 0) {
+      const firstNew = badges.find((b) => b.id === newIds[0]);
+      if (firstNew) triggerBadgeCelebration(firstNew);
+    }
+    setLastSeenBadgeIds(userKey, acquired);
+  }, [authUser?.id, badges, triggerBadgeCelebration]);
 
   return (
     <div className="relative px-4 pt-4 pb-4">

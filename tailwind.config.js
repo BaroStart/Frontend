@@ -49,6 +49,12 @@ export default {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.5' },
         },
+        'badge-fly': {
+          '0%': { opacity: '0', transform: 'scale(0.5) translateY(0)' },
+          '20%': { opacity: '1', transform: 'scale(1) translateY(-10px)' },
+          '80%': { opacity: '1', transform: 'scale(1.1) translateY(-30px)' },
+          '100%': { opacity: '0', transform: 'scale(0.8) translateY(-60px)' },
+        },
       },
       animation: {
         'fade-in-up': 'fade-in-up 0.5s ease-out forwards',
@@ -59,6 +65,7 @@ export default {
         'float-slow': 'float 8s ease-in-out infinite',
         shimmer: 'shimmer 2s linear infinite',
         pulse: 'pulse 2s ease-in-out infinite',
+        'badge-fly': 'badge-fly 2.5s ease-out forwards',
       },
       colors: {
         // 브랜드 색상

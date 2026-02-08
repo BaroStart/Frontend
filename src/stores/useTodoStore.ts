@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { API_CONFIG } from '@/api/config';
 import { isApiSuccess } from '@/api/response';
 import { changeTodoStatus, createTodo, deleteTodo, fetchTodos, updateTodo } from '@/api/todos';
+import { toast } from '@/components/ui/Toast';
 import { STORAGE_KEYS } from '@/constants';
 import type { TimeSlot, ToDoRes } from '@/generated';
 
@@ -88,7 +89,13 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     // 오늘이 아닌 날짜를 선택하면 리스트를 비워 UX 혼란을 줄입니다.
     set({ selectedDate: dateKey, todos: [] });
     if (isTodayKey(dateKey)) {
-      await get().loadSelectedDate();
+      try {
+        await get().loadSelectedDate();
+      } catch {
+        const fromLocal = readMockTodosByDate();
+        const forDate = fromLocal?.[dateKey] ?? [];
+        set({ todos: forDate });
+      }
     }
   },
 
@@ -100,20 +107,39 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       set({ todos: [] });
       return;
     }
-    const res = await fetchTodos();
-    if (!isApiSuccess(res)) return;
+    try {
+      const res = await fetchTodos();
+      if (!isApiSuccess(res)) {
+        set({ todos: [] });
+        return;
+      }
 
-    const items = (res.result ?? []) as (ToDoRes & { id?: number })[];
-    const mapped: TodoItem[] = items.map((t, idx) => ({
-      // swagger 스키마엔 id가 없지만, 실제 서버에선 내려올 가능성이 커서 optional로 뒀음
-      // id가 없으면 임시로 음수 id를 만들어 표시만 하고(수정/삭제는 동작 보장 X)
-      id: typeof t.id === 'number' ? t.id : -(idx + 1),
-      title: t.title ?? '',
-      done: t.status === 'COMPLETED',
-      timeList: t.timeList ?? undefined,
-    }));
+      const items = (res.result ?? []) as (ToDoRes & { id?: number })[];
+      const mapped: TodoItem[] = items.map((t, idx) => ({
+        // swagger 스키마엔 id가 없지만, 실제 서버에선 내려올 가능성이 커서 optional로 뒀음
+        // id가 없으면 임시로 음수 id를 만들어 표시만 하고(수정/삭제는 동작 보장 X)
+        id: typeof t.id === 'number' ? t.id : -(idx + 1),
+        title: t.title ?? '',
+        done: t.status === 'COMPLETED',
+        timeList: t.timeList ?? undefined,
+      }));
 
-    set({ todos: mapped });
+      // API가 빈 배열을 반환해도, 로컬에 저장된 데이터가 있으면 우선 사용 (다른 페이지 갔다 와도 유지)
+      if (mapped.length === 0) {
+        const fromLocal = readMockTodosByDate();
+        const forDate = fromLocal?.[dateKey] ?? [];
+        if (forDate.length > 0) {
+          set({ todos: forDate });
+          return;
+        }
+      }
+
+      set({ todos: mapped });
+    } catch {
+      const fromLocal = readMockTodosByDate();
+      const forDate = fromLocal?.[dateKey] ?? [];
+      set({ todos: forDate });
+    }
   },
 
   addAtTop: async (title) => {
@@ -137,9 +163,20 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       return;
     }
 
-    await createTodo({ title: trimmed });
-    // 생성 응답에 id가 없어서 재조회로 동기화
-    await get().loadSelectedDate();
+    try {
+      await createTodo({ title: trimmed });
+      await get().loadSelectedDate();
+    } catch {
+      const dateKey = get().selectedDate;
+      const fromLocal = readMockTodosByDate() ?? {};
+      const current = fromLocal[dateKey] ?? [];
+      const newTodo: TodoItem = { id: Date.now(), title: trimmed, done: false };
+      const next = [newTodo, ...current];
+      const nextByDate = { ...fromLocal, [dateKey]: next };
+      writeMockTodosByDate(nextByDate);
+      set({ todos: next });
+      toast.warning('서버에 저장할 수 없습니다. 로컬에 임시 저장됩니다.');
+    }
   },
 
   toggleDone: async (id, opts) => {
@@ -182,8 +219,17 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       ),
     }));
 
-    await changeTodoStatus(id, { id, status, timeList });
-    await get().loadSelectedDate();
+    try {
+      await changeTodoStatus(id, { id, status, timeList });
+      await get().loadSelectedDate();
+    } catch {
+      const dateKey = get().selectedDate;
+      const fromLocal = readMockTodosByDate() ?? {};
+      const next = get().todos;
+      const nextByDate = { ...fromLocal, [dateKey]: next };
+      writeMockTodosByDate(nextByDate);
+      toast.warning('서버에 반영할 수 없습니다. 로컬에 저장됩니다.');
+    }
   },
 
   updateTitle: async (id, title) => {
@@ -215,8 +261,17 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       todos: s.todos.map((t) => (t.id === id ? { ...t, title: trimmed } : t)),
     }));
 
-    await updateTodo({ id, title: trimmed, timeList });
-    await get().loadSelectedDate();
+    try {
+      await updateTodo({ id, title: trimmed, timeList });
+      await get().loadSelectedDate();
+    } catch {
+      const dateKey = get().selectedDate;
+      const fromLocal = readMockTodosByDate() ?? {};
+      const next = get().todos;
+      const nextByDate = { ...fromLocal, [dateKey]: next };
+      writeMockTodosByDate(nextByDate);
+      toast.warning('서버에 반영할 수 없습니다. 로컬에 저장됩니다.');
+    }
   },
 
   remove: async (id) => {
@@ -239,7 +294,17 @@ export const useTodoStore = create<TodoState>((set, get) => ({
 
     // optimistic
     set((s) => ({ todos: s.todos.filter((t) => t.id !== id) }));
-    await deleteTodo(id);
-    await get().loadSelectedDate();
+
+    try {
+      await deleteTodo(id);
+      await get().loadSelectedDate();
+    } catch {
+      const dateKey = get().selectedDate;
+      const fromLocal = readMockTodosByDate() ?? {};
+      const next = get().todos;
+      const nextByDate = { ...fromLocal, [dateKey]: next };
+      writeMockTodosByDate(nextByDate);
+      toast.warning('서버에서 삭제할 수 없습니다. 로컬에서 제거됩니다.');
+    }
   },
 }));

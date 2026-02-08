@@ -47,7 +47,7 @@ export function TodoList({ items, onAddAtTop, onToggleDone, onUpdateTitle, onDel
 
   return (
     <section className="mt-4">
-      <div className="mb-3 flex items-end justify-between">
+      <div className="mb-2 flex items-end justify-between">
         <div>
           <h2 className="text-base font-extrabold text-gray-900">할 일</h2>
           <p className="mt-0.5 text-xs font-semibold text-gray-500">
@@ -71,8 +71,8 @@ export function TodoList({ items, onAddAtTop, onToggleDone, onUpdateTitle, onDel
       <div className="space-y-2">
         {isAdding && (
           <form onSubmit={submitAdd}>
-            <div className="w-full rounded-2xl border border-gray-100 bg-white p-4 text-left shadow-sm">
-              <div className="flex items-start gap-3">
+            <div className="w-full rounded-2xl border border-gray-100 bg-white p-3 text-left shadow-sm">
+              <div className="flex items-start gap-2.5">
                 <div className="pointer-events-none mt-0.5">
                   <div className="flex h-5 w-5 items-center justify-center rounded-md border-2 border-gray-300 bg-white" />
                 </div>
@@ -124,7 +124,7 @@ export function TodoList({ items, onAddAtTop, onToggleDone, onUpdateTitle, onDel
         )}
 
         {sorted.length === 0 && !isAdding ? (
-          <div className="rounded-2xl border border-gray-100 bg-white p-4 text-sm font-semibold text-gray-500">
+          <div className="rounded-2xl border border-gray-100 bg-white p-3 text-sm font-semibold text-gray-500">
             할 일이 없습니다.
           </div>
         ) : (

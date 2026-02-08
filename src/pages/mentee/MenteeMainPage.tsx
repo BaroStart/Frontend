@@ -11,7 +11,7 @@ import { API_CONFIG } from "@/api/config";
 import type { TimeRangeValue } from "@/components/mentee/TimeRangeModal";
 import type { TimeSlot } from "@/generated";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { CommentIcon, ListIcon, TimeIcon, UserIcon } from "@/components/icons";
+import { DmIcon, ListIcon, TimeIcon, UserIcon } from "@/components/icons";
 import { MOCK_INCOMPLETE_ASSIGNMENTS } from "@/data/menteeDetailMock";
 import { getSubmittedAssignments } from "@/lib/menteeAssignmentSubmissionStorage";
 
@@ -29,7 +29,6 @@ export function MenteeMainPage() {
     todos,
     todosByDate,
     setSelectedDate: setTodoDate,
-    loadSelectedDate,
     addAtTop,
     toggleDone,
     updateTitle,
@@ -61,12 +60,9 @@ export function MenteeMainPage() {
 
   useEffect(() => {
     // 달력에서 날짜를 바꾸면, 해당 날짜의 할 일을 보여주도록 연결
+    // setTodoDate 내부에서 loadSelectedDate 호출 (API 모드일 때 오늘인 경우)
     void setTodoDate(dateKey);
-    // 실서버는 "오늘"만 조회 가능(명세 기준)이라, store가 오늘인 경우에만 load 수행
-    if (!API_CONFIG.useMock) {
-      void loadSelectedDate();
-    }
-  }, [dateKey, loadSelectedDate, setTodoDate]);
+  }, [dateKey, setTodoDate]);
 
   const toIsoTimeSlot = (baseDate: Date, v: TimeRangeValue): TimeSlot[] => {
     const to24 = (m: "AM" | "PM", hour12: number) => {
@@ -126,18 +122,46 @@ export function MenteeMainPage() {
     return meta;
   }, [assignmentsByDate, dateKey, todos, todosByDate]);
 
-  const items: TimelineItem[] = [
-    { id: "1", type: "task", title: "할 일", start: "06:13", end: "06:30" },
-    { id: "2", type: "assignment", title: "과제", start: "10:02", end: "10:52" },
-    { id: "3", type: "task", title: "리뷰", start: "10:52", end: "12:11" },
-    { id: "4", type: "task", title: "밥", start: "12:30", end: "13:00" },
-    { id: "5", type: "task", title: "주식", start: "14:10", end: "15:03" },
-    { id: "6", type: "task", title: "코딩", start: "15:06", end: "15:47" },
-  ];
+  const timelineItems = useMemo<TimelineItem[]>(() => {
+    const out: TimelineItem[] = [];
+    const pad = (n: number) => String(n).padStart(2, "0");
+
+    for (const t of todos) {
+      if (!t.done || !t.timeList?.length) continue;
+      for (let i = 0; i < t.timeList.length; i++) {
+        const slot = t.timeList[i];
+        const start = new Date(slot.startTime);
+        const end = new Date(slot.endTime);
+        const slotDateKey = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`;
+        if (slotDateKey !== dateKey) continue;
+
+        const startHHMM = `${pad(start.getHours())}:${pad(start.getMinutes())}`;
+        const endHHMM = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
+        out.push({
+          id: `todo-${t.id}-${i}`,
+          type: "task",
+          title: t.title,
+          start: startHHMM,
+          end: endHHMM,
+        });
+      }
+    }
+
+    return out.sort((a, b) => a.start.localeCompare(b.start));
+  }, [todos, dateKey]);
+
+  const handleToggleDone = async (id: number, args?: { timeRange?: TimeRangeValue }) => {
+    if (args?.timeRange) {
+      await toggleDone(id, { timeList: toIsoTimeSlot(selectedDate, args.timeRange) });
+      setViewMode("TIMETABLE");
+    } else {
+      await toggleDone(id);
+    }
+  };
 
   return (
-    <div className="px-4 pt-4">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="px-3 pt-3">
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-1">
           <span className="text-lg font-semibold text-gray-900">{menteeName}님</span>
         </div>
@@ -149,7 +173,7 @@ export function MenteeMainPage() {
             aria-label="채팅"
             className="grid h-10 w-10 place-items-center rounded-full border bg-gray-100 text-gray-700 transition hover:bg-gray-200 active:scale-[0.98]"
           >
-            <CommentIcon className="h-5 w-5" />
+            <DmIcon className="h-5 w-5" />
           </button>
 
           <CommentModal
@@ -177,7 +201,7 @@ export function MenteeMainPage() {
         defaultExpanded={false}
       />
 
-      <div className="my-8 flex items-center justify-between">
+      <div className="my-6 flex items-center justify-between">
         <h1 className="text-[18px] font-extrabold text-gray-900">오늘의 학습 목록</h1>
 
         <div className="flex rounded-full border border-gray-200 bg-gray-50 p-1">
@@ -225,17 +249,19 @@ export function MenteeMainPage() {
           <TodoList
             items={todos}
             onAddAtTop={(title) => addAtTop(title)}
-            onToggleDone={(id, args) =>
-              args?.timeRange
-                ? toggleDone(id, { timeList: toIsoTimeSlot(selectedDate, args.timeRange) })
-                : toggleDone(id)
-            }
+            onToggleDone={handleToggleDone}
             onUpdateTitle={(id, title) => updateTitle(id, title)}
             onDelete={(id) => remove(id)}
           />
         </>
       ) : (
-        <TimeTable items={items} startHour={5} endHour={5} />
+        <TimeTable
+          items={timelineItems}
+          dateKey={dateKey}
+          selectedDate={selectedDate}
+          startHour={6}
+          endHour={24}
+        />
       )}
     </div>
   );

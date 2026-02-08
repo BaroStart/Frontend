@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { CalendarDays, BookOpen, ChevronLeft, ChevronRight, ChevronRight as ChevronRightSmall } from "lucide-react";
+import { BookOpen, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { AssignmentIcon, EnglishIcon, KoreanIcon, MathIcon } from "@/components/icons";
 import { MOCK_INCOMPLETE_ASSIGNMENTS } from "@/data/menteeDetailMock";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { getSubmittedAssignments } from "@/lib/menteeAssignmentSubmissionStorage";
-import { SubjectFilter } from "@/components/mentee/feedbacklist/SubjectFilter"; 
+import { SubjectFilterChip } from "@/components/mentee/SubjectFilterChip"; 
 
 // --- Types ---
 type Status = "완료" | "미완료";
@@ -146,66 +146,63 @@ export function AssignmentListPage() {
         </div>
       </header>
 
-      <div className="px-4 mb-2">
-        <SubjectFilter value={subject} onChange={setSubject} />
+      <div className="mb-3 px-1">
+        <SubjectFilterChip
+          items={[
+            { label: "전체", value: "ALL" },
+            { label: "국어", value: "KOREAN" },
+            { label: "영어", value: "ENGLISH" },
+            { label: "수학", value: "MATH" },
+          ]}
+          value={subject}
+          onChange={(v) => setSubject(v as Subject)}
+        />
       </div>
 
       <div className="flex-1 space-y-5 px-6 pb-20">
         {filteredAssignments.length > 0 ? (
           filteredAssignments.map((assignment) => (
-            <div
+            <button
               key={assignment.id}
-              className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm transition-all duration-300 hover:bg-gray-50 hover:shadow-md"
+              type="button"
+              onClick={() => navigate(`/mentee/assignments/${assignment.id}`)}
+              className="w-full rounded-xl bg-white p-4 text-left shadow-sm transition hover:shadow-md active:scale-[0.99]"
             >
-              <div className="mb-5 flex items-start gap-5">
-                <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-[#0E9ABE]/10">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100">
                   {getSubjectIcon(assignment.subject)}
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex items-start justify-between">
-                    <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-[#0E9ABE]">
+                  <div className="mb-1 flex items-start justify-between gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                       {assignment.subject}
                     </span>
                     <span
-                      className={`rounded-lg px-2.5 py-1 text-[10px] font-bold ${
+                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                         assignment.status === "완료"
                           ? "bg-gray-900 text-white"
-                          : "bg-gray-100 text-gray-500"
+                          : "bg-gray-100 text-gray-600"
                       }`}
                     >
                       {assignment.status}
                     </span>
                   </div>
 
-                  <h3 className="mb-2 truncate text-lg font-bold leading-tight text-gray-900">
+                  <h3 className="truncate text-base font-bold text-gray-900">
                     {assignment.title}
                   </h3>
-                  <p className="line-clamp-2 text-sm leading-relaxed text-gray-500">
+                  <p className="mt-0.5 line-clamp-2 text-sm text-gray-500">
                     {assignment.description}
+                  </p>
+                  <p className="mt-2 text-xs text-gray-400">
+                    {assignment.status === "완료"
+                      ? `${assignment.submissionDate} 제출 완료`
+                      : `마감 ${assignment.submissionDate}`}
                   </p>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between border-t border-dashed border-gray-100 pt-4">
-                {assignment.status === "완료" ? (
-                  <span className="rounded bg-gray-50 px-2 py-1 text-xs font-medium text-gray-400">
-                    {assignment.submissionDate} 제출 완료
-                  </span>
-                ) : (
-                  <span />
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => navigate(`/mentee/assignments/${assignment.id}`)}
-                  className="flex items-center text-sm font-bold text-[#0E9ABE] hover:underline decoration-2 underline-offset-2"
-                >
-                  상세보기
-                  <ChevronRightSmall className="ml-1 h-4 w-4" />
-                </button>
-              </div>
-            </div>
+            </button>
           ))
         ) : (
           <div className="mt-10 flex h-full w-full flex-col items-center justify-center text-center">

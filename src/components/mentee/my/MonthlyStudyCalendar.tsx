@@ -94,16 +94,18 @@ function DayCell({
   inMonth,
   selected,
   intensity,
+  isFuture,
   onPick,
 }: {
   date: Date;
   inMonth: boolean;
   selected: boolean;
   intensity: 0 | 1 | 2 | 3;
+  isFuture?: boolean;
   onPick: () => void;
 }) {
   const base =
-    'relative flex min-h-[60px] flex-col items-center justify-start rounded-2xl p-2 transition';
+    'relative flex min-h-[60px] flex-col items-center justify-start rounded-xl p-2 transition';
 
   if (!inMonth) {
     return (
@@ -122,13 +124,13 @@ function DayCell({
       className={[base, 'bg-white focus:outline-none'].join(' ')}
     >
       <div className="group mt-2 flex h-10 w-10 items-center justify-center rounded-2xl">
-        <div
-          className={[
-            'flex h-full w-full items-center justify-center rounded-2xl transition',
-            selected ? 'bg-gray-900' : cellClassByIntensity(intensity),
-            !selected ? 'group-hover:opacity-90' : '',
-          ].join(' ')}
-        >
+      <div
+        className={[
+          'flex h-full w-full items-center justify-center rounded-full transition',
+          selected ? 'bg-gray-900' : isFuture ? 'bg-gray-50 text-gray-400' : cellClassByIntensity(intensity),
+          !selected ? 'group-hover:opacity-90' : '',
+        ].join(' ')}
+      >
           <span
             className={[
               'text-sm font-semibold transition',
@@ -232,7 +234,10 @@ export function MonthlyStudyCalendar({ className }: Props) {
       <div className="mt-3 grid grid-cols-7 gap-2">
         {cells.map(({ date, inMonth }) => {
           const key = toKeyLocal(date);
-          const hours = metaByDate[key]?.hours ?? 0;
+          const today = new Date();
+          today.setHours(23, 59, 59, 999);
+          const isFuture = date > today;
+          const hours = isFuture ? undefined : (metaByDate[key]?.hours ?? 0);
           const intensity = intensityFromHours(hours);
           const selected = isSameDay(date, selectedDate);
 
@@ -243,6 +248,7 @@ export function MonthlyStudyCalendar({ className }: Props) {
               inMonth={inMonth}
               selected={selected}
               intensity={intensity}
+              isFuture={isFuture}
               onPick={() => {
                 setSelectedDate(date);
                 if (date.getFullYear() !== monthRef.getFullYear() || date.getMonth() !== monthRef.getMonth()) {

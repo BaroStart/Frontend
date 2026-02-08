@@ -69,16 +69,25 @@ export function AssignmentDetailPage() {
     window.scrollTo(0, 0);
   }, [activeTab]);
 
+  useEffect(() => {
+    if (assignment.status !== '완료' && activeTab === 'feedback') {
+      setActiveTab('info');
+    }
+  }, [assignment.status, activeTab, setActiveTab]);
+
   return (
     <div className="relative">
       {/* 과제 헤더 */}
       <AssignmentDetailHeader assignment={assignment} />
 
       {/* 탭 */}
-      <AssignmentDetailTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+      <AssignmentDetailTabs
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isCompleted={assignment.status === '완료'}
+      />
 
       {/* 콘텐츠 */}
-      {/* 과제 정보 */}
       {activeTab === 'info' && (
         <AssignmentInfo
           assignment={assignment}
@@ -91,7 +100,7 @@ export function AssignmentDetailPage() {
           }}
         />
       )}
-      {activeTab === 'feedback' && <AssignmentFeedback />}
+      {activeTab === 'feedback' && assignment.status === '완료' && <AssignmentFeedback />}
     </div>
   );
 }

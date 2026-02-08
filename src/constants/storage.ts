@@ -12,4 +12,6 @@ export const STORAGE_KEYS = {
   MENTEE_QNA_COUNT: 'mentee-qna-count',
   MENTEE_ASSIGNMENT_SUBMISSIONS: 'mentee-assignment-submissions',
   MENTEE_TODOS_BY_DATE: 'mentee-todos-by-date',
+  TIMETABLE_COLOR_PALETTE: 'mentee-timetable-color-palette',
+  MENTEE_LAST_SEEN_BADGE_IDS: 'mentee-last-seen-badge-ids',
 } as const;

@@ -117,8 +117,8 @@ function DayCell({
   t: number;
   onPick: () => void;
 }) {
-  const base =
-    "relative flex min-h-[82px] flex-col items-center justify-start rounded-2xl p-2 transition";
+    const base =
+    "relative flex min-h-[72px] flex-col items-center justify-start rounded-xl p-1.5 transition";
 
     const DateCircle = ({
     children,
@@ -127,10 +127,10 @@ function DayCell({
     children: React.ReactNode;
     circleClassName?: string;
   }) => (
-    <div className="mt-2 flex h-10 w-10 items-center justify-center rounded-3xl">
+    <div className="mt-1 flex h-9 w-9 items-center justify-center rounded-full">
       <div
         className={[
-          "flex h-full w-full items-center justify-center rounded-3xl transition",
+          "flex h-full w-full items-center justify-center rounded-full transition",
           circleClassName,
         ].join(" ")}
       >
@@ -167,10 +167,10 @@ function DayCell({
         "focus:outline-none",
       ].join(" ")}
     >
-      <div className="group mt-2 flex h-10 w-10 items-center justify-center rounded-3xl">
+      <div className="group mt-1 flex h-9 w-9 items-center justify-center rounded-full">
         <div
           className={[
-            "flex h-full w-full items-center justify-center rounded-3xl transition",
+            "flex h-full w-full items-center justify-center rounded-full transition",
             selected ? "bg-gray-900" : "bg-transparent",
             !selected ? "group-hover:bg-gray-100" : "",
           ].join(" ")}
@@ -217,7 +217,7 @@ export function Calendar({
       }));
 
   return (
-    <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+    <section className="rounded-xl bg-white p-4">
       <div className="flex items-center justify-between">
         <button
           type="button"

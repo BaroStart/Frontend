@@ -1,19 +1,12 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { SubjectFilterChip } from "@/components/mentee/SubjectFilterChip";
 import { FeedbackSummarySection } from "@/components/mentee/feedbacklist/FeedbackSummarySection";
 import { FeedbackCard, type FeedbackItem } from "@/components/mentee/feedbacklist/FeedbackCard";
 import { PlannerSummaryCard } from "@/components/mentee/feedbacklist/PlannerSummaryCard";
-import { twMerge } from "tailwind-merge";
 
 type Subject = "ALL" | "KOREAN" | "ENGLISH" | "MATH";
-
-const TABS: { label: string; value: Subject }[] = [
-  { label: "전체", value: "ALL" },
-  { label: "국어", value: "KOREAN" },
-  { label: "영어", value: "ENGLISH" },
-  { label: "수학", value: "MATH" },
-];
 
 function formatKoreanDate(d: Date) {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
@@ -108,10 +101,28 @@ export function FeedbackListPage() {
     return byDate[dateKey] ?? [];
   }, [dateKey]);
 
+  const filterTabs = useMemo(() => {
+    const hasAll = dummySubjectFeedbacks.length > 0;
+    const hasKorean = dummySubjectFeedbacks.some((f) => f.subject === "KOREAN");
+    const hasEnglish = dummySubjectFeedbacks.some((f) => f.subject === "ENGLISH");
+    const hasMath = dummySubjectFeedbacks.some((f) => f.subject === "MATH");
+    const items: { label: string; value: Subject }[] = [];
+    if (hasAll) items.push({ label: "전체", value: "ALL" });
+    if (hasKorean) items.push({ label: "국어", value: "KOREAN" });
+    if (hasEnglish) items.push({ label: "영어", value: "ENGLISH" });
+    if (hasMath) items.push({ label: "수학", value: "MATH" });
+    return items;
+  }, [dummySubjectFeedbacks]);
+
   const filtered = useMemo(() => {
-    if (subject === "ALL") return dummySubjectFeedbacks;
-    return dummySubjectFeedbacks.filter((x) => x.subject === subject);
-  }, [dummySubjectFeedbacks, subject]);
+    const s = filterTabs.some((t) => t.value === subject) ? subject : (filterTabs[0]?.value ?? "ALL");
+    if (s === "ALL") return dummySubjectFeedbacks;
+    return dummySubjectFeedbacks.filter((x) => x.subject === s);
+  }, [dummySubjectFeedbacks, subject, filterTabs]);
+
+  const effectiveSubject = filterTabs.some((t) => t.value === subject)
+    ? subject
+    : (filterTabs[0]?.value ?? "ALL");
 
   return (
     <div className="px-4 pt-4 pb-24">
@@ -174,23 +185,12 @@ export function FeedbackListPage() {
           onClickItem={(it) => console.log("open assignment for:", it.id)}
         />
 
-        <div className="px-4 -mx-4 overflow-x-auto scrollbar-hide">
-          <div className="flex gap-2 py-1.5">
-            {TABS.map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => setSubject(tab.value)}
-                className={twMerge(
-                  "h-9 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition",
-                  subject === tab.value
-                    ? "bg-[#0E9ABE] text-white shadow-sm shadow-[#0E9ABE]/20"
-                    : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        <div className="mb-2">
+          <SubjectFilterChip
+            items={filterTabs}
+            value={effectiveSubject}
+            onChange={(v) => setSubject(v as Subject)}
+          />
         </div>
 
         <div className="space-y-3">

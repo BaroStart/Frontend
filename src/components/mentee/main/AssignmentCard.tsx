@@ -24,11 +24,11 @@ export function AssignmentCard({ item, onOpen }: Props) {
       type="button"
       onClick={onOpen}
       className={[
-        "w-full rounded-2xl border bg-white p-4 text-left shadow-sm transition active:scale-[0.99]",
+        "w-full rounded-2xl border bg-white p-3 text-left shadow-sm transition active:scale-[0.99]",
         isDone ? "border-gray-200" : "border-gray-100",
       ].join(" ")}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5">
         <div className="pointer-events-none mt-0.5">
           <div
             className={[
@@ -41,7 +41,7 @@ export function AssignmentCard({ item, onOpen }: Props) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="mb-2 flex items-center gap-2">
+          <div className="mb-1.5 flex items-center gap-2">
             <span className="inline-flex items-center rounded-lg bg-[#0E9ABE] px-2 py-0.5 text-xs font-bold text-white">
               과제
             </span>

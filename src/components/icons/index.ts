@@ -1,5 +1,6 @@
 export { AssignmentIcon } from './AssignmentIcon';
 export { CommentIcon } from './CommentIcon';
+export { DmIcon } from './DmIcon';
 export { EnglishIcon } from './EnglishIcon'
 export { FeedbackIcon } from './FeedbackIcon';
 export { HomeIcon } from './HomeIcon';

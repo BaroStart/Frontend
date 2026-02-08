@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
+import { BadgeCelebrationOverlay } from '@/components/mentee/my/BadgeCelebrationOverlay';
 import { TabBar } from '@/components/mentee/TabBar';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { markAttendance } from '@/lib/menteeActivityStorage';
@@ -49,6 +50,7 @@ export function MenteeLayout() {
       </main>
 
       <TabBar />
+      <BadgeCelebrationOverlay />
     </div>
   );
 }
