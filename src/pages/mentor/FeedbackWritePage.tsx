@@ -3,10 +3,13 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  BookOpen,
+  Calculator,
   Calendar,
   ChevronDown,
   Clock,
   FileText,
+  Hexagon,
   Maximize2,
   Plus,
   RotateCcw,
@@ -19,18 +22,31 @@ import {
 
 import { AuthPhotoViewer } from '@/components/mentor/AuthPhotoViewer';
 import { Button } from '@/components/ui/Button';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/Dialog';
 import { Calendar as CalendarComponent } from '@/components/ui/Calendar';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { toast } from '@/components/ui/Toast';
 import { useAssignmentDetail } from '@/hooks/useAssignmentDetail';
 import { useMentee } from '@/hooks/useMentee';
 import { useSubmittedAssignments } from '@/hooks/useSubmittedAssignments';
+import {
+  fetchFeedbackTemplateDetail,
+  fetchFeedbackTemplateList,
+} from '@/api/feedbackTemplates';
+import type { FeedbackTemplateListRes } from '@/generated';
 import { formatRemainingTime, getDeadlineStatus, getRemainingMs } from '@/lib/feedbackDeadline';
-import { getDefaultFeedbackTemplate, getFeedbackTemplates } from '@/lib/feedbackTemplateStorage';
 import type { FeedbackItem } from '@/lib/mentorFeedbackStorage';
+import { getSubjectLabel } from '@/lib/subjectLabels';
 import { getMentorFeedback, saveMentorFeedback } from '@/lib/mentorFeedbackStorage';
 import { cn } from '@/lib/utils';
 import type { FeedbackItemData } from '@/types';
+
+const SUBJECT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  국어: BookOpen,
+  영어: FileText,
+  수학: Calculator,
+  공통: Hexagon,
+};
 
 function parseDateFromSubmittedAt(submittedAt: string): string {
   const match = submittedAt.match(/^(\d{4})\.(\d{2})\.(\d{2})/);
@@ -93,8 +109,11 @@ export function FeedbackWritePage() {
     photos.length > 0
       ? photos
       : [{ id: 'student-notebook', url: '/student-notebook.jpg', caption: 'student-notebook.jpg' }];
-  // 모든 템플릿 표시 (과목 무관)
-  const templates = useMemo(() => getFeedbackTemplates(), []);
+  // 피드백 템플릿 목록 (API)
+  const [templates, setTemplates] = useState<FeedbackTemplateListRes[]>([]);
+  useEffect(() => {
+    fetchFeedbackTemplateList().then(setTemplates).catch(() => setTemplates([]));
+  }, []);
 
   // 날짜: 선택된 날짜 또는 현재 과제 제출일
   const displayDate =
@@ -127,21 +146,18 @@ export function FeedbackWritePage() {
     if (stored?.feedbackText) {
       setFeedbackItems([{ id: '1', text: stored.feedbackText, isImportant: false }]);
       setStatus(stored.status);
-      return;
-    }
-    const defaultTpl = getDefaultFeedbackTemplate(subject);
-    if (defaultTpl?.content) {
-      setFeedbackItems([{ id: '1', text: defaultTpl.content, isImportant: false }]);
     }
   }, [menteeId, assignmentId, subject]);
 
-  const handleLoadTemplate = useCallback((content: string) => {
+  const handleLoadTemplate = useCallback(async (templateId: number) => {
+    const detail = await fetchFeedbackTemplateDetail(templateId);
+    if (!detail?.content) return;
     setFeedbackItems((prev) => {
       const newItems = [...prev];
       if (newItems.length > 0) {
-        newItems[0] = { ...newItems[0], text: content };
+        newItems[0] = { ...newItems[0], text: detail.content! };
       } else {
-        newItems.push({ id: '1', text: content, isImportant: false });
+        newItems.push({ id: '1', text: detail.content!, isImportant: false });
       }
       return newItems;
     });
@@ -456,12 +472,15 @@ export function FeedbackWritePage() {
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-sm font-medium text-foreground">
-                    <span className="flex h-5 w-5 items-center justify-center rounded bg-secondary/80 text-xs">
-                      📚
-                    </span>
-                    {subject || '국어'}
-                  </span>
+                  {(() => {
+                    const SubjectIcon = SUBJECT_ICONS[subject] ?? Hexagon;
+                    return (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-foreground/70">
+                        <SubjectIcon className="h-3.5 w-3.5" />
+                        {subject || '국어'}
+                      </span>
+                    );
+                  })()}
                 </div>
                 <span className="text-sm text-muted-foreground">{displayDateFormatted}</span>
               </div>
@@ -549,56 +568,51 @@ export function FeedbackWritePage() {
         </div>
       </div>
 
-      {templateModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setTemplateModalOpen(false)}
-        >
-          <div
-            className="max-h-[80vh] w-full max-w-md overflow-hidden rounded-xl bg-white shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="border-b border-border/50 p-4">
-              <h3 className="font-semibold text-foreground">피드백 템플릿 불러오기</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                잘한 점, 보완할 점 등 템플릿을 선택하세요
-              </p>
+      <Dialog open={templateModalOpen} onClose={() => setTemplateModalOpen(false)} maxWidth="max-w-md">
+        <DialogHeader onClose={() => setTemplateModalOpen(false)}>
+          <h2 className="text-lg font-semibold text-foreground">피드백 템플릿 불러오기</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            잘한 점, 보완할 점 등 템플릿을 선택하세요
+          </p>
+        </DialogHeader>
+        <DialogBody className="max-h-96 overflow-y-auto">
+          {templates.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              등록된 템플릿이 없습니다
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {templates.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => t.id != null && handleLoadTemplate(t.id)}
+                  className="w-full rounded-lg border border-border/50 bg-white p-3 text-left text-sm hover:bg-secondary/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-foreground">{t.name}</p>
+                    {t.subject && (
+                      <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[11px] text-foreground/50">
+                        {getSubjectLabel(t.subject)}
+                      </span>
+                    )}
+                  </div>
+                  {t.preview && (
+                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                      {t.preview}
+                    </p>
+                  )}
+                </button>
+              ))}
             </div>
-            <div className="max-h-96 overflow-y-auto p-4">
-              {templates.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                  해당 과목 템플릿이 없습니다
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {templates.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => handleLoadTemplate(t.content)}
-                      className="w-full rounded-lg border border-border/50 bg-white p-3 text-left text-sm hover:bg-secondary/50"
-                    >
-                      <p className="font-medium text-foreground">{t.name}</p>
-                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                        {t.content.slice(0, 80)}...
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="border-t border-border/50 p-4">
-              <Button
-                variant="outline"
-                onClick={() => setTemplateModalOpen(false)}
-                className="w-full"
-              >
-                닫기
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+          )}
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={() => setTemplateModalOpen(false)}>
+            닫기
+          </Button>
+        </DialogFooter>
+      </Dialog>
     </div>
   );
 }
