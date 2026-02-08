@@ -32,6 +32,7 @@ import { MOCK_MENTEE_TASKS } from '@/data/menteeDetailMock';
 import { useIncompleteAssignments, useMenteeKpi } from '@/hooks/useMenteeDetail';
 import { useMentees } from '@/hooks/useMentees';
 import { getTodayDateStr } from '@/lib/dateUtils';
+import { uploadFileViaPreAuthenticatedUrl } from '@/lib/storageUpload';
 import { cn } from '@/lib/utils';
 import { getMaterialsByIds, useLearningGoalStore } from '@/stores/useLearningGoalStore';
 
@@ -91,9 +92,9 @@ export function AssignmentRegisterPage() {
   const { data: incompleteAssignments = [] } = useIncompleteAssignments(form.menteeId);
   const [editorKey, setEditorKey] = useState(0);
   const [descriptionKey, setDescriptionKey] = useState(0);
-  const [uploadedFiles, setUploadedFiles] = useState<{ id: string; name: string; size: string }[]>(
-    [],
-  );
+  const [uploadedFiles, setUploadedFiles] = useState<
+    { id: string; name: string; size: string; file: File }[]
+  >([]);
 
   // UI 상태
   const [materialTab, setMaterialTab] = useState<'column' | 'pdf'>('column');
@@ -121,7 +122,10 @@ export function AssignmentRegisterPage() {
   }, [urlMenteeId]);
 
   // 파생 데이터 (useMemo로 컴포넌트 내에서 계산)
-  const allLearningGoals = useMemo(() => getGoalsByMentor(CURRENT_MENTOR_ID), [_storeGoals, getGoalsByMentor]);
+  const allLearningGoals = useMemo(
+    () => getGoalsByMentor(CURRENT_MENTOR_ID),
+    [_storeGoals, getGoalsByMentor],
+  );
   const learningGoals = useMemo(
     () => allLearningGoals.filter((g) => g.subject === form.subject),
     [allLearningGoals, form.subject],
@@ -247,6 +251,7 @@ export function AssignmentRegisterPage() {
         id: `upload-${Date.now()}-${f.name}`,
         name: f.name,
         size: `${(f.size / 1024).toFixed(1)} KB`,
+        file: f,
       })),
     ]);
     e.target.value = '';
@@ -279,6 +284,17 @@ export function AssignmentRegisterPage() {
     setIsSubmitting(true);
 
     try {
+      // 파일 업로드
+      let fileUrls: string[] | undefined;
+      if (uploadedFiles.length > 0) {
+        const uploads = await Promise.all(
+          uploadedFiles.map((f) =>
+            uploadFileViaPreAuthenticatedUrl({ file: f.file, fileName: `assignments/${f.name}` }),
+          ),
+        );
+        fileUrls = uploads.map((u) => u.uploadUrl);
+      }
+
       const result = await registerAssignment({
         menteeId: form.menteeId,
         dateMode: form.dateMode,
@@ -293,6 +309,7 @@ export function AssignmentRegisterPage() {
         subject: form.subject,
         description: form.description.trim() || undefined,
         content: form.columnContent.trim() || undefined,
+        fileUrls,
       });
 
       if (result.success) {
@@ -459,7 +476,8 @@ export function AssignmentRegisterPage() {
                   <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-foreground/70">
                     {incompleteAssignments.map((a) => (
                       <li key={a.id}>
-                        {a.title} ({a.subject}{a.deadlineDate ? ` · ${a.deadlineDate}` : ''})
+                        {a.title} ({a.subject}
+                        {a.deadlineDate ? ` · ${a.deadlineDate}` : ''})
                       </li>
                     ))}
                   </ul>
@@ -478,7 +496,6 @@ export function AssignmentRegisterPage() {
               placeholder="예: 2월 15일 수학 미적분 학습"
               value={form.title}
               onChange={(e) => updateForm('title', e.target.value)}
-              className="h-10"
             />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -486,7 +503,11 @@ export function AssignmentRegisterPage() {
                 <DefaultSelect
                   value={form.subject}
                   onValueChange={(v) => {
-                    setForm((prev) => ({ ...prev, subject: v as MainSubject, improvementPointId: '' }));
+                    setForm((prev) => ({
+                      ...prev,
+                      subject: v as MainSubject,
+                      improvementPointId: '',
+                    }));
                   }}
                   placeholder="과목을 선택하세요"
                   className="mt-1.5"
