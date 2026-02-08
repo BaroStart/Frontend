@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import {
@@ -17,7 +17,7 @@ import {
   Upload,
 } from 'lucide-react';
 
-import { fetchAssignmentMaterials } from '@/api/assignments';
+import { fetchAssignmentMaterials, fetchTemplateFileList } from '@/api/assignments';
 import {
   createTemplate,
   deleteTemplate,
@@ -46,6 +46,7 @@ import {
 import type {
   AssignmentTemplateCreateReqSubjectEnum,
   AssignmentTemplateDetailRes,
+  AssignmentTemplateFileListRes,
   AssignmentTemplateListRes,
 } from '@/generated';
 
@@ -579,7 +580,6 @@ export function AssignmentManagePage() {
             {goalModal.open && (
               <LearningGoalModal
                 goal={goalModal.editing}
-                materials={materials}
                 onSave={handleSaveGoal}
                 onClose={() => setGoalModal({ open: false, editing: null })}
               />
@@ -1058,12 +1058,10 @@ function LearningGoalCard({
 // 과제 목표 모달
 function LearningGoalModal({
   goal,
-  materials,
   onSave,
   onClose,
 }: {
   goal: AssignmentTemplateDetailRes | null;
-  materials: MaterialMeta[];
   onSave: (data: {
     subject: string;
     name: string;
@@ -1076,26 +1074,44 @@ function LearningGoalModal({
     goal?.subject ? getSubjectLabel(goal.subject) : '국어',
   );
 
+  // 템플릿 학습자료 목록 (API)
+  const [templateFiles, setTemplateFiles] = useState<AssignmentTemplateFileListRes[]>([]);
+  const [filesLoading, setFilesLoading] = useState(false);
+
+  const loadFiles = useCallback(() => {
+    setFilesLoading(true);
+    fetchTemplateFileList()
+      .then(setTemplateFiles)
+      .catch(() => setTemplateFiles([]))
+      .finally(() => setFilesLoading(false));
+  }, []);
+
+  useEffect(() => {
+    loadFiles();
+  }, [loadFiles]);
+
   // 수정 시: 기존 파일 URL 목록으로 초기 선택 복원
-  const [selectedIds, setSelectedIds] = useState<string[]>(() => {
-    if (!goal?.files?.length) return [];
-    const existingUrls = new Set(goal.files.map((f) => f.url));
-    return materials.filter((m) => m.fileUrl && existingUrls.has(m.fileUrl)).map((m) => m.id);
+  const [selectedUrls, setSelectedUrls] = useState<Set<string>>(() => {
+    if (!goal?.files?.length) return new Set();
+    return new Set(goal.files.map((f) => f.url).filter(Boolean) as string[]);
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    const files = materials
-      .filter((m) => selectedIds.includes(m.id) && m.fileUrl)
-      .map((m) => ({ fileName: m.fileName, url: m.fileUrl! }));
+    const files = templateFiles
+      .filter((f) => f.url && selectedUrls.has(f.url))
+      .map((f) => ({ fileName: f.fileName ?? '', url: f.url! }));
     onSave({ subject, name: name.trim(), files });
   };
 
-  const toggleMaterial = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((mid) => mid !== id) : [...prev, id],
-    );
+  const toggleFile = (url: string) => {
+    setSelectedUrls((prev) => {
+      const next = new Set(prev);
+      if (next.has(url)) next.delete(url);
+      else next.add(url);
+      return next;
+    });
   };
 
   return (
@@ -1131,34 +1147,38 @@ function LearningGoalModal({
           <div>
             <label className="mb-2 block text-sm font-medium text-foreground/80">추가자료</label>
             <div className="max-h-40 overflow-y-auto rounded-lg border border-border">
-              {materials.length === 0 ? (
+              {filesLoading ? (
+                <p className="p-4 text-center text-sm text-foreground/60">
+                  학습자료를 불러오는 중...
+                </p>
+              ) : templateFiles.length === 0 ? (
                 <p className="p-4 text-center text-sm text-foreground/60">
                   등록된 학습자료가 없습니다
                 </p>
               ) : (
                 <div className="divide-y divide-border/50">
-                  {materials.map((mat) => (
-                    <label
-                      key={mat.id}
-                      className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-secondary/50"
-                    >
-                      <Checkbox
-                        checked={selectedIds.includes(mat.id)}
-                        onCheckedChange={() => toggleMaterial(mat.id)}
-                      />
-                      <div className="flex flex-1 items-center gap-2">
-                        <span className="text-sm">{mat.title}</span>
-                        <span className="rounded bg-secondary px-1.5 py-0.5 text-xs text-foreground/60">
-                          {mat.subject}
-                        </span>
-                        {mat.source === 'seolstudy' && (
-                          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">
-                            설스터디
-                          </span>
-                        )}
-                      </div>
-                    </label>
-                  ))}
+                  {templateFiles.map((file) => {
+                    const url = file.url ?? '';
+                    return (
+                      <label
+                        key={url}
+                        className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-secondary/50"
+                      >
+                        <Checkbox
+                          checked={selectedUrls.has(url)}
+                          onCheckedChange={() => toggleFile(url)}
+                        />
+                        <div className="flex flex-1 items-center gap-2">
+                          <span className="text-sm">{file.fileName}</span>
+                          {file.subject && (
+                            <span className="rounded bg-secondary px-1.5 py-0.5 text-xs text-foreground/60">
+                              {getSubjectLabel(file.subject)}
+                            </span>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
               )}
             </div>

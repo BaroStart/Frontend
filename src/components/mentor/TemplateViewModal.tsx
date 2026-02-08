@@ -1,8 +1,11 @@
-import { BookOpen, Calculator, FileText, Hexagon } from 'lucide-react';
+import { BookOpen, Calculator, Calendar, FileText, Hash, Hexagon } from 'lucide-react';
+
+import type { FeedbackTemplateRes } from '@/generated';
+import { formatDateTime } from '@/lib/dateUtils';
+import { getSubjectLabel } from '@/lib/subjectLabels';
 
 import { Button } from '@/components/ui/Button';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/Dialog';
-import type { FeedbackTemplate } from '@/lib/feedbackTemplateStorage';
 
 const SUBJECT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   국어: BookOpen,
@@ -15,31 +18,68 @@ export function TemplateViewModal({
   template,
   onClose,
 }: {
-  template: FeedbackTemplate;
+  template: FeedbackTemplateRes;
   onClose: () => void;
 }) {
-  const SubjectIcon = SUBJECT_ICONS[template.subject] ?? Hexagon;
+  const subjectLabel = getSubjectLabel(template.subject);
+  const SubjectIcon = SUBJECT_ICONS[subjectLabel] ?? Hexagon;
+
+  const meta = [
+    subjectLabel
+      ? {
+          icon: SubjectIcon,
+          label: subjectLabel,
+        }
+      : null,
+    template.createdAt
+      ? {
+          icon: Calendar,
+          label: formatDateTime(template.createdAt),
+        }
+      : null,
+    template.usageCount != null
+      ? {
+          icon: Hash,
+          label: `${template.usageCount}회 사용`,
+        }
+      : null,
+  ].filter(Boolean) as { icon: React.ComponentType<{ className?: string }>; label: string }[];
 
   return (
     <Dialog open onClose={onClose}>
       <DialogHeader onClose={onClose}>
         <h2 className="text-lg font-semibold text-foreground">{template.name}</h2>
-        <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
-          <SubjectIcon className="h-3.5 w-3.5" />
-          {template.subject}
-        </span>
       </DialogHeader>
-      <DialogBody>
-        <div className="rounded-lg bg-secondary/50 p-4">
-          <p className="whitespace-pre-wrap text-sm text-foreground/80">{template.content}</p>
-        </div>
-        <div className="mt-4 flex justify-between text-xs text-foreground/50">
-          <span>생성일: {template.createdAt.replace(/-/g, '.')}</span>
-          <span>사용 횟수: {template.useCount}회</span>
-        </div>
+      <DialogBody className="space-y-4">
+        {meta.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {meta.map(({ icon: Icon, label }) => (
+              <span
+                key={label}
+                className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-sm font-medium text-foreground/60"
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {template.content && (
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-foreground/40">
+              본문
+            </p>
+            <div className="rounded-lg border border-border/50 bg-secondary/30 p-4">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
+                {template.content}
+              </p>
+            </div>
+          </div>
+        )}
       </DialogBody>
       <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
+        <Button variant="outline" size="sm" onClick={onClose}>
           닫기
         </Button>
       </DialogFooter>

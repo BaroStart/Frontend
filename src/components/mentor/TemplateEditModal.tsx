@@ -1,36 +1,32 @@
 import { useState } from 'react';
 
+import type { FeedbackTemplateRes } from '@/generated';
+import { getSubjectLabel } from '@/lib/subjectLabels';
+
 import { Button } from '@/components/ui/Button';
 import { Dialog, DialogFooter, DialogHeader } from '@/components/ui/Dialog';
 import { FilterTabs } from '@/components/ui/FilterTabs';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
-import { DEFAULT_TEMPLATE_CONTENT, type FeedbackTemplate } from '@/lib/feedbackTemplateStorage';
 
 export function TemplateEditModal({
   template,
   onClose,
   onSave,
 }: {
-  template: FeedbackTemplate | null;
+  template: FeedbackTemplateRes | null;
   onClose: () => void;
-  onSave: (
-    t: Omit<FeedbackTemplate, 'useCount'> & { useCount?: number; isDefault?: boolean },
-  ) => void;
+  onSave: (data: { name: string; subject: string; content: string }) => void;
 }) {
   const [name, setName] = useState(template?.name ?? '');
-  const [subject, setSubject] = useState<FeedbackTemplate['subject']>(template?.subject ?? '국어');
-  const [content, setContent] = useState(template?.content ?? DEFAULT_TEMPLATE_CONTENT);
+  const [subject, setSubject] = useState(
+    template?.subject ? getSubjectLabel(template.subject) : '국어',
+  );
+  const [content, setContent] = useState(template?.content ?? '');
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !content.trim()) return;
-    onSave({
-      id: template?.id ?? `t-${Date.now()}`,
-      name: name.trim(),
-      subject,
-      content: content.trim(),
-      createdAt: template?.createdAt ?? new Date().toISOString().split('T')[0],
-      useCount: template?.useCount ?? 0,
-    });
+    onSave({ name: name.trim(), subject, content: content.trim() });
   };
 
   return (
@@ -45,7 +41,7 @@ export function TemplateEditModal({
         <div className="space-y-5 px-6 py-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground/80">
-              템플릿 명칭 <span className="text-red-500">*</span>
+              템플릿명 <span className="text-red-500">*</span>
             </label>
             <input
               type="text"

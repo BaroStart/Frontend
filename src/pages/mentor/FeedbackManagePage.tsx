@@ -5,18 +5,23 @@ import {
   BarChart3,
   BookOpen,
   Calculator,
-  ChevronLeft,
-  ChevronRight,
-  Download,
   Edit,
   Eye,
   FileText,
   Hexagon,
+  Inbox,
   List,
   Plus,
   Trash2,
 } from 'lucide-react';
 
+import {
+  createFeedbackTemplate,
+  deleteFeedbackTemplateById,
+  fetchFeedbackTemplateDetail,
+  fetchFeedbackTemplateList,
+  updateFeedbackTemplate,
+} from '@/api/feedbackTemplates';
 import { LearningAnalyticsSection } from '@/components/mentor/LearningAnalyticsSection';
 import { TemplateEditModal } from '@/components/mentor/TemplateEditModal';
 import { TemplateViewModal } from '@/components/mentor/TemplateViewModal';
@@ -24,22 +29,17 @@ import { Button } from '@/components/ui/Button';
 import { FilterTabs } from '@/components/ui/FilterTabs';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Tabs } from '@/components/ui/tabs';
+import type {
+  FeedbackTemplateCreateReqSubjectEnum,
+  FeedbackTemplateListRes,
+  FeedbackTemplateRes,
+} from '@/generated';
 import { useMentees } from '@/hooks/useMentees';
 import { useSubmittedAssignments } from '@/hooks/useSubmittedAssignments';
-import {
-  formatDeadline,
-  formatRemainingTime,
-  getDeadlineStatus,
-  getRemainingMs,
-} from '@/lib/feedbackDeadline';
-import {
-  deleteFeedbackTemplate,
-  deleteFeedbackTemplates,
-  type FeedbackTemplate,
-  getFeedbackTemplates,
-  saveFeedbackTemplate,
-} from '@/lib/feedbackTemplateStorage';
+import { formatDateTime } from '@/lib/dateUtils';
+import { getDeadlineStatus, getRemainingMs } from '@/lib/feedbackDeadline';
 import { getAllCompletedFeedback } from '@/lib/mentorFeedbackStorage';
+import { getSubjectEnum, getSubjectLabel } from '@/lib/subjectLabels';
 
 type TabType = 'feedback' | 'templates' | 'analytics';
 
@@ -50,32 +50,33 @@ const SUBJECT_ICONS: Record<string, React.ComponentType<{ className?: string }>>
   공통: Hexagon,
 };
 
-const FEEDBACK_TABLE_HEADERS = ['상태', '과목', '과제명', '멘티', '제출일', '마감', '관리'];
-const TEMPLATE_TABLE_HEADERS = ['템플릿명', '과목', '미리보기', '생성일', '사용 횟수', '관리'];
+const FEEDBACK_TABLE_HEADERS = ['과제명', '과목', '멘티', '제출일', '마감', '관리'];
+const TEMPLATE_TABLE_HEADERS = ['템플릿명', '과목', '미리보기', '생성일', '관리'];
 
 export function FeedbackManagePage() {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>('feedback');
-  const [templates, setTemplates] = useState<FeedbackTemplate[]>([]);
+  const [templates, setTemplates] = useState<FeedbackTemplateListRes[]>([]);
   const [subjectFilter, setSubjectFilter] = useState<string>('전체');
   const [templateSearch, setTemplateSearch] = useState('');
-  const [feedbackStatusFilter, setFeedbackStatusFilter] = useState<'all' | 'pending' | 'completed'>(
-    'all',
-  );
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [currentPage, setCurrentPage] = useState(1);
-  // 모달 상태 통합: null | create | edit | view
+  const [feedbackStatusFilter, setFeedbackStatusFilter] = useState<
+    'all' | 'pending' | 'completed' | 'overdue'
+  >('all');
+  // 모달 상태 통합: null | create | edit | view (edit/view는 상세 조회 후 열림)
   const [templateModal, setTemplateModal] = useState<
     | null
     | { mode: 'create' }
-    | { mode: 'edit'; template: FeedbackTemplate }
-    | { mode: 'view'; template: FeedbackTemplate }
+    | { mode: 'edit'; template: FeedbackTemplateRes }
+    | { mode: 'view'; template: FeedbackTemplateRes }
   >(null);
 
-  const PAGE_SIZE = 8;
 
   const { data: submittedAssignments = [] } = useSubmittedAssignments();
   const { data: mentees = [] } = useMentees();
+
+  const loadTemplates = () => {
+    fetchFeedbackTemplateList().then(setTemplates).catch(() => setTemplates([]));
+  };
 
   // 초기화: URL 탭 + 템플릿 로드
   useEffect(() => {
@@ -83,7 +84,7 @@ export function FeedbackManagePage() {
     if (tabParam && ['feedback', 'templates', 'analytics'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
-    setTemplates(getFeedbackTemplates());
+    loadTemplates();
   }, [searchParams]);
 
   const pendingFeedback = submittedAssignments
@@ -107,56 +108,16 @@ export function FeedbackManagePage() {
   ];
 
   const filteredTemplates = templates.filter((t) => {
-    const matchSubject = subjectFilter === '전체' || t.subject === subjectFilter;
+    const label = getSubjectLabel(t.subject);
+    const matchSubject = subjectFilter === '전체' || label === subjectFilter;
     const q = templateSearch.trim().toLowerCase();
     const matchSearch =
-      !q || t.name.toLowerCase().includes(q) || t.content.toLowerCase().includes(q);
+      !q ||
+      (t.name ?? '').toLowerCase().includes(q) ||
+      (t.preview ?? '').toLowerCase().includes(q);
     return matchSubject && matchSearch;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filteredTemplates.length / PAGE_SIZE));
-  const paginatedTemplates = filteredTemplates.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
-  );
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedIds(new Set(paginatedTemplates.map((t) => t.id)));
-    } else {
-      setSelectedIds(new Set());
-    }
-  };
-
-  const handleSelectOne = (id: string, checked: boolean) => {
-    const next = new Set(selectedIds);
-    if (checked) next.add(id);
-    else next.delete(id);
-    setSelectedIds(next);
-  };
-
-  const handleBulkDelete = () => {
-    if (selectedIds.size === 0) return;
-    if (window.confirm(`선택한 ${selectedIds.size}개 템플릿을 삭제하시겠습니까?`)) {
-      deleteFeedbackTemplates(Array.from(selectedIds));
-      setSelectedIds(new Set());
-      setTemplates(getFeedbackTemplates());
-      setCurrentPage(1);
-    }
-  };
-
-  const handleExport = () => {
-    const toExport =
-      selectedIds.size > 0 ? templates.filter((t) => selectedIds.has(t.id)) : templates;
-    const text = toExport.map((t) => `[${t.subject}] ${t.name}\n${t.content}\n---`).join('\n\n');
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `피드백템플릿_${new Date().toISOString().slice(0, 10)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   return (
     <div className="min-w-0">
@@ -185,17 +146,13 @@ export function FeedbackManagePage() {
                     id: 'all' as const,
                     label: `전체 (${pendingFeedback.length + completedStoredFeedback.length})`,
                   },
-                  { id: 'pending' as const, label: `작성 대기 (${pendingFeedback.length})` },
+                  { id: 'pending' as const, label: `대기 (${pendingFeedback.length - overdueCount})` },
                   { id: 'completed' as const, label: `완료 (${completedStoredFeedback.length})` },
+                  { id: 'overdue' as const, label: `마감 (${overdueCount})` },
                 ]}
                 value={feedbackStatusFilter}
                 onChange={setFeedbackStatusFilter}
               />
-              {overdueCount > 0 && (
-                <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">
-                  마감 초과 {overdueCount}건
-                </span>
-              )}
             </div>
 
             <div className="overflow-hidden rounded-xl border border-border/50">
@@ -206,7 +163,7 @@ export function FeedbackManagePage() {
                       {FEEDBACK_TABLE_HEADERS.map((header) => (
                         <th
                           key={header}
-                          className="px-5 py-3 text-left text-xs font-semibold text-foreground/60"
+                          className="px-5 py-3 text-left text-sm font-semibold text-foreground/60"
                         >
                           {header}
                         </th>
@@ -214,62 +171,61 @@ export function FeedbackManagePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(feedbackStatusFilter === 'all' || feedbackStatusFilter === 'pending') &&
-                      pendingFeedback.map((assignment) => {
-                        const mentee = mentees.find((m) => m.id === assignment.menteeId);
-                        const deadlineStatus = getDeadlineStatus(assignment.submittedAt);
-                        const remainingMs = getRemainingMs(assignment.submittedAt);
-                        const statusBadge =
-                          deadlineStatus === 'overdue' ? (
-                            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                              마감 초과
-                            </span>
-                          ) : deadlineStatus === 'urgent' ? (
-                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                              {formatRemainingTime(remainingMs)} 남음
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/60">
-                              {formatDeadline(assignment.submittedAt)}까지
-                            </span>
-                          );
-                        return (
-                          <tr
-                            key={assignment.id}
-                            className={`border-b border-border/50 transition-colors hover:bg-secondary/30 ${
-                              deadlineStatus === 'urgent' ? 'bg-amber-50/30' : ''
-                            }`}
-                          >
-                            <td className="px-5 py-3">
+                    {(feedbackStatusFilter === 'all' ||
+                      feedbackStatusFilter === 'pending' ||
+                      feedbackStatusFilter === 'overdue') &&
+                      pendingFeedback
+                        .filter((a) => {
+                          const status = getDeadlineStatus(a.submittedAt);
+                          if (feedbackStatusFilter === 'overdue') return status === 'overdue';
+                          if (feedbackStatusFilter === 'pending') return status !== 'overdue';
+                          return true;
+                        })
+                        .map((assignment) => {
+                          const mentee = mentees.find((m) => m.id === assignment.menteeId);
+                          const deadlineStatus = getDeadlineStatus(assignment.submittedAt);
+                          const deadlineBadge =
+                            deadlineStatus === 'overdue' ? (
+                              <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                                마감
+                              </span>
+                            ) : (
                               <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
                                 대기
                               </span>
-                            </td>
-                            <td className="px-5 py-3">
-                              <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
-                                {assignment.subject}
-                              </span>
-                            </td>
-                            <td className="px-5 py-3 text-sm font-semibold text-foreground">
-                              {assignment.title}
-                            </td>
-                            <td className="px-5 py-3 text-sm text-foreground/70">
-                              {mentee?.name ?? '-'}
-                            </td>
-                            <td className="px-5 py-3 text-sm text-foreground/50">
-                              {assignment.submittedAt}
-                            </td>
-                            <td className="px-5 py-3">{statusBadge}</td>
-                            <td className="px-5 py-3">
-                              <Link
-                                to={`/mentor/mentees/${assignment.menteeId}/feedback/${assignment.id}`}
-                              >
-                                <Button size="sm">피드백 작성</Button>
-                              </Link>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                            );
+                          const SubjectIcon = SUBJECT_ICONS[assignment.subject] ?? Hexagon;
+                          return (
+                            <tr
+                              key={assignment.id}
+                              className="border-b border-border/50 transition-colors hover:bg-secondary/30"
+                            >
+                              <td className="px-5 py-3 text-sm font-semibold text-foreground">
+                                {assignment.title}
+                              </td>
+                              <td className="px-5 py-3">
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
+                                  <SubjectIcon className="h-3.5 w-3.5" />
+                                  {assignment.subject}
+                                </span>
+                              </td>
+                              <td className="px-5 py-3 text-sm text-foreground/70">
+                                {mentee?.name ?? '-'}
+                              </td>
+                              <td className="px-5 py-3 text-sm text-foreground/50">
+                                {assignment.submittedAt}
+                              </td>
+                              <td className="px-5 py-3">{deadlineBadge}</td>
+                              <td className="px-5 py-3">
+                                <Link
+                                  to={`/mentor/mentees/${assignment.menteeId}/feedback/${assignment.id}`}
+                                >
+                                  <Button size="sm">피드백 작성</Button>
+                                </Link>
+                              </td>
+                            </tr>
+                          );
+                        })}
 
                     {(feedbackStatusFilter === 'all' || feedbackStatusFilter === 'completed') &&
                       completedStoredFeedback.map((stored) => {
@@ -279,20 +235,19 @@ export function FeedbackManagePage() {
                             key={`${stored.menteeId}-${stored.assignmentId}`}
                             className="border-b border-border/50 transition-colors hover:bg-secondary/30"
                           >
-                            <td className="px-5 py-3">
-                              <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                                완료
-                              </span>
-                            </td>
-                            <td className="px-5 py-3">
-                              {stored.subject && (
-                                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
-                                  {stored.subject}
-                                </span>
-                              )}
-                            </td>
                             <td className="px-5 py-3 text-sm font-semibold text-foreground">
                               {stored.assignmentTitle ?? '과제'}
+                            </td>
+                            <td className="px-5 py-3">
+                              {stored.subject && (() => {
+                                const StoredSubjectIcon = SUBJECT_ICONS[stored.subject] ?? Hexagon;
+                                return (
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
+                                    <StoredSubjectIcon className="h-3.5 w-3.5" />
+                                    {stored.subject}
+                                  </span>
+                                );
+                              })()}
                             </td>
                             <td className="px-5 py-3 text-sm text-foreground/70">
                               {mentee?.name ?? '-'}
@@ -324,19 +279,24 @@ export function FeedbackManagePage() {
               {((feedbackStatusFilter === 'all' &&
                 pendingFeedback.length === 0 &&
                 completedStoredFeedback.length === 0) ||
-                (feedbackStatusFilter === 'pending' && pendingFeedback.length === 0) ||
-                (feedbackStatusFilter === 'completed' && completedStoredFeedback.length === 0)) && (
-                <div className="flex min-h-[200px] flex-col items-center justify-center py-8">
-                  <FileText className="h-10 w-10 text-muted-foreground/30" />
-                  <p className="mt-3 text-sm text-foreground/60">
-                    {feedbackStatusFilter === 'pending'
-                      ? '작성 대기 중인 피드백이 없습니다.'
-                      : feedbackStatusFilter === 'completed'
-                        ? '완료된 피드백이 없습니다.'
-                        : '피드백이 없습니다.'}
-                  </p>
-                </div>
-              )}
+                (feedbackStatusFilter === 'pending' &&
+                  pendingFeedback.length - overdueCount === 0) ||
+                (feedbackStatusFilter === 'completed' && completedStoredFeedback.length === 0) ||
+                (feedbackStatusFilter === 'overdue' && overdueCount === 0)) &&
+                (() => {
+                  const emptyText = {
+                    all: '피드백이 없습니다.',
+                    pending: '대기 중인 피드백이 없습니다.',
+                    completed: '완료된 피드백이 없습니다.',
+                    overdue: '마감된 피드백이 없습니다.',
+                  }[feedbackStatusFilter];
+                  return (
+                    <div className="flex min-h-[200px] flex-col items-center justify-center py-8">
+                      <Inbox className="h-10 w-10 text-muted-foreground/30" />
+                      <p className="mt-3 text-sm text-foreground/60">{emptyText}</p>
+                    </div>
+                  );
+                })()}
             </div>
           </div>
         )}
@@ -350,63 +310,36 @@ export function FeedbackManagePage() {
                   label: sub,
                 }))}
                 value={subjectFilter}
-                onChange={(v) => {
-                  setSubjectFilter(v);
-                  setCurrentPage(1);
-                }}
+                onChange={setSubjectFilter}
               />
 
               <SearchInput
                 value={templateSearch}
-                onChange={(v) => {
-                  setTemplateSearch(v);
-                  setCurrentPage(1);
-                }}
+                onChange={setTemplateSearch}
                 placeholder="템플릿 검색..."
                 className="w-56"
               />
-
-              <div className="ml-auto flex items-center gap-2">
-                {selectedIds.size > 0 && (
-                  <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-foreground/60">
-                    선택 {selectedIds.size}개
-                  </span>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={Trash2}
-                  onClick={handleBulkDelete}
-                  disabled={selectedIds.size === 0}
-                >
-                  선택 삭제
-                </Button>
-                <Button variant="outline" size="sm" icon={Download} onClick={handleExport}>
-                  내보내기
-                </Button>
-              </div>
             </div>
 
+            {filteredTemplates.length === 0 ? (
+              <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl border border-border/50 py-8">
+                <Inbox className="h-10 w-10 text-muted-foreground/30" />
+                <p className="mt-3 text-sm text-foreground/60">
+                  {templateSearch || subjectFilter !== '전체'
+                    ? '검색 결과가 없습니다.'
+                    : '등록된 템플릿이 없습니다.'}
+                </p>
+              </div>
+            ) : (
             <div className="overflow-hidden rounded-xl border border-border/50">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[600px]">
                   <thead>
                     <tr className="border-b border-border bg-secondary/50">
-                      <th className="w-10 px-4 py-3 text-left">
-                        <input
-                          type="checkbox"
-                          checked={
-                            paginatedTemplates.length > 0 &&
-                            paginatedTemplates.every((t) => selectedIds.has(t.id))
-                          }
-                          onChange={(e) => handleSelectAll(e.target.checked)}
-                          className="rounded border-border"
-                        />
-                      </th>
                       {TEMPLATE_TABLE_HEADERS.map((header) => (
                         <th
                           key={header}
-                          className="px-4 py-3 text-left text-xs font-semibold text-foreground/60"
+                          className="px-4 py-3 text-left text-sm font-semibold text-foreground/60"
                         >
                           {header}
                         </th>
@@ -414,48 +347,52 @@ export function FeedbackManagePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedTemplates.map((template) => {
-                      const SubjectIcon = SUBJECT_ICONS[template.subject] ?? Hexagon;
+                    {filteredTemplates.map((template) => {
+                      const subjectLabel = getSubjectLabel(template.subject);
+                      const SubjectIcon = SUBJECT_ICONS[subjectLabel] ?? Hexagon;
+                      const handleView = async () => {
+                        if (template.id == null) return;
+                        const detail = await fetchFeedbackTemplateDetail(template.id);
+                        if (detail) setTemplateModal({ mode: 'view', template: detail });
+                      };
+                      const handleEdit = async () => {
+                        if (template.id == null) return;
+                        const detail = await fetchFeedbackTemplateDetail(template.id);
+                        if (detail) setTemplateModal({ mode: 'edit', template: detail });
+                      };
+                      const handleDelete = async () => {
+                        if (template.id == null) return;
+                        if (!window.confirm(`"${template.name}" 템플릿을 삭제하시겠습니까?`)) return;
+                        await deleteFeedbackTemplateById(template.id);
+                        loadTemplates();
+                      };
                       return (
                         <tr
                           key={template.id}
                           className="group border-b border-border/50 transition-colors hover:bg-secondary/30"
                         >
                           <td className="px-4 py-3">
-                            <input
-                              type="checkbox"
-                              checked={selectedIds.has(template.id)}
-                              onChange={(e) => handleSelectOne(template.id, e.target.checked)}
-                              className="rounded border-border"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
                             <p className="text-sm font-semibold text-foreground">{template.name}</p>
                           </td>
                           <td className="px-4 py-3">
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
                               <SubjectIcon className="h-3.5 w-3.5" />
-                              {template.subject}
+                              {subjectLabel}
                             </span>
                           </td>
                           <td className="max-w-[240px] px-4 py-3">
                             <p className="truncate text-sm text-foreground/60">
-                              {template.content}
+                              {template.preview}
                             </p>
                           </td>
                           <td className="px-4 py-3 text-sm text-foreground/50">
-                            {template.createdAt.replace(/-/g, '.')}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-foreground/60">
-                            <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
-                              {template.useCount}회
-                            </span>
+                            {formatDateTime(template.createdAt)}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1 opacity-70 transition-opacity group-hover:opacity-100">
                               <button
                                 type="button"
-                                onClick={() => setTemplateModal({ mode: 'view', template })}
+                                onClick={handleView}
                                 className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
                                 title="보기"
                               >
@@ -463,7 +400,7 @@ export function FeedbackManagePage() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => setTemplateModal({ mode: 'edit', template })}
+                                onClick={handleEdit}
                                 className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
                                 title="편집"
                               >
@@ -471,14 +408,7 @@ export function FeedbackManagePage() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (
-                                    window.confirm(`"${template.name}" 템플릿을 삭제하시겠습니까?`)
-                                  ) {
-                                    deleteFeedbackTemplate(template.id);
-                                    setTemplates(getFeedbackTemplates());
-                                  }
-                                }}
+                                onClick={handleDelete}
                                 className="rounded p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
                                 title="삭제"
                               >
@@ -493,51 +423,8 @@ export function FeedbackManagePage() {
                 </table>
               </div>
 
-              <div className="flex flex-col gap-4 border-t border-border bg-secondary/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-foreground/60">
-                    {(currentPage - 1) * PAGE_SIZE + 1}-
-                    {Math.min(currentPage * PAGE_SIZE, filteredTemplates.length)} of{' '}
-                    {filteredTemplates.length}
-                  </span>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage <= 1}
-                      className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
-                      const page = i + 1;
-                      return (
-                        <button
-                          key={page}
-                          type="button"
-                          onClick={() => setCurrentPage(page)}
-                          className={`min-w-[32px] rounded px-2 py-1.5 text-sm font-medium ${
-                            currentPage === page
-                              ? 'bg-foreground text-white'
-                              : 'text-foreground/60 hover:bg-secondary'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={currentPage >= totalPages}
-                      className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
             </div>
+            )}
           </div>
         )}
 
@@ -552,10 +439,19 @@ export function FeedbackManagePage() {
         <TemplateEditModal
           template={templateModal.mode === 'edit' ? templateModal.template : null}
           onClose={() => setTemplateModal(null)}
-          onSave={(t) => {
-            saveFeedbackTemplate(t);
-            setTemplates(getFeedbackTemplates());
+          onSave={async ({ name, subject, content }) => {
+            const subjectEnum = getSubjectEnum(subject) as FeedbackTemplateCreateReqSubjectEnum;
+            if (templateModal.mode === 'edit' && templateModal.template.id != null) {
+              await updateFeedbackTemplate(templateModal.template.id, {
+                name,
+                subject: subjectEnum,
+                content,
+              });
+            } else {
+              await createFeedbackTemplate({ name, subject: subjectEnum, content });
+            }
             setTemplateModal(null);
+            loadTemplates();
           }}
         />
       )}

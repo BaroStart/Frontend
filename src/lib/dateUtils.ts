@@ -44,6 +44,19 @@ export const formatDisplayDate = (dateStr: string) => {
 
 export const formatDateDot = (dateStr: string) => dateStr.replace(/-/g, '.');
 
+/** ISO datetime → "2026.02.08 22:34" (날짜 + 시:분) */
+export const formatDateTime = (raw?: string | null): string => {
+  if (!raw) return '';
+  const date = new Date(raw);
+  if (isNaN(date.getTime())) return raw;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${y}.${m}.${d} ${h}:${min}`;
+};
+
 export const formatDateDash = (dateStr: string) => dateStr.replace(/\./g, '-');
 
 /** 주간 보기 형식: "2월 1일 ~ 2월 7일" */
