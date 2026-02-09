@@ -8,6 +8,7 @@ import {
   ExampleAPIApi,
   FeedbackAPIApi,
   FeedbackTemplateAPIApi,
+  NotificationAPIApi,
   MenteeAPIApi,
   ObjectStorageAPIApi,
   ToDoAPIApi,
@@ -27,4 +28,5 @@ export const todosApi = new ToDoAPIApi(config, '', axiosInstance);
 export const assignmentTemplatesApi = new AssignmentTemplateAPIApi(config, '', axiosInstance);
 export const feedbacksApi = new FeedbackAPIApi(config, '', axiosInstance);
 export const feedbackTemplatesApi = new FeedbackTemplateAPIApi(config, '', axiosInstance);
+export const notificationsApi = new NotificationAPIApi(config, '', axiosInstance);
 export const assignmentTemplateFilesApi = new AssignmentTemplateFileAPIApi(config, '', axiosInstance);

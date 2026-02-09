@@ -4,11 +4,13 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { BadgeCelebrationOverlay } from '@/components/mentee/my/BadgeCelebrationOverlay';
 import { TabBar } from '@/components/mentee/TabBar';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useSSE } from '@/hooks/useSSE';
 import { markAttendance } from '@/lib/menteeActivityStorage';
 import { useAuthStore } from '@/stores/useAuthStore';
 
 export function MenteeLayout() {
   useDocumentTitle('설스터디 | 멘티 페이지');
+  useSSE();
   const { pathname } = useLocation();
   const isHome = pathname === '/mentee';
   const hideHeader = /^\/mentee\/assignments\/[^/]+$/.test(pathname);
