@@ -18,7 +18,7 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import { useTodoStore } from '@/stores/useTodoStore';
 
 export function MyPage() {
-  const { user: authUser } = useAuthStore();
+  const { user: authUser, logout } = useAuthStore();
   const [badgeDetail, setBadgeDetail] = useState<{ open: boolean; badge: Parameters<typeof BadgeDetailSheet>[0]['badge'] }>({
     open: false,
     badge: null,
@@ -338,6 +338,20 @@ export function MyPage() {
         badge={badgeDetail.badge}
         onClose={() => setBadgeDetail((prev) => ({ ...prev, open: false }))}
       />
+
+      {/* 로그아웃 */}
+      <section className="mt-8 mb-4">
+        <button
+          type="button"
+          onClick={() => {
+            logout();
+            window.location.href = '/';
+          }}
+          className="w-full rounded-lg border border-slate-100 bg-white py-3 text-[13px] font-medium text-slate-400 transition hover:bg-slate-50"
+        >
+          로그아웃
+        </button>
+      </section>
     </div>
   );
 }

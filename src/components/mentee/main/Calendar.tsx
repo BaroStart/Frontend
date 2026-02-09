@@ -88,37 +88,31 @@ function buildMonthCells(monthRef: Date): Cell[] {
   return cells;
 }
 
-function DotIndicator({ a, t, selected = false }: { a: number; t: number; selected?: boolean }) {
+function DotIndicator({ a, t }: { a: number; t: number }) {
   const hasA = a > 0;
   const hasT = t > 0;
 
   return (
-    <div className="mt-1.5 flex h-2 items-center justify-center gap-0.5">
+    <div className="mt-1 flex h-1.5 items-center justify-center gap-0.5">
       {hasA && (
-        <span
-          className={[
-            "h-1 w-1 shrink-0 rounded-full",
-            selected ? "bg-white/90" : "bg-[hsl(var(--brand))]",
-          ].join(" ")}
-        />
+        <span className="h-1 w-1 shrink-0 rounded-full bg-slate-700" />
       )}
       {hasT && (
-        <span
-          className={[
-            "h-1 w-1 shrink-0 rounded-full",
-            selected ? "bg-white/60" : "bg-slate-400",
-          ].join(" ")}
-        />
+        <span className="h-1 w-1 shrink-0 rounded-full bg-slate-300" />
       )}
     </div>
   );
 }
 
 
+const TODAY = new Date();
+const TODAY_KEY = toKeyLocal(TODAY);
+
 function DayCell({
   date,
   inMonth,
   selected,
+  isToday,
   a,
   t,
   onPick,
@@ -126,24 +120,25 @@ function DayCell({
   date: Date;
   inMonth: boolean;
   selected: boolean;
+  isToday: boolean;
   a: number;
   t: number;
   onPick: () => void;
 }) {
   const base =
-    "relative flex min-h-[44px] flex-col items-center justify-start rounded p-0.5 transition";
+    "relative flex min-h-[44px] flex-col items-center justify-start rounded-lg p-0.5 transition";
 
   if (!inMonth) {
     return (
       <button
         type="button"
         onClick={onPick}
-        className={`${base} bg-transparent hover:bg-slate-50/50`}
+        className={`${base} bg-transparent`}
       >
         <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full">
-          <span className="text-xs font-medium text-slate-300">{date.getDate()}</span>
+          <span className="text-xs font-medium text-slate-200">{date.getDate()}</span>
         </div>
-        <div className="mt-1.5 h-2" />
+        <div className="mt-1 h-1.5" />
       </button>
     );
   }
@@ -154,25 +149,32 @@ function DayCell({
       onClick={onPick}
       className={[base, "focus:outline-none"].join(" ")}
     >
-      <div className="group mt-0.5 flex h-7 w-7 items-center justify-center rounded-full transition">
+      <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full transition">
         <div
           className={[
             "flex h-full w-full items-center justify-center rounded-full transition",
-            selected ? "bg-[hsl(var(--brand))] text-white" : "bg-transparent",
-            !selected ? "group-hover:bg-slate-100" : "",
+            selected
+              ? "bg-slate-800 text-white"
+              : isToday
+                ? "ring-1 ring-slate-300 bg-transparent hover:bg-slate-50"
+                : "bg-transparent hover:bg-slate-50",
           ].join(" ")}
         >
           <span
             className={[
               "text-xs font-medium transition",
-              selected ? "text-white font-semibold" : "text-slate-700",
+              selected
+                ? "text-white font-semibold"
+                : isToday
+                  ? "text-slate-800 font-semibold"
+                  : "text-slate-600",
             ].join(" ")}
           >
             {date.getDate()}
           </span>
         </div>
       </div>
-      <DotIndicator a={a} t={t} selected={selected} />
+      <DotIndicator a={a} t={t} />
     </button>
   );
 }
@@ -204,26 +206,30 @@ export function Calendar({
       }));
 
   return (
-    <section className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm">
-      <div className="flex items-center justify-between">
+    <section className="rounded-xl border border-slate-100 bg-white p-3">
+      <div className="flex items-center justify-between px-1">
         <button
           type="button"
           onClick={() => setMonthRef(addMonths(monthRef, -1))}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
           aria-label="이전 달"
         >
-          ‹
+          <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4">
+            <path d="M10 4L6 8l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
 
-        <div className="text-sm font-bold tracking-tight text-slate-900">{monthLabel}</div>
+        <span className="text-sm font-semibold text-slate-700">{monthLabel}</span>
 
         <button
           type="button"
           onClick={() => setMonthRef(addMonths(monthRef, 1))}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
           aria-label="다음 달"
         >
-          ›
+          <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4">
+            <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
       </div>
 
@@ -249,6 +255,7 @@ export function Calendar({
               date={date}
               inMonth={inMonth}
               selected={selected}
+              isToday={key === TODAY_KEY}
               a={a}
               t={t}
               onPick={() => {
@@ -265,14 +272,20 @@ export function Calendar({
         })}
       </div>
 
-      <div className="mt-3 flex items-center justify-center">
+      <div className="mt-2 flex items-center justify-center">
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
           className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium text-slate-400 hover:bg-slate-50 hover:text-slate-600"
         >
           {expanded ? "주간 보기" : "월간 보기"}
-          <span className="text-[10px]">{expanded ? "▴" : "▾"}</span>
+          <svg viewBox="0 0 16 16" fill="none" className="h-3 w-3">
+            {expanded ? (
+              <path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            ) : (
+              <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            )}
+          </svg>
         </button>
       </div>
     </section>

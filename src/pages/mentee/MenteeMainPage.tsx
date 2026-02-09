@@ -71,8 +71,6 @@ export function MenteeMainPage() {
   const dateKey = `${selectedDate.getFullYear()}-${pad2(selectedDate.getMonth() + 1)}-${pad2(selectedDate.getDate())}`;
 
   useEffect(() => {
-    // 달력에서 날짜를 바꾸면, 해당 날짜의 할 일을 보여주도록 연결
-    // setTodoDate 내부에서 loadSelectedDate 호출 (API 모드일 때 오늘인 경우)
     void setTodoDate(dateKey);
   }, [dateKey, setTodoDate]);
 
@@ -89,7 +87,6 @@ export function MenteeMainPage() {
   };
 
   const assignmentsByDate = useMemo(() => {
-    // mock 멘티 계정(s1/s2)이 아니면 s1로 폴백
     const menteeId = user?.role === "mentee" && /^s\\d+$/i.test(user.id) ? user.id : "s1";
     const submittedById = user?.id ? getSubmittedAssignments(user.id) : {};
 
@@ -101,7 +98,6 @@ export function MenteeMainPage() {
         dateKey,
         title: a.title,
         status: isDone ? ("DONE" as const) : ("PENDING" as const),
-        // 목록 카드에서 PENDING은 dueAtText를 사용
         dueAtText: isDone ? undefined : a.deadline ?? "23:59",
       } satisfies AssignmentItem & { dateKey: string };
     });
@@ -124,8 +120,6 @@ export function MenteeMainPage() {
       meta[k].todoCount = list.length;
     }
 
-    // 실서버 모드에서는 store가 날짜별 todoByDate를 만들지 않으므로,
-    // 현재 선택된 날짜의 todoCount만이라도 표시(오늘인 경우)
     if (!API_CONFIG.useMock) {
       meta[dateKey] = meta[dateKey] ?? {};
       meta[dateKey].todoCount = todos.length;
@@ -172,53 +166,54 @@ export function MenteeMainPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white px-4 pt-4 pb-6">
-      {/* 1. 환영 영역: 미니멀 헤더 */}
+    <div className="flex flex-1 flex-col bg-slate-50/50 px-4 pt-4 pb-6">
+      {/* 환영 영역 */}
       <section className="mb-4 flex items-center justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900">
-            {menteeName}
+          <h1 className="text-lg font-semibold tracking-tight text-slate-900">
+            {menteeName}님
           </h1>
-          <p className="mt-0.5 text-sm text-slate-500">
+          <p className="mt-0.5 text-[13px] text-slate-400">
             {welcomeMessage}
           </p>
         </div>
-          <div className="flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setCommentOpen(true)}
-              aria-label="채팅"
-              className="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 active:scale-95"
-            >
-              <MessageCircle className="h-5 w-5 text-slate-500" strokeWidth={1.5} />
-            </button>
-            <CommentModal
-              open={commentOpen}
-              onClose={() => setCommentOpen(false)}
-              onSubmit={handleCommentSubmit}
-              onSendReply={handleSendReply}
-              thread={thread}
-            />
-            <button
-              type="button"
-              aria-label="프로필"
-              onClick={() => navigate("/mentee/mypage")}
-              className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-slate-500 transition hover:bg-slate-50 hover:opacity-90 active:scale-95"
-            >
-              {(getLocalProfileImage() || user?.profileImage) ? (
-                <img
-                  src={getLocalProfileImage() || user?.profileImage || ""}
-                  alt="프로필"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <UserIcon className="h-5 w-5" strokeWidth={1.5} />
-              )}
-            </button>
-          </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setCommentOpen(true)}
+            aria-label="오늘의 한마디 & 질문"
+            className="grid h-9 w-9 place-items-center rounded-full text-slate-400 transition hover:bg-white hover:text-slate-600 active:scale-95"
+          >
+            <MessageCircle className="h-5 w-5" strokeWidth={1.5} />
+          </button>
+          <button
+            type="button"
+            aria-label="프로필"
+            onClick={() => navigate("/mentee/mypage")}
+            className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-slate-400 transition hover:bg-white hover:opacity-90 active:scale-95"
+          >
+            {(getLocalProfileImage() || user?.profileImage) ? (
+              <img
+                src={getLocalProfileImage() || user?.profileImage || ""}
+                alt="프로필"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <UserIcon className="h-5 w-5" strokeWidth={1.5} />
+            )}
+          </button>
+        </div>
       </section>
 
-      {/* 3. 날짜 선택 - 카드형 섹션 */}
+      <CommentModal
+        open={commentOpen}
+        onClose={() => setCommentOpen(false)}
+        onSubmit={handleCommentSubmit}
+        onSendReply={handleSendReply}
+        thread={thread}
+      />
+
+      {/* 캘린더 */}
       <section className="mb-4">
         <Calendar
           value={selectedDate}
@@ -228,25 +223,25 @@ export function MenteeMainPage() {
         />
       </section>
 
-      {/* 4. 오늘의 학습 - 카드형 섹션 */}
-      <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-soft">
+      {/* 오늘의 학습 */}
+      <section className="rounded-xl border border-slate-100 bg-white p-4">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900">오늘의 학습</h2>
+          <h2 className="text-sm font-semibold text-slate-800">오늘의 학습</h2>
 
-          <div className="flex rounded-full border border-slate-200 bg-white p-1">
+          <div className="flex rounded-lg border border-slate-100 bg-slate-50 p-0.5">
             <button
               type="button"
               onClick={() => setViewMode("LIST")}
               className={[
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition",
+                "flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition",
                 viewMode === "LIST"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500",
+                  ? "bg-white text-slate-800 shadow-sm"
+                  : "text-slate-400",
               ].join(" ")}
               aria-pressed={viewMode === "LIST"}
               aria-label="목록 보기"
             >
-              <ListIcon className="h-4 w-4" />
+              <ListIcon className="h-3.5 w-3.5" />
               목록
             </button>
 
@@ -254,27 +249,27 @@ export function MenteeMainPage() {
               type="button"
               onClick={() => setViewMode("TIMETABLE")}
               className={[
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition",
+                "flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition",
                 viewMode === "TIMETABLE"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500",
+                  ? "bg-white text-slate-800 shadow-sm"
+                  : "text-slate-400",
               ].join(" ")}
               aria-pressed={viewMode === "TIMETABLE"}
               aria-label="타임테이블 보기"
             >
-              <TimeIcon className="h-4 w-4" />
+              <TimeIcon className="h-3.5 w-3.5" />
               타임
             </button>
           </div>
         </div>
 
         {viewMode === "LIST" ? (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <AssignmentList
               items={assignments}
               onOpen={(id) => navigate(`/mentee/assignments/${id}`)}
             />
-            <div className="border-t border-slate-100 pt-4" aria-hidden />
+            <div className="border-t border-slate-100" aria-hidden />
             <TodoList
               items={todos}
               onAddAtTop={(title) => addAtTop(title)}

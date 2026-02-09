@@ -18,7 +18,7 @@ export function NotificationPage() {
   const unreadCount = useMemo(() => notifications.filter((n) => !n.isRead).length, [notifications]);
 
   return (
-    <div className="flex flex-1 flex-col px-4 pt-4 pb-6">
+    <div className="flex flex-1 flex-col bg-slate-50/50 px-4 pt-4 pb-6">
       {unreadCount > 0 && (
         <div className="mb-3 flex items-center justify-between">
           <p className="text-[13px] text-slate-500">

@@ -1,3 +1,5 @@
+import { UserIcon } from '@/components/icons';
+
 type Props = {
   title?: string;
   message: string;
@@ -7,7 +9,7 @@ type Props = {
 };
 
 export function PlannerSummaryCard({
-  title = "플래너 총평",
+  title = '플래너 총평',
   message,
   coachName,
   updatedText,
@@ -16,30 +18,29 @@ export function PlannerSummaryCard({
   return (
     <section
       className={[
-        "rounded-2xl border border-slate-100 bg-white px-5 py-5 shadow-sm",
-        className ?? "",
-      ].join(" ")}
+        'rounded-xl border border-slate-100 bg-white p-4',
+        className ?? '',
+      ]
+        .join(' ')
+        .trim()}
     >
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-bold text-slate-900">{title}</h2>
-        {(coachName || updatedText) && (
-          <span className="text-[11px] font-semibold text-slate-400">
-            {updatedText ?? ""}
-          </span>
+      <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
+
+      <p className="mt-2 text-sm leading-[1.6] text-slate-500">{message}</p>
+
+      <div className="mt-3 flex items-center justify-between">
+        {coachName && (
+          <div className="flex items-center gap-1.5">
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100">
+              <UserIcon className="h-3 w-3 text-slate-400" />
+            </div>
+            <span className="text-xs font-medium text-slate-400">{coachName}</span>
+          </div>
+        )}
+        {updatedText && (
+          <span className="text-[11px] font-medium text-slate-400">{updatedText}</span>
         )}
       </div>
-
-      <blockquote className="mt-3 rounded-xl border-l-[3px] border-[hsl(var(--brand))] bg-[hsl(var(--brand-light))]/30 border border-slate-100 px-4 py-3">
-        <p className="line-clamp-4 text-sm leading-[1.6] text-slate-700">{message}</p>
-      </blockquote>
-
-      {coachName && (
-        <div className="mt-3 flex items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-[hsl(var(--brand-light))] px-2.5 py-1 text-[11px] font-bold text-[hsl(var(--brand))]">
-            {coachName}
-          </span>
-        </div>
-      )}
     </section>
   );
 }

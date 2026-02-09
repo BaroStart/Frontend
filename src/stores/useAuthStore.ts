@@ -86,10 +86,12 @@ export const useAuthStore = create<AuthState>()(
             // ignore
           }
 
+          const userId = res.result.userId != null ? String(res.result.userId) : loginId;
+
           set({
             accessToken: res.result.accessToken,
             refreshToken: res.result.refreshToken ?? null,
-            user: { id: loginId, name: displayName, role },
+            user: { id: userId, name: displayName, role },
             isAuthenticated: true,
           });
 

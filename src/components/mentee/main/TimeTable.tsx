@@ -213,11 +213,9 @@ export function TimeTable({
             </svg>
           </div>
           <div className="text-center">
-            <p className="text-xs font-semibold text-slate-600">아직 완료된 학습이 없어요</p>
-            <p className="mt-0.5 text-[11px] text-slate-500">
-              할 일을 완료하고 시간을 입력하면
-              <br />
-              여기에 타임라인으로 표시됩니다
+            <p className="text-xs font-semibold text-slate-600">오늘의 학습 기록이 없어요</p>
+            <p className="mt-0.5 text-[11px] text-slate-400">
+              할 일을 완료하면 타임라인에 표시돼요
             </p>
           </div>
         </div>

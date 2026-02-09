@@ -11,7 +11,7 @@ export function AssignmentList({ items, onOpen }: Props) {
     const copy = [...items];
     copy.sort((a, b) => {
       if (a.status === b.status) return 0;
-      return a.status === "PENDING" ? -1 : 1; 
+      return a.status === "PENDING" ? -1 : 1;
     });
     return copy;
   }, [items]);
@@ -19,21 +19,17 @@ export function AssignmentList({ items, onOpen }: Props) {
   const pendingCount = sorted.filter((x) => x.status === "PENDING").length;
 
   return (
-    <section className="mt-4">
-      <div className="mb-2 flex items-end justify-between">
-        <div>
-          <h2 className="text-base font-extrabold text-slate-900">
-            과제
-          </h2>
-          <p className="mt-0.5 text-xs font-semibold text-slate-500">
-            미완료 {pendingCount}개 / 전체 {sorted.length}개
-          </p>
-        </div>
+    <section>
+      <div className="mb-2.5 flex items-center justify-between">
+        <h3 className="text-[13px] font-semibold text-slate-700">과제</h3>
+        <span className="text-[11px] text-slate-400">
+          미완료 {pendingCount} / 전체 {sorted.length}
+        </span>
       </div>
 
       <div className="space-y-2">
         {sorted.length === 0 ? (
-          <div className="rounded-2xl border border-[hsl(var(--brand-light))] bg-white p-3 text-sm font-semibold text-slate-500">
+          <div className="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3 text-[13px] text-slate-400">
             해당 날짜에 과제가 없습니다.
           </div>
         ) : (

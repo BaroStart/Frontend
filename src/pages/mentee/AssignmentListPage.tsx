@@ -3,18 +3,21 @@ import { useNavigate } from 'react-router-dom';
 
 import { EmptyDocIcon } from '@/components/icons';
 import { AssignmentCard } from '@/components/mentee/AssignmentCard';
+import { Calendar, type DayMeta } from '@/components/mentee/main/Calendar';
 import { ProgressBar } from '@/components/mentee/ProgressBar';
 import { type Subject, SubjectTabs } from '@/components/mentee/SubjectTabs';
-import { WeekCalendar } from '@/components/mentee/WeekCalendar';
+import { MOCK_INCOMPLETE_ASSIGNMENTS } from '@/data/menteeDetailMock';
 import { useMenteeAssignments } from '@/hooks/useMenteeAssignments';
 import { mapListRes } from '@/lib/assignmentMapper';
 import { toYmdLocal } from '@/lib/dateUtils';
 import { toSubjectEnum } from '@/lib/subjectUtils';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 export function AssignmentListPage() {
   const navigate = useNavigate();
   const [subject, setSubject] = useState<Subject>('ALL');
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+  const { user } = useAuthStore();
 
   const dueDate = toYmdLocal(selectedDate);
   const { data: rawList, isLoading, isError } = useMenteeAssignments({ dueDate });
@@ -32,10 +35,26 @@ export function AssignmentListPage() {
   const doneCount = allForDate.filter((a) => a.status === '완료').length;
   const total = allForDate.length;
 
+  const metaByDate = useMemo(() => {
+    const menteeId = user?.role === 'mentee' && /^s\d+$/i.test(user.id) ? user.id : 's1';
+    const meta: Record<string, DayMeta> = {};
+    for (const a of MOCK_INCOMPLETE_ASSIGNMENTS.filter((x) => x.menteeId === menteeId)) {
+      const dk = a.deadlineDate ?? a.completedAtDate;
+      if (!dk) continue;
+      meta[dk] = meta[dk] ?? {};
+      meta[dk].assignmentCount = (meta[dk].assignmentCount ?? 0) + 1;
+    }
+    return meta;
+  }, [user?.id, user?.role]);
+
   return (
     <div className="flex flex-1 flex-col bg-slate-50/50 pb-6">
-      <WeekCalendar selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-      <SubjectTabs value={subject} onChange={setSubject} />
+      <div className="px-4 pt-4">
+        <Calendar value={selectedDate} onChange={setSelectedDate} metaByDate={metaByDate} defaultExpanded={false} />
+      </div>
+      <div className="mt-3">
+        <SubjectTabs value={subject} onChange={setSubject} />
+      </div>
 
       <div className="flex flex-1 flex-col px-4 pt-4">
         <ProgressBar doneCount={doneCount} total={total} />
