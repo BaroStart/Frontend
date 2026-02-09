@@ -18,8 +18,6 @@ const LOGO_BRAND_MEDIUM = '215 20% 88%';
 
 /** 기본 테마 컬러 - Teal 기반 */
 const DEFAULT_BRAND = GLOBAL_PALETTES.default.brand;
-const DEFAULT_BRAND_LIGHT = GLOBAL_PALETTES.default.brandLight;
-const DEFAULT_BRAND_MEDIUM = GLOBAL_PALETTES.default.brandMedium;
 
 export type TimetablePaletteId = 'logo' | 'instagram' | 'softMint' | 'mono' | 'default' | 'story' | 'pastel' | 'vivid' | 'calm' | 'custom';
 

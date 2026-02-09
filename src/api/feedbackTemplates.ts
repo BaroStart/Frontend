@@ -27,7 +27,7 @@ export async function fetchFeedbackTemplateDetail(
 export async function createFeedbackTemplate(
   req: FeedbackTemplateCreateReq,
 ): Promise<FeedbackTemplateRes | null> {
-  const { data } = await feedbackTemplatesApi.create({ feedbackTemplateCreateReq: req });
+  const { data } = await feedbackTemplatesApi.create1({ feedbackTemplateCreateReq: req });
   return data.result ?? null;
 }
 

@@ -112,8 +112,8 @@ export function TimeTable({
   endHour = 24,
   className,
   rowHeightPx = 32,
-  dateKey,
-  selectedDate,
+  dateKey: _dateKey,
+  selectedDate: _selectedDate,
 }: TimeTableProps) {
   const paletteColors = useMemo(() => getTimetableColors(), []);
   const isLightPalette = ["softMint", "mono"].includes(getTimetablePaletteId());
