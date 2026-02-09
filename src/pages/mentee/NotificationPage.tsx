@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Bell, Clock, MessageSquare } from 'lucide-react';
@@ -56,7 +56,11 @@ function getActorName(item: NotificationItem): string {
 
 export function NotificationPage() {
   const navigate = useNavigate();
-  const { notifications, markAllRead, markRead } = useNotificationStore();
+  const { notifications, markAllRead, markRead, loadNotifications } = useNotificationStore();
+
+  useEffect(() => {
+    void loadNotifications();
+  }, [loadNotifications]);
 
   const grouped = useMemo(() => groupByTime(notifications), [notifications]);
 

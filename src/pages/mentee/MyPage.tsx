@@ -276,7 +276,18 @@ export function MyPage() {
             )}
           </div>
           <h1 className="text-lg font-bold text-slate-900">{authUser?.name ?? '멘티'}님</h1>
-          <p className="mt-0.5 text-sm text-slate-500">이번 주 {summary.weekProgressPercent}% 달성</p>
+          <div className="mt-3 w-full max-w-[200px]">
+            <div className="flex justify-between text-xs text-slate-500">
+              <span>이번 주</span>
+              <span>{summary.weekProgressPercent}%</span>
+            </div>
+            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-[hsl(var(--brand))] transition-all duration-500"
+                style={{ width: `${summary.weekProgressPercent}%` }}
+              />
+            </div>
+          </div>
         </div>
       </section>
 

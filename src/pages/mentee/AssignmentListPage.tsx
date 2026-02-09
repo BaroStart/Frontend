@@ -64,7 +64,7 @@ function toSubjectEnum(korean: string): Exclude<Subject, "ALL"> | null {
 export function AssignmentListPage() {
   const navigate = useNavigate();
   const [subject, setSubject] = useState<Subject>("ALL");
-  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date(2026, 1, 2)); // 2026-02-02
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
 
   const { user } = useAuthStore();
   const menteeId = user?.role === "mentee" && /^s\d+$/i.test(user.id) ? user.id : "s1";

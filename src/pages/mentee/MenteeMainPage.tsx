@@ -12,7 +12,8 @@ import type { TimeRangeValue } from "@/components/mentee/TimeRangeModal";
 type TimeSlot = { startTime: string; endTime: string };
 import { useAuthStore } from "@/stores/useAuthStore";
 import { getLocalProfileImage } from "@/lib/profileImageStorage";
-import { DmIcon, ListIcon, TimeIcon, UserIcon } from "@/components/icons";
+import { ListIcon, TimeIcon, UserIcon } from "@/components/icons";
+import { MessageCircle } from "lucide-react";
 import { MOCK_INCOMPLETE_ASSIGNMENTS } from "@/data/menteeDetailMock";
 import { getSubmittedAssignments } from "@/lib/menteeAssignmentSubmissionStorage";
 import { useCommentThread } from "@/hooks/useCommentThread";
@@ -172,17 +173,16 @@ export function MenteeMainPage() {
 
   return (
     <div className="min-h-screen bg-white px-4 pt-4 pb-6">
-      {/* 1. 환영 카드: 아이콘 + 이름 + 멘트 통합 */}
-      <section className="mb-4 rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1 pt-0.5">
-            <h1 className="text-lg font-bold text-slate-900">
-              {menteeName}님
-            </h1>
-            <p className="mt-1 text-xs font-medium text-slate-400">
-              {welcomeMessage}
-            </p>
-          </div>
+      {/* 1. 환영 영역: 미니멀 헤더 */}
+      <section className="mb-4 flex items-center justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+            {menteeName}
+          </h1>
+          <p className="mt-0.5 text-sm text-slate-500">
+            {welcomeMessage}
+          </p>
+        </div>
           <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
@@ -190,7 +190,7 @@ export function MenteeMainPage() {
               aria-label="채팅"
               className="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 active:scale-95"
             >
-              <DmIcon className="h-5 w-5" strokeWidth={1.5} />
+              <MessageCircle className="h-5 w-5 text-slate-500" strokeWidth={1.5} />
             </button>
             <CommentModal
               open={commentOpen}
@@ -216,7 +216,6 @@ export function MenteeMainPage() {
               )}
             </button>
           </div>
-        </div>
       </section>
 
       {/* 3. 날짜 선택 - 카드형 섹션 */}

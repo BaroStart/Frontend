@@ -111,11 +111,11 @@ export function TimeTableColorModal({ open, onClose, onSelect, mode = 'timetable
         onClick={onClose}
       />
       <div className="absolute inset-0 flex items-center justify-center p-4">
-        <div className="w-full max-w-[min(360px,calc(100vw-2rem))] max-h-[min(85vh,calc(100vh-2rem))] overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-xl sm:p-6">
+        <div className="w-full max-w-[min(420px,calc(100vw-2rem))] max-h-[min(85vh,calc(100vh-2rem))] overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-xl sm:p-6">
           <h2 className="text-lg font-bold text-slate-900">{title}</h2>
           <p className="mt-1 text-sm text-slate-500">{description}</p>
 
-          <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="mt-5 grid grid-cols-4 gap-2">
             {PALETTE_ORDER.map((id) => {
               const { name, colors } = TIMETABLE_PALETTES[id];
               const brandHsl = PALETTE_TO_BRAND[id].brand;
@@ -128,7 +128,7 @@ export function TimeTableColorModal({ open, onClose, onSelect, mode = 'timetable
                   type="button"
                   onClick={() => handleSelect(id)}
                   className={[
-                    'relative flex h-[108px] w-full flex-col justify-between rounded-xl border-2 p-4 text-left box-border transition duration-200',
+                    'relative flex h-[76px] w-full flex-col justify-between rounded-lg border-2 p-2.5 text-left box-border transition duration-200',
                     'outline-none hover:bg-slate-50/50',
                     isSelected
                       ? 'border-slate-800 bg-slate-50/30 shadow-[0_0_0_2px_rgba(30,41,59,0.15)]'
@@ -136,25 +136,25 @@ export function TimeTableColorModal({ open, onClose, onSelect, mode = 'timetable
                   ].join(' ')}
                 >
                   {isSelected && (
-                    <span className="absolute right-2.5 top-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-800 text-white">
-                      <Check className="h-3 w-3" strokeWidth={2.5} />
+                    <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-slate-800 text-white">
+                      <Check className="h-2.5 w-2.5" strokeWidth={2.5} />
                     </span>
                   )}
-                  <div className="flex gap-1.5 flex-wrap">
+                  <div className="flex gap-1 flex-wrap">
                     <div
-                      className="h-5 w-5 shrink-0 rounded-md border border-white/80 shadow-sm"
+                      className="h-3.5 w-3.5 shrink-0 rounded-sm border border-white/80 shadow-sm"
                       style={{ background: brandColor }}
                       title="적용됨"
                     />
                     {paletteColors.slice(0, 5).map((c, i) => (
                       <div
                         key={i}
-                        className="h-4 w-4 shrink-0 rounded overflow-hidden border border-white/60"
+                        className="h-3 w-3 shrink-0 rounded overflow-hidden border border-white/60"
                         style={{ background: c }}
                       />
                     ))}
                   </div>
-                  <span className="text-xs font-bold text-slate-800">{name}</span>
+                  <span className="text-[10px] font-bold text-slate-800 leading-tight">{name}</span>
                 </button>
               );
             })}
@@ -163,7 +163,7 @@ export function TimeTableColorModal({ open, onClose, onSelect, mode = 'timetable
               type="button"
               onClick={() => setCustomPickerOpen((v) => !v)}
               className={[
-                'relative flex h-[108px] w-full flex-col justify-between rounded-xl border-2 p-4 text-left box-border transition duration-200',
+                'relative flex h-[76px] w-full flex-col justify-between rounded-lg border-2 p-2.5 text-left box-border transition duration-200',
                 'outline-none hover:bg-slate-50/50',
                 current === 'custom'
                   ? 'border-slate-800 bg-slate-50/30 shadow-[0_0_0_2px_rgba(30,41,59,0.15)]'
@@ -171,14 +171,14 @@ export function TimeTableColorModal({ open, onClose, onSelect, mode = 'timetable
               ].join(' ')}
             >
               {current === 'custom' && (
-                <span className="absolute right-2.5 top-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-800 text-white">
-                  <Check className="h-3 w-3" strokeWidth={2.5} />
+                <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-slate-800 text-white">
+                  <Check className="h-2.5 w-2.5" strokeWidth={2.5} />
                 </span>
               )}
-              <div className="flex h-9 w-full items-center justify-center rounded-lg border border-slate-200 bg-white">
-                <Palette className="h-5 w-5 text-slate-400" strokeWidth={1.5} />
+              <div className="flex h-7 w-full items-center justify-center rounded border border-slate-200 bg-white">
+                <Palette className="h-4 w-4 text-slate-400" strokeWidth={1.5} />
               </div>
-              <span className="text-xs font-bold text-slate-800">직접 만들기</span>
+              <span className="text-[10px] font-bold text-slate-800 leading-tight">직접 만들기</span>
             </button>
           </div>
 
