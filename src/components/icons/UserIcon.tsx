@@ -3,7 +3,7 @@ interface IconProps {
   strokeWidth?: number;
 }
 
-export function UserIcon({ className = 'h-[22px] w-[22px]', strokeWidth = 1.5 }: IconProps) {
+export function UserIcon({ className = 'h-5 w-5', strokeWidth = 1.2 }: IconProps) {
   return (
     <svg
       className={className}

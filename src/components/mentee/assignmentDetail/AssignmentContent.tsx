@@ -7,7 +7,7 @@ export default function AssignmentContent({ detail }: { detail: AssignmentDetail
     <>
       <section>
         <div className="p-5 border bg-slate-50 rounded-xl border-slate-100">
-          <h3 className="mb-4 text-sm font-bold text-slate-900">과제 내용</h3>
+          <h3 className="mb-4 text-sm font-semibold text-slate-900">과제 내용</h3>
           <ul className="space-y-4">
             {(checklist?.length
               ? checklist

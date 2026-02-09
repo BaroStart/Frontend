@@ -2,7 +2,7 @@ interface IconProps {
   className?: string;
 }
 
-export function HomeIcon({ className = 'h-[22px] w-[22px]' }: IconProps) {
+export function HomeIcon({ className = 'h-5 w-5' }: IconProps) {
   return (
     <svg
       className={className}

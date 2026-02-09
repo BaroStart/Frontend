@@ -1,44 +1,28 @@
-import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
-import { ArrowLeft, CalendarDays } from 'lucide-react';
-
-import { Badge } from '@/components/ui/Badge';
+const SUBJECT_LABEL_STYLE: Record<string, string> = {
+  국어: 'text-rose-600 bg-rose-50',
+  영어: 'text-amber-600 bg-amber-50',
+  수학: 'text-sky-600 bg-sky-50',
+};
 
 export default function AssignmentDetailHeader({ assignment }: { assignment: Assignment }) {
-  const navigate = useNavigate();
-  const isCompleted = assignment.status === '완료';
+  const labelStyle = SUBJECT_LABEL_STYLE[assignment.subject] ?? 'text-slate-600 bg-slate-100';
+
   return (
-    <>
-      <header className="flex items-center px-5 py-2 border-b bg-white/95 backdrop-blur-sm border-slate-50">
-        <button
-          onClick={() => navigate('/mentee/assignments')}
-          className="p-1 -ml-1 transition-colors rounded-full text-slate-800 hover:bg-slate-100"
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-      </header>
-      <div className="px-6 pt-2 pb-6">
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <Badge variant="black" className="rounded-sm px-2 py-0.5 text-[11px] font-bold shrink-0">
-            {assignment.subject}
-          </Badge>
-          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-400 shrink-0">
-            <CalendarDays className="w-3.5 h-3.5 text-slate-400" aria-hidden />
-            {assignment.submissionDate}
-          </span>
-          <span
-            className={`inline-flex h-5 items-center justify-center rounded-md px-2 py-0.5 text-[10px] font-bold shrink-0 ${
-              isCompleted
-                ? 'bg-[hsl(var(--brand))] text-white'
-                : 'bg-slate-100 text-slate-500'
-            }`}
-          >
-            {assignment.status}
-          </span>
-        </div>
-        <h1 className="mb-2 text-2xl font-bold text-slate-900">{assignment.title}</h1>
-        <p className="text-sm text-slate-500">{assignment.description}</p>
+    <div className="border-b border-slate-100 bg-white px-6 pb-6 pt-4">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className={cn('inline-flex rounded-md px-2 py-0.5 text-xs font-medium', labelStyle)}>
+          {assignment.subject}
+        </span>
+        <span className="text-sm text-slate-400">{assignment.submissionDate}</span>
       </div>
-    </>
+      <h1 className="mb-2 text-lg font-semibold leading-tight text-slate-900">
+        {assignment.title}
+      </h1>
+      {assignment.description && (
+        <p className="text-sm leading-relaxed text-slate-500">{assignment.description}</p>
+      )}
+    </div>
   );
 }

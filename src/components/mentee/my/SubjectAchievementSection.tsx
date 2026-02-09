@@ -13,8 +13,15 @@ type Props = {
   className?: string;
 };
 
-function iconFor(name: SubjectAchievementItem["name"]) {
-  const iconClass = "h-4 w-4 text-slate-500";
+const SUBJECT_COLOR: Record<string, { stroke: string; iconText: string; iconBg: string; nameText: string }> = {
+  국어: { stroke: "stroke-rose-400", iconText: "text-rose-500", iconBg: "bg-rose-50 border-rose-100", nameText: "text-rose-600" },
+  영어: { stroke: "stroke-amber-400", iconText: "text-amber-500", iconBg: "bg-amber-50 border-amber-100", nameText: "text-amber-600" },
+  수학: { stroke: "stroke-sky-400", iconText: "text-sky-500", iconBg: "bg-sky-50 border-sky-100", nameText: "text-sky-600" },
+};
+const DEFAULT_COLOR = { stroke: "stroke-slate-300", iconText: "text-slate-500", iconBg: "bg-slate-50 border-slate-100", nameText: "text-slate-600" };
+
+function iconFor(name: SubjectAchievementItem["name"], colorClass: string) {
+  const iconClass = `h-4 w-4 ${colorClass}`;
   switch (name) {
     case "국어":
       return <KoreanIcon className={iconClass} />;
@@ -45,6 +52,7 @@ export function SubjectAchievementSection({
       <div className="grid grid-cols-3 gap-2">
         {items.map((s) => {
           const p = clampPercent(s.percent);
+          const color = SUBJECT_COLOR[s.name] ?? DEFAULT_COLOR;
 
           return (
             <div
@@ -66,17 +74,17 @@ export function SubjectAchievementSection({
                     cy="18"
                     r="15.9"
                     fill="none"
-                    className="stroke-slate-300"
+                    className={color.stroke}
                     strokeWidth="3"
                     strokeDasharray={`${p * 1.0} 100`}
                     strokeLinecap="round"
                   />
                 </svg>
-                <div className="absolute flex h-6 w-6 items-center justify-center rounded-full border border-slate-100 bg-white">
-                  {iconFor(s.name)}
+                <div className={`absolute flex h-6 w-6 items-center justify-center rounded-full border ${color.iconBg}`}>
+                  {iconFor(s.name, color.iconText)}
                 </div>
               </div>
-              <p className="mt-1.5 text-[11px] font-semibold text-slate-700">{s.name}</p>
+              <p className={`mt-1.5 text-[11px] font-semibold ${color.nameText}`}>{s.name}</p>
               <p className="text-xs text-slate-500">{p}%</p>
             </div>
           );

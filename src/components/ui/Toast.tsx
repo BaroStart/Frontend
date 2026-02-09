@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, AlertCircle, XCircle } from 'lucide-react';
 import { create } from 'zustand';
 
 import { cn } from '@/lib/utils';
@@ -33,34 +33,37 @@ export const toast = {
 };
 
 const ICONS: Record<ToastVariant, React.ReactNode> = {
-  success: <CheckCircle2 className="h-4 w-4 text-emerald-600" />,
-  error: <XCircle className="h-4 w-4 text-red-600" />,
-  warning: <AlertCircle className="h-4 w-4 text-amber-600" />,
-};
-
-const STYLES: Record<ToastVariant, string> = {
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-  error: 'border-red-200 bg-red-50 text-red-900',
-  warning: 'border-amber-200 bg-amber-50 text-amber-900',
+  success: <CheckCircle2 className="h-[18px] w-[18px] text-emerald-500" />,
+  error: <XCircle className="h-[18px] w-[18px] text-red-500" />,
+  warning: <AlertCircle className="h-[18px] w-[18px] text-amber-500" />,
 };
 
 function ToastRow({ item }: { item: ToastItem }) {
   const remove = useToastStore((s) => s.remove);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => remove(item.id), 3000);
+    // 마운트 직후 slide-in 트리거
+    requestAnimationFrame(() => setVisible(true));
+    const timer = setTimeout(() => {
+      setVisible(false);
+      // fade-out 완료 후 제거
+      setTimeout(() => remove(item.id), 300);
+    }, 2700);
     return () => clearTimeout(timer);
   }, [item.id, remove]);
 
   return (
     <div
       className={cn(
-        'animate-in slide-in-from-bottom-2 fade-in flex min-w-[280px] max-w-[420px] items-center gap-2.5 rounded-lg border px-4 py-3 text-sm shadow-lg',
-        STYLES[item.variant],
+        'flex w-full items-center gap-3 rounded-xl bg-white px-4 py-3.5 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.04] transition-all duration-300 ease-out',
+        visible
+          ? 'translate-y-0 opacity-100'
+          : '-translate-y-2 opacity-0',
       )}
     >
       {ICONS[item.variant]}
-      <p className="font-medium">{item.message}</p>
+      <p className="text-[13px] font-medium text-slate-800 leading-snug">{item.message}</p>
     </div>
   );
 }
@@ -70,7 +73,7 @@ export function Toaster() {
   if (toasts.length === 0) return null;
 
   return createPortal(
-    <div className="fixed bottom-4 right-4 z-[100] flex flex-col-reverse gap-2">
+    <div className="fixed top-0 left-1/2 z-[100] flex w-full max-w-md -translate-x-1/2 flex-col gap-2 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
       {toasts.map((t) => (
         <ToastRow key={t.id} item={t} />
       ))}

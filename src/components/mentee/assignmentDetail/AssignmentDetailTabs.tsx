@@ -3,7 +3,6 @@ import { cn } from '@/lib/utils';
 interface AssignmentDetailTabsProps {
   activeTab: 'info' | 'feedback';
   setActiveTab: (tab: 'info' | 'feedback') => void;
-  /** 완료된 과제일 때만 피드백 탭 표시 */
   isCompleted?: boolean;
 }
 
@@ -13,29 +12,33 @@ export default function AssignmentDetailTabs({
   isCompleted = false,
 }: AssignmentDetailTabsProps) {
   return (
-    <div className="sticky top-0 z-10 flex bg-white px-6">
+    <div className="sticky top-0 z-10 flex border-b border-slate-100 bg-white">
       <button
+        type="button"
         onClick={() => setActiveTab('info')}
         className={cn(
-          'flex-1 pb-3 py-4 text-sm font-bold text-center border-b-2 transition-colors',
-          activeTab === 'info'
-            ? 'border-[hsl(var(--brand))] text-slate-900'
-            : 'border-transparent text-slate-400',
+          'relative flex-1 px-4 py-3 text-[13px] font-medium transition-colors',
+          activeTab === 'info' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700',
         )}
       >
         과제 정보
+        {activeTab === 'info' && (
+          <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900" />
+        )}
       </button>
       {isCompleted && (
         <button
+          type="button"
           onClick={() => setActiveTab('feedback')}
           className={cn(
-            'flex-1 pb-3 py-4 text-sm font-bold text-center border-b-2 transition-colors',
-            activeTab === 'feedback'
-              ? 'border-[hsl(var(--brand))] text-slate-900'
-              : 'border-transparent text-slate-400',
+            'relative flex-1 px-4 py-3 text-[13px] font-medium transition-colors',
+            activeTab === 'feedback' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700',
           )}
         >
           피드백
+          {activeTab === 'feedback' && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900" />
+          )}
         </button>
       )}
     </div>

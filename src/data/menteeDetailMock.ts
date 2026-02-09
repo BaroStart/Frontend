@@ -247,7 +247,7 @@ export const MOCK_INCOMPLETE_ASSIGNMENTS: IncompleteAssignment[] = [
     subject: '국어',
     description: '워크시트 5장 / 온라인 제출',
     deadline: '오후 11:59',
-    deadlineDate: '2026-02-03',
+    deadlineDate: '2026-02-02',
     status: 'not_started',
   },
   {
@@ -311,6 +311,46 @@ export const MOCK_INCOMPLETE_ASSIGNMENTS: IncompleteAssignment[] = [
     status: 'not_started',
   },
   {
+    id: 'a20',
+    menteeId: 's1',
+    title: '수학 확률과 통계 - 연습문제 4-1',
+    subject: '수학',
+    description: '교재: EBS 수능완성 / 페이지: 96-102',
+    deadline: '오후 11:59',
+    deadlineDate: '2026-02-09',
+    status: 'in_progress',
+  },
+  {
+    id: 'a21',
+    menteeId: 's1',
+    title: '영어 독해 - Day 18 지문 분석',
+    subject: '영어',
+    description: '수능특강 영어독해 / 지문 3개 정독 후 요약',
+    status: 'completed',
+    completedAt: '오전 10:30',
+    completedAtDate: '2026-02-09',
+  },
+  {
+    id: 'a22',
+    menteeId: 's1',
+    title: '국어 비문학 - 과학 지문 풀이',
+    subject: '국어',
+    description: '기출 지문 2세트 / 오답 분석 포함',
+    deadline: '오후 6:00',
+    deadlineDate: '2026-02-09',
+    status: 'deadline_soon',
+  },
+  {
+    id: 'a23',
+    menteeId: 's1',
+    title: '영어 단어 암기 - Day 22',
+    subject: '영어',
+    description: '수능필수 영단어 50개 / 테스트 제출',
+    deadline: '오후 11:59',
+    deadlineDate: '2026-02-09',
+    status: 'not_started',
+  },
+  {
     id: 'a8',
     menteeId: 's2',
     title: '물리 실험 보고서',
@@ -339,6 +379,88 @@ export const MOCK_INCOMPLETE_ASSIGNMENTS: IncompleteAssignment[] = [
     status: 'completed',
     completedAt: '오후 2:00',
     completedAtDate: '2026-02-03',
+  },
+  // --- 오늘(2026-02-09) 기준 체감용 목데이터 (s1) ---
+  {
+    id: 'a17',
+    menteeId: 's1',
+    title: '국어 비문학 - 과학 지문 3편',
+    subject: '국어',
+    description: '수능특강 비문학 / 시간 재며 풀기',
+    status: 'completed',
+    completedAt: '오전 9:30',
+    completedAtDate: '2026-02-09',
+  },
+  {
+    id: 'a18',
+    menteeId: 's1',
+    title: '영어 독해 - 지문 분석 노트',
+    subject: '영어',
+    description: 'EBS 연계 지문 2개 구조 분석',
+    deadline: '오후 11:59',
+    deadlineDate: '2026-02-09',
+    status: 'in_progress',
+  },
+  {
+    id: 'a19',
+    menteeId: 's1',
+    title: '수학 미적분 - 적분 연습 10문항',
+    subject: '수학',
+    description: '교재 4단원 기본문제',
+    deadline: '30분 후',
+    deadlineDate: '2026-02-09',
+    status: 'deadline_soon',
+  },
+  {
+    id: 'a20',
+    menteeId: 's1',
+    title: '국어 문학 - 현대시 감상문',
+    subject: '국어',
+    description: '시 1편 선택 후 200자 감상',
+    deadline: '오후 11:59',
+    deadlineDate: '2026-02-09',
+    status: 'not_started',
+  },
+  {
+    id: 'a21',
+    menteeId: 's1',
+    title: '영어 단어 암기 - Day 16',
+    subject: '영어',
+    description: '수능필수 영단어 50개',
+    status: 'completed',
+    completedAt: '오후 1:00',
+    completedAtDate: '2026-02-09',
+  },
+  {
+    id: 'a22',
+    menteeId: 's1',
+    title: '수학 기하 - 벡터 연습',
+    subject: '수학',
+    description: '내적·외적 기본문제 5문항',
+    deadline: '오후 11:59',
+    deadlineDate: '2026-02-09',
+    status: 'not_started',
+  },
+  // --- 전날/다음날 체감용 (s1) ---
+  {
+    id: 'a23',
+    menteeId: 's1',
+    title: '국어 문법 복습',
+    subject: '국어',
+    description: '품사·문장성분 워크시트',
+    status: 'completed',
+    completedAt: '오후 6:00',
+    completedAtDate: '2026-02-08',
+  },
+  {
+    id: 'a24',
+    menteeId: 's1',
+    title: '영어 듣기 모의고사 1회',
+    subject: '영어',
+    description: '실전 모의 20문항',
+    deadline: '오후 11:59',
+    deadlineDate: '2026-02-10',
+    status: 'not_started',
   },
 ];
 
@@ -495,6 +617,38 @@ export const MOCK_ASSIGNMENT_DETAILS: Record<string, AssignmentDetail> = {
       '<p>시 2편 분석 후 감상문을 작성해 주세요. 시의 주제, 표현 기법, 느낀 점을 포함해 주세요.</p>',
     providedPdfs: [],
     studentPhotos: [{ id: 'p1', url: '/student-notebook.png', caption: '감상문 초안' }],
+  },
+  a19: {
+    assignmentId: 'a19',
+    title: '수학 미적분 - 적분 연습 10문항',
+    subject: '수학',
+    date: '2026.02.09',
+    goal: '4단원 기본문제로 치환적분·부분적분 유형 익히기',
+    content: `
+<p>교재 4단원 기본문제 10문항을 풀어 주세요.</p>
+<ul>
+  <li>치환적분 5문항 (1~5번)</li>
+  <li>부분적분 5문항 (6~10번)</li>
+</ul>
+<p>풀이 과정을 노트에 정리하고, 틀린 문제는 오답 노트에 반드시 적어 주세요.</p>
+    `.trim(),
+    contentChecklist: [
+      '4단원 기본문제 1~10번을 풀어 주세요.',
+      '풀이 과정을 노트에 정리해 주세요.',
+      '틀린 문제는 오답 노트에 올바른 풀이와 함께 정리해 주세요.',
+    ],
+    relatedResources: [
+      { id: 'r1', name: '4단원 개념 정리' },
+      { id: 'r2', name: '적분 공식집' },
+    ],
+    studyColumn: {
+      title: '설스터디 칼럼: 적분 풀이 팁',
+      content:
+        "치환적분은 t = g(x)로 두었을 때 dt = g'(x)dx가 깔끔하게 나오는지 먼저 확인해 보세요.",
+      readMoreLink: '#',
+    },
+    providedPdfs: [{ id: 'pdf1', name: '수학_4단원_기본문제.pdf', size: '512 KB' }],
+    studentPhotos: [],
   },
 };
 

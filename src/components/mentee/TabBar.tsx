@@ -27,8 +27,11 @@ const tabs: TabItem[] = [
 export function TabBar() {
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   return (
-    <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 border-t border-gray-100 bg-white sm:max-w-lg">
-      <div className="flex items-center justify-around h-16 px-2">
+    <nav
+      className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 border-t border-gray-100 bg-white sm:max-w-lg"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
+      <div className="flex items-center justify-around h-14 px-2">
         {tabs.map((tab) => (
           <NavLink
             key={tab.path}
@@ -42,8 +45,10 @@ export function TabBar() {
           >
             {({ isActive }) => (
               <>
-                <span className={isActive ? 'text-[hsl(var(--brand))]' : 'text-gray-400'}>
-                  <span className="relative inline-flex">
+                <span
+                  className={`flex h-6 items-center justify-center ${isActive ? 'text-[#0E9ABE]' : 'text-gray-400'}`}
+                >
+                  <span className="relative flex items-center justify-center">
                     {tab.icon}
                     {tab.path === '/mentee/notifications' && unreadCount > 0 && (
                       <span

@@ -1,44 +1,51 @@
-import AssignmentActions from '@/components/mentee/assignmentDetail/AssignmentActions';
 import AssignmentContent from '@/components/mentee/assignmentDetail/AssignmentContent';
 import AssignmentResources from '@/components/mentee/assignmentDetail/AssignmentResources';
-import StudyVerification from '@/components/mentee/assignmentDetail/StudyVerification';
+import StudyVerification, { type PreviewImage } from '@/components/mentee/assignmentDetail/StudyVerification';
 import type { AssignmentDetail } from '@/types';
 
 interface AssignmentInfoProps {
   assignment: Assignment;
   detail: AssignmentDetail | null;
+  memo: string;
+  onMemoChange: (memo: string) => void;
+  previewImages: PreviewImage[];
+  onAddImages: (images: PreviewImage[]) => void;
+  onRemoveImage: (id: string) => void;
+  onClearImages: () => void;
   isEditing: boolean;
-  onChangeToEditMode: () => void;
-  onSubmitAssignment?: () => void;
 }
 
 export default function AssignmentInfo({
   assignment,
   detail,
+  memo,
+  onMemoChange,
+  previewImages,
+  onAddImages,
+  onRemoveImage,
+  onClearImages,
   isEditing,
-  onChangeToEditMode,
-  onSubmitAssignment,
 }: AssignmentInfoProps) {
   return (
-    <>
-      <div className="px-6 py-6 space-y-8">
-        {/* 과제 내용 */}
-        <AssignmentContent detail={detail} />
+    <div className="px-6 py-6 pb-28 space-y-8">
+      {/* 과제 내용 */}
+      <AssignmentContent detail={detail} />
 
-        {/* 학습 자료 */}
-        <AssignmentResources detail={detail} />
+      {/* 학습 자료 */}
+      <AssignmentResources detail={detail} />
 
-        {/* 공부 인증 + 메모 */}
-        <StudyVerification assignment={assignment} detail={detail} />
-      </div>
-
-      {/* 하단 버튼 */}
-      <AssignmentActions
+      {/* 공부 인증 + 메모 */}
+      <StudyVerification
         assignment={assignment}
+        detail={detail}
+        memo={memo}
+        onMemoChange={onMemoChange}
+        previewImages={previewImages}
+        onAddImages={onAddImages}
+        onRemoveImage={onRemoveImage}
+        onClearImages={onClearImages}
         isEditing={isEditing}
-        onChangeToEditMode={onChangeToEditMode}
-        onSubmitAssignment={onSubmitAssignment}
       />
-    </>
+    </div>
   );
 }

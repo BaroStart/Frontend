@@ -27,15 +27,15 @@ export default function AssignmentFeedback(props: FeedbackProps) {
   } = props;
 
   return (
-    <div className="px-6 py-6 space-y-8">
+    <div className="px-6 py-6 pb-10 space-y-8">
       {/* 피드백 요약 */}
       <section>
-        <h3 className="mb-4 text-sm font-bold text-slate-900">피드백 요약</h3>
-        <div className="p-5 bg-white border shadow-sm rounded-2xl text-slate-950">
-          <div className="flex items-start gap-4">
+        <h3 className="mb-3 text-sm font-semibold text-slate-900">피드백 요약</h3>
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+          <div className="flex items-start gap-3">
             {/* 프로필 */}
             <div className="flex-shrink-0">
-              <div className="w-12 h-12 overflow-hidden border rounded-full border-slate-100 bg-slate-100">
+              <div className="w-9 h-9 overflow-hidden rounded-full bg-slate-200">
                 <img src={mentorAvatar} alt={mentorName} className="object-cover w-full h-full" />
               </div>
             </div>
@@ -43,10 +43,10 @@ export default function AssignmentFeedback(props: FeedbackProps) {
             {/* 코멘트 */}
             <div className="flex-1 min-w-0 pt-0.5">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-bold text-slate-900">{mentorName}</span>
-                <span className="text-xs font-medium text-slate-400">{feedbackTime}</span>
+                <span className="text-[13px] font-semibold text-slate-800">{mentorName}</span>
+                <span className="text-[11px] text-slate-400">{feedbackTime}</span>
               </div>
-              <p className="text-sm font-medium leading-relaxed text-slate-600 break-keep">
+              <p className="text-[13px] leading-relaxed text-slate-600 break-keep">
                 {summary}
               </p>
             </div>
@@ -54,13 +54,13 @@ export default function AssignmentFeedback(props: FeedbackProps) {
         </div>
       </section>
 
-      {/* 상세 피드백 섹션 */}
+      {/* 상세 피드백 */}
       <section>
-        <h3 className="mb-4 text-sm font-bold text-slate-900">피드백</h3>
-        <div className="relative p-6 bg-slate-50 rounded-xl pl-7">
-          <div className="absolute left-0 w-1 rounded-r-full top-6 bottom-6 bg-slate-900" />
+        <h3 className="mb-3 text-sm font-semibold text-slate-900">상세 피드백</h3>
+        <div className="relative p-5 bg-slate-50 rounded-xl pl-7 border border-slate-100">
+          <div className="absolute left-0 w-0.5 rounded-r-full top-5 bottom-5 bg-slate-300" />
 
-          <div className="text-sm font-medium leading-7 whitespace-pre-wrap text-slate-700 break-keep">
+          <div className="text-[13px] leading-7 whitespace-pre-wrap text-slate-600 break-keep">
             {detail}
           </div>
         </div>
