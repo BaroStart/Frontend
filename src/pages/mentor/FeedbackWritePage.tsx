@@ -66,7 +66,6 @@ export function FeedbackWritePage() {
     { id: '2', text: '', isImportant: true },
     { id: '3', text: '', isImportant: false },
   ]);
-  const [status, setStatus] = useState<'partial' | 'completed'>('completed');
   const [saving, setSaving] = useState(false);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -140,12 +139,12 @@ export function FeedbackWritePage() {
           isImportant: item.isImportant,
         })),
       );
-      setStatus(stored.status);
+
       return;
     }
     if (stored?.feedbackText) {
       setFeedbackItems([{ id: '1', text: stored.feedbackText, isImportant: false }]);
-      setStatus(stored.status);
+
     }
   }, [menteeId, assignmentId, subject]);
 
@@ -207,7 +206,7 @@ export function FeedbackWritePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!menteeId || !assignmentId) return;
+    if (!assignmentId) return;
     const hasContent = feedbackItems.some((item) => item.text.trim());
     if (!hasContent) {
       toast.warning('피드백 내용을 입력해 주세요.');
@@ -215,13 +214,13 @@ export function FeedbackWritePage() {
     }
     setSaving(true);
     try {
-      const feedbackText = feedbackItems.map((i) => i.text).join('\n\n');
-      const { submitFeedback } = await import('@/api/feedback');
-      await submitFeedback(menteeId, assignmentId, {
-        feedbackText,
-        status,
-        progress: status === 'partial' ? 50 : undefined,
-      });
+      const content = feedbackItems.map((i) => i.text).join('\n\n');
+      const importantItems = feedbackItems.filter((i) => i.isImportant && i.text.trim());
+      const summary = importantItems.length > 0
+        ? importantItems.map((i) => i.text).join('\n\n')
+        : undefined;
+      const { createFeedback } = await import('@/api/feedback');
+      await createFeedback(Number(assignmentId), content, summary);
       queryClient.invalidateQueries({ queryKey: ['submittedAssignments'] });
       queryClient.invalidateQueries({ queryKey: ['feedbackItems', menteeId] });
       queryClient.invalidateQueries({ queryKey: ['mentees'] });
