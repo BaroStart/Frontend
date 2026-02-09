@@ -19,7 +19,7 @@ export default function AssignmentDetailTabs({
         className={cn(
           'flex-1 pb-3 py-4 text-sm font-bold text-center border-b-2 transition-colors',
           activeTab === 'info'
-            ? 'border-[#0E9ABE] text-slate-900'
+            ? 'border-[hsl(var(--brand))] text-slate-900'
             : 'border-transparent text-slate-400',
         )}
       >
@@ -31,7 +31,7 @@ export default function AssignmentDetailTabs({
           className={cn(
             'flex-1 pb-3 py-4 text-sm font-bold text-center border-b-2 transition-colors',
             activeTab === 'feedback'
-              ? 'border-[#0E9ABE] text-slate-900'
+              ? 'border-[hsl(var(--brand))] text-slate-900'
               : 'border-transparent text-slate-400',
           )}
         >

@@ -5,15 +5,16 @@
  */
 interface IconProps {
   className?: string;
+  strokeWidth?: number;
 }
 
-export function DmIcon({ className = "h-5 w-5" }: IconProps) {
+export function DmIcon({ className = "h-5 w-5", strokeWidth = 2 }: IconProps) {
   return (
     <svg
       className={className}
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
       viewBox="-1 0 25 24"

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Calendar } from "@/components/mentee/main/Calendar";
 import { AssignmentList } from "@/components/mentee/main/AssignmentList";
 import type { AssignmentItem } from "@/components/mentee/main/AssignmentCard";
@@ -11,19 +11,47 @@ import { API_CONFIG } from "@/api/config";
 import type { TimeRangeValue } from "@/components/mentee/TimeRangeModal";
 import type { TimeSlot } from "@/generated";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { getLocalProfileImage } from "@/lib/profileImageStorage";
 import { DmIcon, ListIcon, TimeIcon, UserIcon } from "@/components/icons";
 import { MOCK_INCOMPLETE_ASSIGNMENTS } from "@/data/menteeDetailMock";
 import { getSubmittedAssignments } from "@/lib/menteeAssignmentSubmissionStorage";
 
 export function MenteeMainPage() {
   const navigate = useNavigate();
-  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [searchParams] = useSearchParams();
+  const dateParam = searchParams.get("date");
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (dateParam) {
+      const d = new Date(dateParam);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return new Date();
+  });
+
+  useEffect(() => {
+    if (dateParam) {
+      const d = new Date(dateParam);
+      if (!isNaN(d.getTime())) setSelectedDate(d);
+    }
+  }, [dateParam]);
   const [commentOpen, setCommentOpen] = useState(false);
 
   const [viewMode, setViewMode] = useState<"LIST" | "TIMETABLE">("LIST");
 
   const { user } = useAuthStore();
   const menteeName = user?.name ?? "멘티";
+
+  const welcomeMessage = useMemo(() => {
+    const messages = [
+      "오늘도 기분 좋은 하루의 시작이 되길 바랍니다.",
+      "오늘 하루도 응원해요.",
+      "조금씩이라도 꾸준히, 잘하고 있어요.",
+      "오늘도 할 수 있어요.",
+      "작은 걸음이 큰 변화를 만들어요.",
+      "오늘 하루도 함께해요.",
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
+  }, []);
 
   const {
     todos,
@@ -160,109 +188,129 @@ export function MenteeMainPage() {
   };
 
   return (
-    <div className="px-3 pt-3">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <span className="text-lg font-semibold text-gray-900">{menteeName}님</span>
+    <div className="min-h-screen bg-white px-4 pt-4 pb-6">
+      {/* 1. 환영 카드: 아이콘 + 이름 + 멘트 통합 */}
+      <section className="mb-4 rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 pt-0.5">
+            <h1 className="text-lg font-bold text-slate-900">
+              {menteeName}님
+            </h1>
+            <p className="mt-1 text-xs font-medium text-slate-400">
+              {welcomeMessage}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setCommentOpen(true)}
+              aria-label="채팅"
+              className="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 active:scale-95"
+            >
+              <DmIcon className="h-5 w-5" strokeWidth={1.5} />
+            </button>
+            <CommentModal
+              open={commentOpen}
+              onClose={() => setCommentOpen(false)}
+              onSubmit={(values) => console.log("submit", values)}
+              thread={thread}
+            />
+            <button
+              type="button"
+              aria-label="프로필"
+              onClick={() => navigate("/mentee/mypage")}
+              className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-slate-500 transition hover:bg-slate-50 hover:opacity-90 active:scale-95"
+            >
+              {(getLocalProfileImage() || user?.profileImage) ? (
+                <img
+                  src={getLocalProfileImage() || user?.profileImage || ""}
+                  alt="프로필"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <UserIcon className="h-5 w-5" strokeWidth={1.5} />
+              )}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. 날짜 선택 - 카드형 섹션 */}
+      <section className="mb-4">
+        <Calendar
+          value={selectedDate}
+          onChange={setSelectedDate}
+          metaByDate={metaByDate}
+          defaultExpanded={false}
+        />
+      </section>
+
+      {/* 4. 오늘의 학습 - 카드형 섹션 */}
+      <section className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-soft">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-bold text-slate-900">오늘의 학습</h2>
+
+          <div className="flex rounded-full border border-slate-200 bg-white p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode("LIST")}
+              className={[
+                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition",
+                viewMode === "LIST"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500",
+              ].join(" ")}
+              aria-pressed={viewMode === "LIST"}
+              aria-label="목록 보기"
+            >
+              <ListIcon className="h-4 w-4" />
+              목록
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setViewMode("TIMETABLE")}
+              className={[
+                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition",
+                viewMode === "TIMETABLE"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500",
+              ].join(" ")}
+              aria-pressed={viewMode === "TIMETABLE"}
+              aria-label="타임테이블 보기"
+            >
+              <TimeIcon className="h-4 w-4" />
+              타임
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setCommentOpen(true)}
-            aria-label="채팅"
-            className="grid h-10 w-10 place-items-center rounded-full border bg-gray-100 text-gray-700 transition hover:bg-gray-200 active:scale-[0.98]"
-          >
-            <DmIcon className="h-5 w-5" />
-          </button>
-
-          <CommentModal
-            open={commentOpen}
-            onClose={() => setCommentOpen(false)}
-            onSubmit={(values) => console.log("submit", values)}
-            thread={thread} 
-          />
-
-          <button
-            type="button"
-            aria-label="프로필"
-            onClick={() => navigate("/mentee/mypage")}
-            className="grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-gray-100 text-gray-500 transition active:scale-[0.98]"
-          >
-            <UserIcon className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
-
-      <Calendar
-        value={selectedDate}
-        onChange={setSelectedDate}
-        metaByDate={metaByDate}
-        defaultExpanded={false}
-      />
-
-      <div className="my-6 flex items-center justify-between">
-        <h1 className="text-[18px] font-extrabold text-gray-900">오늘의 학습 목록</h1>
-
-        <div className="flex rounded-full border border-gray-200 bg-gray-50 p-1">
-          <button
-            type="button"
-            onClick={() => setViewMode("LIST")}
-            className={[
-              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition",
-              viewMode === "LIST"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500",
-            ].join(" ")}
-            aria-pressed={viewMode === "LIST"}
-            aria-label="목록 보기"
-          >
-            <ListIcon className="h-4 w-4" />
-            목록
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setViewMode("TIMETABLE")}
-            className={[
-              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition",
-              viewMode === "TIMETABLE"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500",
-            ].join(" ")}
-            aria-pressed={viewMode === "TIMETABLE"}
-            aria-label="타임테이블 보기"
-          >
-            <TimeIcon className="h-4 w-4" />
-            타임
-          </button>
-        </div>
-      </div>
-
-      {viewMode === "LIST" ? (
-        <>
-          <AssignmentList
-            items={assignments}
-            onOpen={(id) => navigate(`/mentee/assignments/${id}`)}
-          />
-
-          <TodoList
-            items={todos}
-            onAddAtTop={(title) => addAtTop(title)}
-            onToggleDone={handleToggleDone}
-            onUpdateTitle={(id, title) => updateTitle(id, title)}
-            onDelete={(id) => remove(id)}
-          />
-        </>
-      ) : (
-        <TimeTable
+        {viewMode === "LIST" ? (
+          <div className="space-y-4">
+            <AssignmentList
+              items={assignments}
+              onOpen={(id) => navigate(`/mentee/assignments/${id}`)}
+            />
+            <div className="border-t border-slate-100 pt-4" aria-hidden />
+            <TodoList
+              items={todos}
+              onAddAtTop={(title) => addAtTop(title)}
+              onToggleDone={handleToggleDone}
+              onUpdateTitle={(id, title) => updateTitle(id, title)}
+              onDelete={(id) => remove(id)}
+            />
+          </div>
+        ) : (
+          <TimeTable
+            className="mt-0"
           items={timelineItems}
           dateKey={dateKey}
           selectedDate={selectedDate}
-          startHour={6}
-          endHour={24}
-        />
-      )}
+            startHour={6}
+            endHour={24}
+          />
+        )}
+      </section>
     </div>
   );
 }

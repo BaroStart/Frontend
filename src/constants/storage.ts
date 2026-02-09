@@ -14,4 +14,8 @@ export const STORAGE_KEYS = {
   MENTEE_TODOS_BY_DATE: 'mentee-todos-by-date',
   TIMETABLE_COLOR_PALETTE: 'mentee-timetable-color-palette',
   MENTEE_LAST_SEEN_BADGE_IDS: 'mentee-last-seen-badge-ids',
+  GLOBAL_THEME: 'mentee-global-theme',
+  MENTEE_PROFILE_IMAGE_LOCAL: 'mentee-profile-image-local',
+  CUSTOM_BRAND_COLOR: 'mentee-custom-brand-color',
+  REPRESENTATIVE_BADGE_ID: 'mentee-representative-badge-id',
 } as const;

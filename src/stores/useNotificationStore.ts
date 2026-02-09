@@ -13,6 +13,8 @@ export type NotificationItem = {
   time: string;
   isRead: boolean;
   link?: string;
+  /** 알림에 해당하는 날짜 (YYYY-MM-DD). 클릭 시 해당 날짜로 이동 */
+  dateAt?: string;
 };
 
 type NotificationState = {
@@ -23,6 +25,25 @@ type NotificationState = {
   upsertMany: (items: NotificationItem[]) => void;
 };
 
+function relativeTimeToDate(time: string): string {
+  const today = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  if (time === '방금 전' || /\d+분 전/.test(time) || /\d+시간 전/.test(time)) {
+    return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  }
+  if (time === '1일 전') {
+    const d = new Date(today);
+    d.setDate(d.getDate() - 1);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+  if (time === '2일 전') {
+    const d = new Date(today);
+    d.setDate(d.getDate() - 2);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+  return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+}
+
 const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
     id: 1,
@@ -32,6 +53,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     time: '방금 전',
     isRead: false,
     link: '/mentee/feedback',
+    dateAt: relativeTimeToDate('방금 전'),
   },
   {
     id: 2,
@@ -41,6 +63,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     time: '1일 전',
     isRead: false,
     link: '/mentee/assignments',
+    dateAt: relativeTimeToDate('1일 전'),
   },
   {
     id: 3,
@@ -50,6 +73,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     time: '1일 전',
     isRead: false,
     link: '/mentee/assignments',
+    dateAt: relativeTimeToDate('1일 전'),
   },
   {
     id: 4,
@@ -59,6 +83,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     time: '2일 전',
     isRead: true,
     link: '/mentee/feedback',
+    dateAt: relativeTimeToDate('2일 전'),
   },
   {
     id: 5,
@@ -68,6 +93,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     time: '2일 전',
     isRead: true,
     link: '/mentee/feedback',
+    dateAt: relativeTimeToDate('2일 전'),
   },
   {
     id: 6,
@@ -77,6 +103,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     time: '2일 전',
     isRead: true,
     link: '/mentee/feedback',
+    dateAt: relativeTimeToDate('2일 전'),
   },
   {
     id: 7,
@@ -86,6 +113,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     time: '2일 전',
     isRead: true,
     link: '/mentee/feedback',
+    dateAt: relativeTimeToDate('2일 전'),
   },
   {
     id: 8,
@@ -95,6 +123,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     time: '2일 전',
     isRead: true,
     link: '/mentee/feedback',
+    dateAt: relativeTimeToDate('2일 전'),
   },
 ];
 

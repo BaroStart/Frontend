@@ -1,99 +1,58 @@
-import type { ReactNode } from 'react';
+import { LockKeyhole } from 'lucide-react';
+import { iconFor, type BadgeItem } from './badgeIcons';
 
-import {
-  Award,
-  BookOpen,
-  CalendarDays,
-  Clock,
-  Coffee,
-  Crown,
-  Flame,
-  Hourglass,
-  LockKeyhole,
-  MessageCircleQuestion,
-  Sparkles,
-  Star,
-  Target,
-  Timer,
-  TrendingUp,
-  Trophy,
-} from 'lucide-react';
-
-export type BadgeItem = {
-  id: string;
-  title: string;
-  subtitle?: string;
-  icon?: ReactNode;
-  acquired: boolean;
-};
+export type { BadgeItem };
 
 type Props = {
   title?: string;
   items: BadgeItem[];
   className?: string;
   onClickAll?: () => void;
+  onBadgeClick?: (badge: BadgeItem) => void;
 };
 
 export function BadgeSection({
   title = '획득한 배지',
   items,
   className,
+  onBadgeClick,
 }: Props) {
-  const iconFor = (b: BadgeItem): ReactNode => {
-    if (b.icon) return b.icon;
-    switch (b.id) {
-      case 'badge_attendance_7':
-        return <Flame className="h-5 w-5" />;
-      case 'badge_weekly_goal_7days':
-        return <Trophy className="h-5 w-5" />;
-      case 'badge_first_assignment':
-        return <Star className="h-5 w-5" />;
-      case 'badge_total_100h':
-        return <Clock className="h-5 w-5" />;
-      case 'badge_korean_master':
-        return <BookOpen className="h-5 w-5" />;
-      case 'badge_math_master':
-        return <Target className="h-5 w-5" />;
-      case 'badge_english_master':
-        return <Sparkles className="h-5 w-5" />;
-      case 'badge_attendance_30':
-        return <CalendarDays className="h-5 w-5" />;
-      case 'badge_todo_streak_7':
-        return <TrendingUp className="h-5 w-5" />;
-      case 'badge_question_king':
-        return <Crown className="h-5 w-5" />;
-      case 'badge_pomodoro_master':
-        return <Timer className="h-5 w-5" />;
-      case 'badge_morning_routine':
-        return <Coffee className="h-5 w-5" />;
-      case 'badge_100h_study':
-        return <Hourglass className="h-5 w-5" />;
-      case 'badge_questions_10':
-        return <MessageCircleQuestion className="h-5 w-5" />;
-      default:
-        return <Award className="h-5 w-5" />;
-    }
+  const shapeFor = (id: string): string => {
+    if (id.includes('master')) return 'rounded-2xl';
+    if (id.includes('attendance') || id.includes('streak')) return 'rounded-full';
+    if (id.includes('first') || id.includes('100')) return 'rounded-xl';
+    return 'rounded-full';
   };
 
   return (
     <section className={['', className ?? ''].join(' ').trim()}>
       <div className="mb-3 flex items-end justify-between">
-        <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+        <h2 className="text-sm font-bold text-slate-900">{title}</h2>
       </div>
 
-      <div className="grid grid-cols-4 gap-y-4 gap-x-2">
+      <div className="grid grid-cols-4 gap-y-5 gap-x-3">
         {items.map((b) => {
-          const base =
-            'flex h-16 w-16 flex-col items-center justify-center rounded-full border text-center shadow-sm';
+          const shape = shapeFor(b.id);
           const acquiredCls = b.acquired
-            ? 'border-gray-900 bg-gray-900 text-white'
-            : 'border-gray-200 bg-gray-100 text-gray-400';
+            ? 'border-2 border-slate-300 bg-slate-100 text-slate-700'
+            : 'border-2 border-dashed border-slate-200 bg-slate-50 text-slate-300';
 
           return (
-            <div key={b.id} className="flex flex-col items-center gap-2">
-              <div className={[base, acquiredCls].join(' ')}>
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => onBadgeClick?.(b)}
+              className="flex cursor-pointer flex-col items-center gap-2 text-left transition active:scale-95"
+            >
+              <div
+                className={[
+                  'flex h-14 w-14 flex-col items-center justify-center text-center transition cursor-pointer',
+                  shape,
+                  acquiredCls,
+                ].join(' ')}
+              >
                 <div className="leading-none">
-                  {b.acquired ? iconFor(b) : <LockKeyhole className="h-5 w-5" />}
+                  {b.acquired ? iconFor(b) : <LockKeyhole className="h-4 w-4" strokeWidth={2} />}
                 </div>
               </div>
 
@@ -101,7 +60,7 @@ export function BadgeSection({
                 <p
                   className={[
                     'text-[11px] font-semibold',
-                    b.acquired ? 'text-gray-900' : 'text-gray-400',
+                    b.acquired ? 'text-slate-900' : 'text-slate-400',
                   ].join(' ')}
                 >
                   {b.title}
@@ -110,14 +69,14 @@ export function BadgeSection({
                   <p
                     className={[
                       'text-[10px]',
-                      b.acquired ? 'text-gray-500' : 'text-gray-300',
+                      b.acquired ? 'text-slate-600' : 'text-slate-300',
                     ].join(' ')}
                   >
                     {b.subtitle}
                   </p>
                 )}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

@@ -18,7 +18,7 @@ export function FeedbackSummaryCard({
   return (
     <div
       className={[
-        "rounded-2xl border border-[#D7EDF4] bg-white p-5 text-slate-950 shadow-sm",
+        "rounded-2xl border border-[hsl(var(--brand-light))] bg-white p-5 text-slate-950 shadow-sm",
         className ?? "",
       ].join(" ")}
     >
@@ -28,7 +28,7 @@ export function FeedbackSummaryCard({
             {mentorAvatar ? (
               <img src={mentorAvatar} alt={mentorName} className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-[#0E9ABE]">
+              <div className="flex h-full w-full items-center justify-center text-[hsl(var(--brand))]">
                 <UserIcon className="h-6 w-6" />
               </div>
             )}

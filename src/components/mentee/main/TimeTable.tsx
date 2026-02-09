@@ -1,7 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { Palette } from "lucide-react";
-import { TimeTableColorModal } from "./TimeTableColorModal";
-import { getTimetableColors } from "@/lib/timetableColorStorage";
+import React, { useMemo } from "react";
+import { getTimetableColors, getTimetablePaletteId } from "@/lib/timetableColorStorage";
 
 export type TimelineItemType = "task" | "assignment";
 
@@ -108,27 +106,17 @@ function splitIntoHourSegments(params: {
   return segments;
 }
 
-function formatDisplayDate(date: Date) {
-  const today = new Date();
-  const isToday = date.toDateString() === today.toDateString();
-  const pad2 = (n: number) => String(n).padStart(2, "0");
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  return isToday ? `오늘 (${pad2(m)}/${pad2(d)})` : `${date.getFullYear()}년 ${pad2(m)}월 ${pad2(d)}일`;
-}
-
 export function TimeTable({
   items,
   startHour = 6,
   endHour = 24,
   className,
-  rowHeightPx = 44,
+  rowHeightPx = 32,
   dateKey,
   selectedDate,
 }: TimeTableProps) {
-  const [colorModalOpen, setColorModalOpen] = useState(false);
-  const [paletteVersion, setPaletteVersion] = useState(0);
-  const paletteColors = useMemo(() => getTimetableColors(), [paletteVersion]);
+  const paletteColors = useMemo(() => getTimetableColors(), []);
+  const isLightPalette = ["softMint", "mono"].includes(getTimetablePaletteId());
 
   const hourRows = useMemo(() => {
     const rows: number[] = [];
@@ -197,37 +185,20 @@ export function TimeTable({
   };
 
   const isEmpty = items.length === 0;
-  const displayDateLabel = selectedDate ? formatDisplayDate(selectedDate) : dateKey ?? "";
 
   if (isEmpty) {
     return (
       <>
         <div
           className={[
-            "w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50 to-white shadow-soft",
+            "w-full overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm",
             className ?? "",
           ].join(" ")}
         >
-          <div className="flex items-start justify-between px-4 pt-5 pb-6">
-            <div>
-              <h2 className="text-sm font-bold tracking-tight text-slate-700">오늘의 학습 타임라인</h2>
-              {displayDateLabel && (
-                <p className="mt-0.5 text-xs font-medium text-slate-500">{displayDateLabel}</p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => setColorModalOpen(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200"
-              aria-label="색상 선택"
-            >
-              <Palette className="h-4 w-4" />
-            </button>
-          </div>
-        <div className="flex flex-col items-center justify-center gap-4 px-6 pb-10 pt-2">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100/80">
+          <div className="flex flex-col items-center justify-center gap-3 px-4 pb-6 pt-6">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100/80">
             <svg
-              className="h-8 w-8 text-slate-400"
+              className="h-6 w-6 text-slate-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -242,8 +213,8 @@ export function TimeTable({
             </svg>
           </div>
           <div className="text-center">
-            <p className="text-sm font-semibold text-slate-600">아직 완료된 학습이 없어요</p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="text-xs font-semibold text-slate-600">아직 완료된 학습이 없어요</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">
               할 일을 완료하고 시간을 입력하면
               <br />
               여기에 타임라인으로 표시됩니다
@@ -251,11 +222,6 @@ export function TimeTable({
           </div>
         </div>
       </div>
-      <TimeTableColorModal
-        open={colorModalOpen}
-        onClose={() => setColorModalOpen(false)}
-        onSelect={() => setPaletteVersion((v) => v + 1)}
-      />
     </>
     );
   }
@@ -263,49 +229,25 @@ export function TimeTable({
   return (
     <div
       className={[
-        "w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-soft",
+        "w-full overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm",
         className ?? "",
       ].join(" ")}
     >
-      <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-4 py-4">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <h2 className="text-sm font-bold tracking-tight text-slate-800">오늘의 학습 타임라인</h2>
-            {displayDateLabel && (
-              <p className="mt-0.5 text-xs font-medium text-slate-500">{displayDateLabel}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setColorModalOpen(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200"
-              aria-label="색상 선택"
-            >
-              <Palette className="h-4 w-4" />
-            </button>
-            <div className="flex h-8 min-w-[2rem] items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-medium px-2.5">
-              <span className="text-xs font-bold text-white">{items.length}개</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex gap-2 sm:gap-3 px-3 sm:px-4 pb-4 pt-3">
+      <div className="flex gap-2 px-3 pb-3 pt-3">
         <div className="flex flex-col">
           {hourRows.map((h) => (
             <div
               key={h}
               style={{ height: rowHeightPx }}
-              className="pr-1 sm:pr-2 text-right text-[11px] sm:text-xs font-semibold text-slate-400 tabular-nums"
+              className="pr-1 text-right text-[10px] font-medium text-slate-400 tabular-nums"
             >
-              {h % 24}시
+              {h % 24}
             </div>
           ))}
         </div>
 
-        <div className="relative flex-1">
-          <div className="relative rounded-lg">
+        <div className="relative flex-1 min-w-0">
+          <div className="relative rounded-md overflow-hidden">
             {hourRows.map((h) => (
               <div
                 key={h}
@@ -330,18 +272,19 @@ export function TimeTable({
 
               const rounding =
                 b.isFirst && b.isLast
-                  ? "rounded-lg"
+                  ? "rounded-md"
                   : b.isFirst
-                    ? "rounded-t-lg"
+                    ? "rounded-t-md"
                     : b.isLast
-                      ? "rounded-b-lg"
+                      ? "rounded-b-md"
                       : "rounded-none";
 
               return (
                 <div
                   key={b.key}
                   className={[
-                    "mx-[2px] sm:mx-[3px] my-[2px] flex items-center shadow-soft ring-1 ring-white/30",
+                    "mx-[1px] my-0.5 flex items-center overflow-hidden rounded-sm",
+                    "border border-white/20",
                     rounding,
                   ].join(" ")}
                   style={{
@@ -353,7 +296,12 @@ export function TimeTable({
                   }}
                 >
                   {b.title ? (
-                    <span className="truncate px-1.5 sm:px-2 text-[10px] sm:text-[11px] font-bold text-white drop-shadow-sm">
+                    <span
+                      className={[
+                        "truncate px-1 text-[9px] font-semibold drop-shadow-sm",
+                        isLightPalette ? "text-slate-700" : "text-white",
+                      ].join(" ")}
+                    >
                       {b.title}
                     </span>
                   ) : null}
@@ -363,12 +311,6 @@ export function TimeTable({
           </div>
         </div>
       </div>
-
-      <TimeTableColorModal
-        open={colorModalOpen}
-        onClose={() => setColorModalOpen(false)}
-        onSelect={() => setPaletteVersion((v) => v + 1)}
-      />
     </div>
   );
 }

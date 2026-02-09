@@ -126,7 +126,7 @@ export function CommentModal({
         className="absolute inset-0 bg-black/30"
       />
 
-      <div className="absolute left-1/2 top-1/2 w-[86vw] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl bg-white shadow-xl">
+      <div className="absolute left-1/2 top-1/2 w-[min(86vw,calc(100vw-2rem))] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="text-base font-semibold text-gray-900">{title}</h2>
           <button
@@ -141,7 +141,7 @@ export function CommentModal({
 
         <div className="max-h-[38vh] overflow-y-auto px-4 py-3">
           {!root ? (
-            <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-600">
+            <div className="rounded-xl bg-white border border-slate-100 p-3 text-sm text-gray-600">
               아직 코멘트가 없어요. 아래에 코멘트를 남기면 멘토 답장이 여기에 표시돼요.
             </div>
           ) : (

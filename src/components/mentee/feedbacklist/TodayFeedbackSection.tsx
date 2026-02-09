@@ -23,7 +23,7 @@ export function TodayFeedbackCard({ item, onClick, className }: Props) {
       </div>
 
       {!item ? (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-500">
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-500">
           오늘은 아직 받은 피드백이 없어요.
         </div>
       ) : (
@@ -37,7 +37,7 @@ export function TodayFeedbackCard({ item, onClick, className }: Props) {
             clickable ? "" : "cursor-default",
           ].join(" ")}
         >
-          <div className="absolute left-0 top-0 h-full w-1 bg-[#0E9ABE]" />
+          <div className="absolute left-0 top-0 h-full w-1 bg-[hsl(var(--brand))]" />
 
           <div className="flex items-start gap-3 pl-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-200 text-slate-500">

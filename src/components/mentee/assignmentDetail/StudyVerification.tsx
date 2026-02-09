@@ -75,10 +75,10 @@ export default function StudyVerification({
               <div className="grid grid-cols-2 gap-3">
                 {/* 카메라로 찍기 */}
                 <button
-                  className="flex flex-col items-center justify-center gap-2 h-28 rounded-xl border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50 hover:border-[#0E9ABE] hover:text-[#0E9ABE] transition-all bg-white"
+                  className="group flex flex-col items-center justify-center gap-2 h-28 rounded-xl border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50 hover:border-[hsl(var(--brand))] hover:text-[hsl(var(--brand))] transition-all bg-white"
                   onClick={handleCameraClick}
                 >
-                  <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-[#0E9ABE]/10">
+                  <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-[hsl(var(--brand))]/10">
                     <Camera className="w-5 h-5" />
                   </div>
                   <span className="text-xs font-medium">카메라로 찍기</span>
@@ -93,7 +93,7 @@ export default function StudyVerification({
                 />
                 {/* 갤러리 선택 */}
                 <button
-                  className="flex flex-col items-center justify-center gap-2 h-28 rounded-xl border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50 hover:border-[#0E9ABE] hover:text-[#0E9ABE] transition-all bg-white"
+                  className="group flex flex-col items-center justify-center gap-2 h-28 rounded-xl border border-dashed border-slate-300 text-slate-500 hover:bg-slate-50 hover:border-[hsl(var(--brand))] hover:text-[hsl(var(--brand))] transition-all bg-white"
                   onClick={handleGalleryClick}
                 >
                   <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100">
@@ -236,7 +236,7 @@ export default function StudyVerification({
               메모 (선택)
             </h4>
             <textarea
-              className="w-full h-24 p-4 rounded-xl border border-slate-200 text-xs leading-relaxed focus:outline-none focus:border-[#0E9ABE] focus:ring-1 focus:ring-[#0E9ABE] resize-none"
+              className="w-full h-24 p-4 rounded-xl border border-slate-200 text-xs leading-relaxed focus:outline-none focus:border-[hsl(var(--brand))] focus:ring-1 focus:ring-[hsl(var(--brand))] resize-none"
               placeholder="과제를 하면서 어려웠던 점이나 질문할 내용을 자유롭게 적어주세요."
             ></textarea>
             <div className="flex items-center justify-between mt-2">

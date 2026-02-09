@@ -13,6 +13,7 @@ import {
   MenteeMainPage,
   MyPage,
   NotificationPage,
+  SettingsPage,
 } from '@/pages/mentee';
 import {
   AssignmentManagePage,
@@ -65,6 +66,7 @@ export function AppRoutes() {
             <Route path="/mentee/feedback/:feedbackId" element={<FeedbackDetailPage />} />
             <Route path="/mentee/notifications" element={<NotificationPage />} />
             <Route path="/mentee/mypage" element={<MyPage />} />
+            <Route path="/mentee/mypage/settings" element={<SettingsPage />} />
           </Route>
         </Route>
 

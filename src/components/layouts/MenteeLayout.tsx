@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Settings } from 'lucide-react';
 
 import { BadgeCelebrationOverlay } from '@/components/mentee/my/BadgeCelebrationOverlay';
 import { TabBar } from '@/components/mentee/TabBar';
@@ -10,8 +11,9 @@ import { useAuthStore } from '@/stores/useAuthStore';
 export function MenteeLayout() {
   useDocumentTitle('설스터디 | 멘티 페이지');
   const { pathname } = useLocation();
-  const isHome = pathname === '/mentee';
+  const navigate = useNavigate();
   const hideHeader = /^\/mentee\/assignments\/[^/]+$/.test(pathname);
+  const isMyPage = pathname === '/mentee/mypage';
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -20,37 +22,42 @@ export function MenteeLayout() {
   }, [user?.id, user?.role]);
 
   return (
-    <div className="relative mx-auto min-h-screen w-full max-w-md bg-background sm:max-w-lg">
-      {isHome && (
-        <div className="pointer-events-none fixed inset-0 overflow-hidden">
-          <div className="absolute -right-20 top-20 h-64 w-64 rounded-full bg-brand/5 blur-3xl" />
-          <div className="absolute -left-20 top-1/3 h-48 w-48 rounded-full bg-brand/3 blur-3xl" />
-        </div>
-      )}
+    <div className="min-h-screen bg-white sm:bg-[linear-gradient(165deg,#f8fafc_0%,#ffffff_35%,#f0f9ff_70%,#e0f2fe_100%)]">
+      <div className="relative mx-auto min-h-screen w-full max-w-md bg-white sm:max-w-lg sm:shadow-xl sm:shadow-slate-200/20">
+        {!hideHeader && (
+          <header className="sticky top-0 z-40 border-b border-border/50 bg-white/70 backdrop-blur-xl">
+            <div className="flex h-14 items-center justify-between px-4">
+              <NavLink to="/mentee" className="flex items-center gap-1">
+                <img
+                  src="/logo.svg"
+                  alt="SeolStudy"
+                  className="h-6 w-6 shrink-0 rounded-lg object-contain"
+                />
+                <span className="font-plus-jakarta text-base font-bold tracking-tight text-foreground">
+                  SeolStudy
+                </span>
+              </NavLink>
+              {isMyPage && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/mentee/mypage/settings')}
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-800"
+                  aria-label="설정"
+                >
+                  <Settings className="h-5 w-5" strokeWidth={2} />
+                </button>
+              )}
+            </div>
+          </header>
+        )}
 
-      {!hideHeader && (
-        <header className="sticky top-0 z-40 border-b border-border/50 bg-white/70 backdrop-blur-xl">
-          <div className="flex h-14 items-center justify-between px-4">
-            <NavLink to="/mentee" className="flex items-center gap-1">
-              <img
-                src="/logo.svg"
-                alt="SeolStudy"
-                className="h-6 w-6 shrink-0 rounded-lg object-contain"
-              />
-              <span className="font-plus-jakarta text-base font-bold tracking-tight text-foreground">
-                SeolStudy
-              </span>
-            </NavLink>
-          </div>
-        </header>
-      )}
+        <main className="relative z-10 pb-24">
+          <Outlet />
+        </main>
 
-      <main className="relative z-10 pb-24">
-        <Outlet />
-      </main>
-
-      <TabBar />
-      <BadgeCelebrationOverlay />
+        <TabBar />
+        <BadgeCelebrationOverlay />
+      </div>
     </div>
   );
 }

@@ -27,7 +27,7 @@ export function MentorLayout() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-100/70">
+    <div className="min-h-screen bg-white md:bg-[linear-gradient(165deg,#f8fafc_0%,#ffffff_35%,#f0f9ff_70%,#e0f2fe_100%)]">
 
       <Sidebar
         collapsed={sidebarCollapsed}

@@ -33,7 +33,7 @@ export function AssignmentList({ items, onOpen }: Props) {
 
       <div className="space-y-2">
         {sorted.length === 0 ? (
-          <div className="rounded-2xl border border-[#E2F1F6] bg-white p-3 text-sm font-semibold text-slate-500">
+          <div className="rounded-2xl border border-[hsl(var(--brand-light))] bg-white p-3 text-sm font-semibold text-slate-500">
             해당 날짜에 과제가 없습니다.
           </div>
         ) : (

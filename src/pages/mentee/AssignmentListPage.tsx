@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { BookOpen, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
-import { AssignmentIcon, EnglishIcon, KoreanIcon, MathIcon } from "@/components/icons";
+import { BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import { MOCK_INCOMPLETE_ASSIGNMENTS } from "@/data/menteeDetailMock";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { getSubmittedAssignments } from "@/lib/menteeAssignmentSubmissionStorage";
@@ -71,20 +70,7 @@ export function AssignmentListPage() {
   const menteeId = user?.role === "mentee" && /^s\d+$/i.test(user.id) ? user.id : "s1";
   const userKey = user?.id ?? "";
 
-  const getSubjectIcon = (s: string) => {
-    switch (s) {
-      case "수학":
-        return <MathIcon className="h-6 w-6 text-[#0E9ABE]" />;
-      case "영어":
-        return <EnglishIcon className="h-6 w-6 text-[#0E9ABE]" />;
-      case "국어":
-        return <KoreanIcon className="h-6 w-6 text-[#0E9ABE]" />;
-      default:
-        return <AssignmentIcon className="h-6 w-6 text-[#0E9ABE]" />;
-    }
-  };
-
-  const filteredAssignments = useMemo(() => {
+  const { pending, completed } = useMemo(() => {
     const dateKey = toYmdKeyLocal(selectedDate);
     const submittedById = userKey ? getSubmittedAssignments(userKey) : {};
 
@@ -105,42 +91,45 @@ export function AssignmentListPage() {
       });
 
     const byDate = base.filter((a) => a.submissionDate.startsWith(ymdToDot(dateKey)));
+    const filtered = subject === "ALL"
+      ? byDate
+      : byDate.filter((a) => toSubjectEnum(a.subject) === subject);
 
-    if (subject === "ALL") return byDate;
-
-    return byDate.filter((a) => toSubjectEnum(a.subject) === subject);
+    const pending = filtered.filter((a) => a.status === "미완료");
+    const completed = filtered.filter((a) => a.status === "완료");
+    return { pending, completed };
   }, [menteeId, selectedDate, subject, userKey]);
 
+  const dateText = formatKoreanDate(selectedDate);
+
   return (
-    <div className="flex h-full flex-col gap-2 bg-white px-4 pt-4">
-      <header>
-        <div className="grid grid-cols-3 items-center">
+    <div className="flex h-full flex-col gap-2 bg-white px-4 pt-5 pb-20">
+      <header className="mb-6">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center">
           <div className="flex justify-start">
             <button
               type="button"
               onClick={() => setSelectedDate((d) => addDays(d, -1))}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              className="grid h-10 w-10 place-items-center rounded-full text-slate-400 transition hover:bg-slate-50 hover:text-slate-600 active:scale-95"
               aria-label="이전 날짜"
             >
-              <ChevronLeft className="h-6 w-6" />
+              <ChevronLeft className="h-5 w-5" />
             </button>
           </div>
 
-          <div className="flex justify-center">
-            <div className="flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1.5 text-gray-500">
-              <CalendarDays className="h-4 w-4" />
-              <span className="text-sm font-semibold tracking-tight">{formatKoreanDate(selectedDate)}</span>
-            </div>
+          <div className="text-center">
+            <h1 className="text-lg font-bold text-slate-900">과제</h1>
+            <p className="mt-0.5 text-xs font-medium text-slate-400">{dateText}</p>
           </div>
 
           <div className="flex justify-end">
             <button
               type="button"
               onClick={() => setSelectedDate((d) => addDays(d, 1))}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              className="grid h-10 w-10 place-items-center rounded-full text-slate-400 transition hover:bg-slate-50 hover:text-slate-600 active:scale-95"
               aria-label="다음 날짜"
             >
-              <ChevronRight className="h-6 w-6" />
+              <ChevronRight className="h-5 w-5" />
             </button>
           </div>
         </div>
@@ -159,43 +148,48 @@ export function AssignmentListPage() {
         />
       </div>
 
-      <div className="flex-1 space-y-5 px-6 pb-20">
-        {filteredAssignments.length > 0 ? (
-          filteredAssignments.map((assignment) => (
+      <div className="flex-1 space-y-4 px-1 pb-20 sm:px-2">
+        {pending.length > 0 || completed.length > 0 ? (
+          [...pending, ...completed].map((assignment) => (
             <button
               key={assignment.id}
               type="button"
               onClick={() => navigate(`/mentee/assignments/${assignment.id}`)}
-              className="w-full rounded-xl bg-white p-4 text-left shadow-sm transition hover:shadow-md active:scale-[0.99]"
+              className="group w-full rounded-xl border-l-4 border-[hsl(var(--brand))] bg-white px-4 py-4 text-left shadow-sm transition hover:shadow-md active:scale-[0.99]"
             >
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100">
-                  {getSubjectIcon(assignment.subject)}
-                </div>
-
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex items-start justify-between gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="inline-flex h-5 items-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                       {assignment.subject}
                     </span>
                     <span
-                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                      className={`inline-flex h-5 items-center justify-center rounded-md px-2 py-0.5 text-[10px] font-bold ${
                         assignment.status === "완료"
-                          ? "bg-gray-900 text-white"
-                          : "bg-gray-100 text-gray-600"
+                          ? "bg-[hsl(var(--brand))] text-white"
+                          : "bg-slate-100 text-slate-500"
                       }`}
                     >
                       {assignment.status}
                     </span>
                   </div>
-
-                  <h3 className="truncate text-base font-bold text-gray-900">
+                  <h3
+                    className={`text-base font-bold leading-snug ${
+                      assignment.status === "완료" ? "text-slate-400 line-through" : "text-slate-900"
+                    }`}
+                  >
                     {assignment.title}
                   </h3>
-                  <p className="mt-0.5 line-clamp-2 text-sm text-gray-500">
-                    {assignment.description}
-                  </p>
-                  <p className="mt-2 text-xs text-gray-400">
+                  {assignment.description && (
+                    <p
+                      className={`mt-1 line-clamp-2 text-sm ${
+                        assignment.status === "완료" ? "text-slate-500 line-through" : "text-slate-600"
+                      }`}
+                    >
+                      {assignment.description}
+                    </p>
+                  )}
+                  <p className="mt-2 text-[11px] text-slate-400">
                     {assignment.status === "완료"
                       ? `${assignment.submissionDate} 제출 완료`
                       : `마감 ${assignment.submissionDate}`}
@@ -206,7 +200,7 @@ export function AssignmentListPage() {
           ))
         ) : (
           <div className="mt-10 flex h-full w-full flex-col items-center justify-center text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-slate-100 bg-white text-slate-400">
               <BookOpen className="h-8 w-8 opacity-50" />
             </div>
             <p className="font-medium text-gray-500">등록된 과제가 없습니다.</p>

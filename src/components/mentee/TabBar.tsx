@@ -36,13 +36,13 @@ export function TabBar() {
             end={tab.end}
             className={({ isActive }) =>
               `flex flex-1 flex-col items-center gap-1 py-2 transition-colors ${
-                isActive ? 'text-[#0E9ABE]' : 'text-gray-400'
+                isActive ? 'text-[hsl(var(--brand))]' : 'text-gray-400'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <span className={isActive ? 'text-[#0E9ABE]' : 'text-gray-400'}>
+                <span className={isActive ? 'text-[hsl(var(--brand))]' : 'text-gray-400'}>
                   <span className="relative inline-flex">
                     {tab.icon}
                     {tab.path === '/mentee/notifications' && unreadCount > 0 && (
@@ -54,7 +54,7 @@ export function TabBar() {
                   </span>
                 </span>
                 <span
-                  className={`text-xs font-medium ${isActive ? 'text-[#0E9ABE]' : 'text-gray-400'}`}
+                  className={`text-xs font-medium ${isActive ? 'text-[hsl(var(--brand))]' : 'text-gray-400'}`}
                 >
                   {tab.label}
                 </span>

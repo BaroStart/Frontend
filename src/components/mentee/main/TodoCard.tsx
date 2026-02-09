@@ -93,21 +93,20 @@ export function TodoCard({
     <>
       <div
         className={[
-          "relative w-full rounded-2xl border bg-white p-3 text-left shadow-sm",
-          isDone ? "border-gray-200" : "border-gray-100",
+          "relative w-full rounded-xl border-l-4 border-l-[hsl(var(--brand))] border border-slate-100 bg-white text-left shadow-sm",
         ].join(" ")}
       >
-        <div className="flex items-start gap-2.5">
+        <div className="flex items-start gap-3 px-4 py-3">
           <button
             type="button"
             onClick={handleClickCheck}
-            className="mt-0.5"
+            className="flex h-6 w-6 shrink-0 items-center justify-center"
             aria-label={isDone ? "완료 해제" : "완료 체크"}
           >
             <div
               className={[
                 "flex h-5 w-5 items-center justify-center rounded-md border-2 transition",
-                isDone ? "border-gray-900 bg-gray-900" : "border-gray-300 bg-white",
+                isDone ? "border-slate-400 bg-slate-400" : "border-slate-300 bg-white",
               ].join(" ")}
             >
               {isDone && <span className="text-xs font-extrabold text-white">✓</span>}
@@ -115,62 +114,26 @@ export function TodoCard({
           </button>
 
           <div className="min-w-0 flex-1">
-            <div className="mb-1.5 flex items-center gap-2">
-              <span className="inline-flex items-center rounded-lg bg-[#0E9ABE] px-2 py-0.5 text-xs font-bold text-white">
+            <div className="mb-1 flex items-center gap-2 flex-wrap">
+              <span className="inline-flex h-5 items-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 할 일
               </span>
-
               {isDone ? (
-                <span className="rounded-lg bg-gray-900 text-white px-2 py-0.5 text-xs font-bold text-gray-700">
+                <span className="inline-flex h-5 items-center justify-center rounded-md bg-[hsl(var(--brand))] px-2 py-0.5 text-[10px] font-bold text-white">
                   완료
                 </span>
               ) : (
-                <span className="rounded-lg bg-gray-50 px-2 py-0.5 text-xs font-bold text-gray-700">
+                <span className="inline-flex h-5 items-center justify-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
                   미완료
                 </span>
-              )}
-
-              {!isEditing && (
-                <div className="ml-auto" data-todo-menu>
-                  <button
-                    type="button"
-                    onClick={() => setMenuOpen((v) => !v)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-50 active:scale-[0.98]"
-                    aria-label="메뉴"
-                  >
-                    <span className="text-lg text-gray-600">⋮</span>
-                  </button>
-
-                  {menuOpen && (
-                    <div className="absolute right-4 top-12 z-10 w-28 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
-                      <button
-                        type="button"
-                        onClick={startEdit}
-                        className="block w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
-                      >
-                        수정
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMenuOpen(false);
-                          onDelete();
-                        }}
-                        className="block w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-gray-50"
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  )}
-                </div>
               )}
             </div>
 
             {!isEditing ? (
               <div
                 className={[
-                  "truncate text-[15px] font-extrabold",
-                  isDone ? "text-gray-400 line-through" : "text-gray-900",
+                "truncate text-[15px] font-bold",
+                isDone ? "text-slate-400 line-through" : "text-slate-900",
                 ].join(" ")}
               >
                 {item.title}
@@ -183,24 +146,24 @@ export function TodoCard({
                     form.register("title").ref(e);
                     inputRef.current = e;
                   }}
-                  className={[
-                    "w-full rounded-xl border px-3 py-2 text-[15px] font-extrabold outline-none",
-                    "border-gray-200 focus:border-gray-400",
-                  ].join(" ")}
+                    className={[
+                      "w-full rounded-xl border px-3 py-2 text-[15px] font-extrabold outline-none",
+                      "border-slate-200 focus:border-[hsl(var(--brand))] focus:ring-1 focus:ring-[hsl(var(--brand))]",
+                    ].join(" ")}
                 />
                 {errorMsg && <p className="mt-1 text-xs font-semibold text-red-500">{errorMsg}</p>}
 
                 <div className="mt-3 flex justify-end gap-2">
                   <button
                     type="submit"
-                    className="rounded-xl bg-gray-900 px-3 py-2 text-sm font-extrabold text-white active:scale-[0.99]"
+                    className="rounded-xl bg-[hsl(var(--brand))] px-3 py-2 text-sm font-extrabold text-white active:scale-[0.99]"
                   >
                     저장
                   </button>
                   <button
                     type="button"
                     onClick={cancelEdit}
-                    className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-extrabold text-gray-700 active:scale-[0.99]"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-extrabold text-slate-700 active:scale-[0.99]"
                   >
                     취소
                   </button>
@@ -208,6 +171,41 @@ export function TodoCard({
               </form>
             )}
           </div>
+
+          {!isEditing && (
+            <div className="shrink-0" data-todo-menu>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-slate-100 active:scale-[0.98]"
+                aria-label="메뉴"
+              >
+                <span className="text-lg leading-none text-slate-600">⋮</span>
+              </button>
+
+              {menuOpen && (
+                <div className="absolute right-4 top-12 z-10 w-28 overflow-hidden rounded-xl border border-slate-100 bg-white shadow-lg">
+                      <button
+                        type="button"
+                        onClick={startEdit}
+                        className="block w-full px-4 py-2 text-left text-sm hover:bg-slate-50"
+                      >
+                        수정
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          onDelete();
+                        }}
+                        className="block w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-slate-50"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
         </div>
       </div>
 

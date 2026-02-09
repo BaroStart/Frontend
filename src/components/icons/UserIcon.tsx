@@ -1,14 +1,15 @@
 interface IconProps {
   className?: string;
+  strokeWidth?: number;
 }
 
-export function UserIcon({ className = 'h-[22px] w-[22px]' }: IconProps) {
+export function UserIcon({ className = 'h-[22px] w-[22px]', strokeWidth = 1.5 }: IconProps) {
   return (
     <svg
       className={className}
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.2}
+      strokeWidth={strokeWidth}
       viewBox="0 0 24 24"
     >
       <path

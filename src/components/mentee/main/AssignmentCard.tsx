@@ -24,55 +24,37 @@ export function AssignmentCard({ item, onOpen }: Props) {
       type="button"
       onClick={onOpen}
       className={[
-        "w-full rounded-2xl border bg-white p-3 text-left shadow-sm transition active:scale-[0.99]",
-        isDone ? "border-gray-200" : "border-gray-100",
+        "w-full rounded-xl border-l-4 border-[hsl(var(--brand))] bg-white px-4 py-3 text-left shadow-sm transition active:scale-[0.99]",
+        isDone ? "opacity-90" : "",
       ].join(" ")}
     >
-      <div className="flex items-start gap-2.5">
-        <div className="pointer-events-none mt-0.5">
-          <div
-            className={[
-              "flex h-5 w-5 items-center justify-center rounded-md border-2",
-              isDone ? "border-gray-900 bg-gray-900" : "border-gray-300 bg-white",
-            ].join(" ")}
-          >
-            {isDone && <span className="text-xs font-extrabold text-white">✓</span>}
-          </div>
-        </div>
-
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="mb-1.5 flex items-center gap-2">
-            <span className="inline-flex items-center rounded-lg bg-[#0E9ABE] px-2 py-0.5 text-xs font-bold text-white">
+          <div className="mb-1 flex items-center gap-2">
+            <span className="inline-flex h-5 items-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               과제
             </span>
-
-            {isDone ? (
-              <span className="rounded-lg bg-gray-900 text-white px-2 py-0.5 text-xs font-bold text-gray-700">
-                완료
-              </span>
-            ) : (
-              <span className="rounded-lg bg-gray-50 px-2 py-0.5 text-xs font-bold text-gray-700">
-                미완료
-              </span>
-            )}
+            <span
+              className={`inline-flex h-5 items-center rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                isDone ? "bg-[hsl(var(--brand))] text-white" : "bg-slate-100 text-slate-500"
+              }`}
+            >
+              {isDone ? "완료" : "미완료"}
+            </span>
           </div>
-
           <div
             className={[
-                "truncate text-[15px] font-extrabold",
-                isDone
-                ? "text-gray-400 line-through"
-                : "text-gray-900",
+              "truncate text-[15px] font-bold",
+              isDone ? "text-slate-400 line-through" : "text-slate-900",
             ].join(" ")}
-            >
+          >
             {item.title}
           </div>
-          
-          <div className="mt-1 text-xs font-medium text-gray-600">
+          <div className="mt-1 text-[11px] text-slate-400">
             {isDone ? (
               <span>{formatRange(item.startedAtText, item.endedAtText)}</span>
             ) : (
-              <span>마감: {item.dueAtText ?? "-"}</span>
+              <span>마감 {item.dueAtText ?? "-"}</span>
             )}
           </div>
         </div>

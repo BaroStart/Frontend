@@ -1,7 +1,4 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
-
-import { EnglishIcon, KoreanIcon, MathIcon, UserIcon } from "@/components/icons";
 
 export type Subject = "KOREAN" | "ENGLISH" | "MATH" | "ETC";
 
@@ -13,88 +10,90 @@ export type FeedbackItem = {
   timeText?: string;
   assignmentCount?: number;
   assignmentId?: string;
+  status?: "NEW" | "READ";
+  assignmentTitles?: string[];
 };
 
 type Props = {
   item: FeedbackItem;
+  index?: number;
   className?: string;
   onOpenAssignment?: (assignmentId: string) => void;
 };
 
-const SUBJECT_META: Record<Subject, { label: string; icon: React.ReactNode }> = {
-  KOREAN: { label: "국어", icon: <KoreanIcon className="h-6 w-6 text-[#0E9ABE]" /> },
-  ENGLISH: { label: "영어", icon: <EnglishIcon className="h-6 w-6 text-[#0E9ABE]" /> },
-  MATH: { label: "수학", icon: <MathIcon className="h-6 w-6 text-[#0E9ABE]" /> },
-  ETC: { label: "기타", icon: <UserIcon className="h-6 w-6 text-[#0E9ABE]" /> },
+const SUBJECT_LABELS: Record<Subject, string> = {
+  KOREAN: "국어",
+  ENGLISH: "영어",
+  MATH: "수학",
+  ETC: "기타",
 };
 
-export function FeedbackCard({ item, className, onOpenAssignment }: Props) {
-  const meta = SUBJECT_META[item.subject];
+export function FeedbackCard({ item, index = 0, className, onOpenAssignment }: Props) {
   const navigate = useNavigate();
   const canOpen = Boolean(item.assignmentId);
+  const label = SUBJECT_LABELS[item.subject] ?? item.subject;
+  const isNew = item.status === "NEW";
+  const isFirst = index === 0;
+
+  // 리듬감: 첫 카드·NEW 카드는 살짝 강조
+  const isFeatured = isFirst || isNew;
 
   return (
     <div
       className={[
-        "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm",
-        "transition hover:bg-slate-50 hover:shadow-md",
+        "flex items-start gap-4 border-b border-slate-100 last:border-b-0",
+        isFeatured ? "py-6 px-5 bg-white" : "py-5 px-5",
         className ?? "",
       ].join(" ")}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0E9ABE]/10 text-slate-700">
-          {meta.icon}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span
+            className="h-1.5 w-1.5 shrink-0 rounded-full bg-[hsl(var(--brand))] opacity-70"
+            aria-hidden
+          />
+          <span className={isFeatured ? "text-base font-bold text-slate-900" : "text-sm font-bold text-slate-800"}>
+            {item.mentorName} 멘토
+          </span>
+          {isNew && (
+            <span className="rounded px-1.5 py-0.5 text-[10px] font-bold text-[hsl(var(--brand))] bg-[hsl(var(--brand-light))]">
+              NEW
+            </span>
+          )}
         </div>
+        <p className="mt-0.5 text-[11px] font-medium text-slate-500">
+          {label}
+          {item.timeText && ` · ${item.timeText}`}
+        </p>
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-extrabold text-slate-900">{meta.label}</span>
-              {item.assignmentCount != null && (
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
-                  과제 {item.assignmentCount}개
-                </span>
-              )}
-            </div>
-            <div className="mt-1 flex items-center gap-2 text-[11px] font-medium text-slate-500">
-              <span className="truncate">{item.mentorName} 멘토</span>
-              {item.timeText && (
-                <>
-                  <span className="text-slate-300">·</span>
-                  <span className="shrink-0 text-slate-400">{item.timeText}</span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-        <span className="shrink-0 rounded-full border border-slate-100 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500">
-          피드백
-        </span>
-      </div>
+        <blockquote className="mt-3 rounded-xl border-l-[3px] border-[hsl(var(--brand))] bg-[hsl(var(--brand-light))]/30 border border-slate-100 px-4 py-3">
+          <p className="text-sm leading-[1.6] text-slate-700 whitespace-pre-wrap break-keep line-clamp-4">
+            {item.content}
+          </p>
+        </blockquote>
 
-      <p className="mt-2.5 line-clamp-4 whitespace-pre-wrap break-keep text-sm leading-6 text-slate-700">
-        {item.content}
-      </p>
+        {item.assignmentTitles && item.assignmentTitles.length > 0 && (
+          <p className="mt-2 text-xs text-slate-500">
+            {item.assignmentTitles.slice(0, 2).join(" · ")}
+            {item.assignmentTitles.length > 2 && ` 외 ${item.assignmentTitles.length - 2}개`}
+          </p>
+        )}
 
-      <div className="mt-3 flex items-center justify-end">
-        <button
-          type="button"
-          disabled={!canOpen}
-          onClick={() => {
-            if (!item.assignmentId) return;
-            if (onOpenAssignment) {
-              onOpenAssignment(item.assignmentId);
-              return;
-            }
-            navigate(`/mentee/assignments/${item.assignmentId}`);
-          }}
-          className={[
-            "rounded-xl px-3 py-2 text-sm font-extrabold transition",
-            canOpen ? "text-[#0E9ABE] hover:bg-[#0E9ABE]/10" : "cursor-default text-slate-300",
-          ].join(" ")}
-        >
-          과제 보기 <span aria-hidden="true">→</span>
-        </button>
+        {canOpen && (
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenAssignment) {
+                onOpenAssignment(item.assignmentId!);
+              } else {
+                navigate(`/mentee/assignments/${item.assignmentId}`);
+              }
+            }}
+            className="mt-3 text-sm font-semibold text-slate-900 hover:text-slate-700 hover:underline"
+          >
+            과제 보기 →
+          </button>
+        )}
       </div>
     </div>
   );

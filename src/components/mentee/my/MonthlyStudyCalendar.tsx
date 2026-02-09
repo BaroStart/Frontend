@@ -83,10 +83,10 @@ function intensityFromHours(hours?: number): 0 | 1 | 2 | 3 {
 }
 
 function cellClassByIntensity(i: 0 | 1 | 2 | 3) {
-  if (i === 3) return 'bg-gray-900 text-white';
-  if (i === 2) return 'bg-gray-700 text-white';
-  if (i === 1) return 'bg-gray-300 text-gray-900';
-  return 'bg-gray-100 text-gray-700';
+  if (i === 3) return 'bg-[hsl(var(--brand))] text-white';
+  if (i === 2) return 'bg-[hsl(var(--brand))]/70 text-white';
+  if (i === 1) return 'bg-[hsl(var(--brand-light))] text-[hsl(var(--brand))]';
+  return 'bg-slate-100 text-slate-600';
 }
 
 function DayCell({
@@ -108,10 +108,10 @@ function DayCell({
     'relative flex min-h-[60px] flex-col items-center justify-start rounded-xl p-2 transition';
 
   if (!inMonth) {
-    return (
-      <button type="button" onClick={onPick} className={`${base} bg-white hover:bg-gray-50`}>
+  return (
+    <button type="button" onClick={onPick} className={`${base} bg-white hover:bg-slate-50`}>
         <div className="mt-2 flex h-10 w-10 items-center justify-center rounded-2xl">
-          <span className="text-sm font-medium text-gray-300">{date.getDate()}</span>
+          <span className="text-sm font-medium text-slate-300">{date.getDate()}</span>
         </div>
       </button>
     );
@@ -127,14 +127,14 @@ function DayCell({
       <div
         className={[
           'flex h-full w-full items-center justify-center rounded-full transition',
-          selected ? 'bg-gray-900' : isFuture ? 'bg-gray-50 text-gray-400' : cellClassByIntensity(intensity),
+          selected ? 'bg-[hsl(var(--brand))]' : isFuture ? 'bg-slate-50 text-slate-400' : cellClassByIntensity(intensity),
           !selected ? 'group-hover:opacity-90' : '',
         ].join(' ')}
       >
           <span
             className={[
               'text-sm font-semibold transition',
-              selected ? 'text-white' : intensity >= 2 ? 'text-white' : 'text-gray-900',
+              selected ? 'text-white' : intensity >= 2 ? 'text-white' : 'text-slate-900',
             ].join(' ')}
           >
             {date.getDate()}
@@ -188,44 +188,44 @@ export function MonthlyStudyCalendar({ className }: Props) {
       }));
 
   return (
-    <section className={['rounded-2xl border border-gray-100 bg-white p-4 shadow-sm', className ?? ''].join(' ')}>
+    <section className={['rounded-2xl border border-slate-100 bg-white p-5 shadow-sm', className ?? ''].join(' ')}>
       <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={() => setMonthRef(addMonths(monthRef, -1))}
-          className="rounded-2xl px-3 py-2 text-2xl font-semibold text-gray-500 hover:bg-gray-50"
+          className="rounded-2xl px-3 py-2 text-2xl font-semibold text-slate-500 hover:bg-slate-50"
           aria-label="이전 달"
         >
           ‹
         </button>
         
-        <div className="text-center text-base font-bold text-gray-900">
+        <div className="text-center text-base font-bold text-slate-900">
           {monthLabel}
         </div>
 
         <button
           type="button"
           onClick={() => setMonthRef(addMonths(monthRef, 1))}
-          className="rounded-2xl px-3 py-2 text-2xl font-semibold text-gray-500 hover:bg-gray-50"
+          className="rounded-2xl px-3 py-2 text-2xl font-semibold text-slate-500 hover:bg-slate-50"
           aria-label="다음 달"
         >
           ›
         </button>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-end gap-2 text-xs text-gray-400">
+      <div className="mt-3 flex flex-wrap items-center justify-end gap-2 text-xs text-slate-500">
         <span className="inline-flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-gray-900" /> 10시간 이상
+          <span className="h-2 w-2 rounded-full bg-[hsl(var(--brand))]" /> 10시간 이상
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-gray-700" /> 5시간 이상
+          <span className="h-2 w-2 rounded-full bg-[hsl(var(--brand))]/70" /> 5시간 이상
         </span>
         <span className="inline-flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-gray-300" /> 2시간 미만
+          <span className="h-2 w-2 rounded-full bg-[hsl(var(--brand-light))]" /> 2시간 미만
         </span>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-2 text-center text-[12px] font-semibold text-gray-400">
+      <div className="mt-4 grid grid-cols-7 gap-2 text-center text-[12px] font-semibold text-slate-500">
         {['일', '월', '화', '수', '목', '금', '토'].map((w) => (
           <div key={w}>{w}</div>
         ))}
@@ -264,7 +264,7 @@ export function MonthlyStudyCalendar({ className }: Props) {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-50"
+          className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-[hsl(var(--brand))] hover:bg-[hsl(var(--brand-light))]"
         >
           {expanded ? '주간 캘린더 보기' : '월간 캘린더 보기'}
           <span className="text-xs">{expanded ? '▴' : '▾'}</span>

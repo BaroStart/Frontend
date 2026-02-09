@@ -131,53 +131,58 @@ export function TimeRangeModal({
         onClick={onClose}
       />
 
-      <div className="absolute inset-0 flex items-center justify-center p-4">
-        <div className="w-full max-w-[360px] overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5">
-          <div className="px-6 pt-6">
-            <h2 className="text-center text-[18px] font-extrabold text-gray-900">{title}</h2>
-            <p className="mt-1 text-center text-xs text-gray-400">시작/종료 시간을 입력해주세요</p>
-          </div>
+      <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-5">
+        <div className="w-full max-w-[min(400px,calc(100vw-2rem))] overflow-x-hidden overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl">
+          <div className="space-y-5 px-5 py-5 sm:px-7 sm:py-6">
+            <div className="text-center">
+              <h2 className="text-lg font-extrabold text-slate-900">{title}</h2>
+              <p className="mt-0.5 text-xs text-slate-400">시작/종료 시간을 입력해주세요</p>
+            </div>
 
-          <div className="space-y-5 px-6 pb-5 pt-6">
-            <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4">
-              <Row label="시작">
-                <MeridiemToggle
+            <div className="space-y-4 sm:space-y-5">
+              <div className="rounded-xl border border-slate-100 bg-white p-4 sm:p-5">
+                <TimeRow
+                  label="시작"
                   firstRef={firstFocusRef}
-                  valueName="startMeridiem"
                   control={form.control}
+                  hourName="startHour"
+                  minuteName="startMinute"
+                  meridiemName="startMeridiem"
                 />
-                <TimeBoxes control={form.control} hourName="startHour" minuteName="startMinute" />
-              </Row>
-            </div>
-
-            <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4">
-              <Row label="종료">
-                <MeridiemToggle valueName="endMeridiem" control={form.control} />
-                <TimeBoxes control={form.control} hourName="endHour" minuteName="endMinute" />
-              </Row>
-            </div>
-
-            {errorMsg && (
-              <div className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-semibold text-red-500">
-                {errorMsg}
               </div>
-            )}
 
-            <div className="mt-2 flex justify-end gap-2">
+              <div className="rounded-xl border border-slate-100 bg-white p-4 sm:p-5">
+                <TimeRow
+                  label="종료"
+                  control={form.control}
+                  hourName="endHour"
+                  minuteName="endMinute"
+                  meridiemName="endMeridiem"
+                />
+              </div>
+
+              {errorMsg && (
+                <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-semibold text-red-500">
+                  {errorMsg}
+                </div>
+              )}
+
+              <div className="flex shrink-0 justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-extrabold text-gray-700 hover:bg-gray-50 active:scale-[0.99]"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-extrabold text-slate-700 hover:bg-slate-50 active:scale-[0.99]"
               >
                 취소
               </button>
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-extrabold text-white hover:bg-gray-800 active:scale-[0.99]"
+                className="rounded-xl bg-[hsl(var(--brand))] px-4 py-2 text-sm font-extrabold text-white hover:opacity-90 active:scale-[0.99]"
               >
                 저장
               </button>
+            </div>
             </div>
           </div>
         </div>
@@ -188,103 +193,105 @@ export function TimeRangeModal({
   return createPortal(modal, document.body);
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <span className="w-10 text-sm font-semibold text-gray-500">{label}</span>
-      <div className="flex items-center gap-3">{children}</div>
-    </div>
-  );
-}
+const ROW_HEIGHT = "h-12";
 
-function MeridiemToggle({
-  control,
-  valueName,
+function TimeRow({
+  label,
   firstRef,
-}: {
-  control: Control<FormValues>;
-  valueName: "startMeridiem" | "endMeridiem";
-  firstRef?: React.RefObject<HTMLButtonElement | null>;
-}) {
-  return (
-    <Controller
-      control={control}
-      name={valueName}
-      render={({ field }) => (
-        <div className="flex flex-col text-xs">
-          <button
-            ref={firstRef}
-            type="button"
-            onClick={() => field.onChange("AM")}
-            className={[
-              "px-1 text-left font-semibold",
-              field.value === "AM" ? "text-blue-600" : "text-gray-400",
-            ].join(" ")}
-          >
-            오전
-          </button>
-          <button
-            type="button"
-            onClick={() => field.onChange("PM")}
-            className={[
-              "px-1 text-left font-semibold",
-              field.value === "PM" ? "text-blue-600" : "text-gray-400",
-            ].join(" ")}
-          >
-            오후
-          </button>
-        </div>
-      )}
-    />
-  );
-}
-
-function TimeBoxes({
   control,
   hourName,
   minuteName,
+  meridiemName,
 }: {
+  label: string;
+  firstRef?: React.RefObject<HTMLButtonElement | null>;
   control: Control<FormValues>;
   hourName: "startHour" | "endHour";
   minuteName: "startMinute" | "endMinute";
+  meridiemName: "startMeridiem" | "endMeridiem";
 }) {
   const inputCls =
-    "h-14 w-16 rounded-2xl border border-gray-200 bg-white text-center text-3xl font-extrabold text-gray-900 outline-none focus:border-gray-300 focus:ring-2 focus:ring-gray-900/10";
+    `${ROW_HEIGHT} w-12 sm:w-14 rounded-xl border border-slate-200 bg-white text-center text-lg font-bold text-slate-900 tabular-nums outline-none transition focus:border-[hsl(var(--brand))] focus:ring-2 focus:ring-[hsl(var(--brand))]/20 sm:text-xl [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`;
+
   return (
-    <div className="flex items-center gap-2">
-      <Controller
-        control={control}
-        name={hourName}
-        render={({ field }) => (
-          <input
-            type="number"
-            value={pad2(Number(field.value))}
-            onChange={(e) => {
-              const raw = Number(e.target.value);
-              const v = Number.isFinite(raw) ? Math.max(1, Math.min(12, raw)) : 1;
-              field.onChange(v);
-            }}
-            className={inputCls}
+    <div className={`flex min-w-0 items-center gap-3 sm:gap-4 ${ROW_HEIGHT}`}>
+      <span className="w-10 shrink-0 text-sm font-bold text-slate-700 sm:w-12">{label}</span>
+      <div className="flex min-w-0 flex-1 items-center justify-end gap-3 sm:gap-4">
+        <Controller
+          control={control}
+          name={meridiemName}
+          render={({ field }) => (
+            <div className={`flex ${ROW_HEIGHT} shrink-0 items-center rounded-xl border border-slate-200 bg-white p-1`}>
+              <button
+                ref={firstRef}
+                type="button"
+                onClick={() => field.onChange("AM")}
+                className={[
+                  "flex h-9 flex-1 min-w-0 items-center justify-center rounded-lg px-3 text-xs font-bold transition sm:h-10 sm:px-4 sm:text-sm",
+                  field.value === "AM"
+                    ? "bg-[hsl(var(--brand))] text-white shadow-sm"
+                    : "text-slate-500 hover:bg-slate-100",
+                ].join(" ")}
+              >
+                오전
+              </button>
+              <button
+                type="button"
+                onClick={() => field.onChange("PM")}
+                className={[
+                  "flex h-9 flex-1 min-w-0 items-center justify-center rounded-lg px-3 text-xs font-bold transition sm:h-10 sm:px-4 sm:text-sm",
+                  field.value === "PM"
+                    ? "bg-[hsl(var(--brand))] text-white shadow-sm"
+                    : "text-slate-500 hover:bg-slate-100",
+                ].join(" ")}
+              >
+                오후
+              </button>
+            </div>
+          )}
+        />
+        <div className={`flex ${ROW_HEIGHT} shrink-0 items-center gap-1.5 sm:gap-2`}>
+          <Controller
+            control={control}
+            name={hourName}
+            render={({ field }) => (
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={12}
+                value={pad2(Number(field.value))}
+                onChange={(e) => {
+                  const raw = Number(e.target.value);
+                  const v = Number.isFinite(raw) ? Math.max(1, Math.min(12, raw)) : 1;
+                  field.onChange(v);
+                }}
+                className={inputCls}
+              />
+            )}
           />
-        )}
-      />
-      <span className="text-2xl text-gray-400">:</span>
-      <Controller
-        control={control}
-        name={minuteName}
-        render={({ field }) => (
-          <input
-            type="number"
-            value={pad2(Number(field.value))}
-            onChange={(e) => {
-              const raw = Number(e.target.value);
-              const v = Number.isFinite(raw) ? Math.max(0, Math.min(59, raw)) : 0;
-              field.onChange(v);
-            }}
-            className={inputCls}
+          <span className={`flex ${ROW_HEIGHT} items-center justify-center text-xl font-bold text-slate-300`}>:</span>
+          <Controller
+            control={control}
+            name={minuteName}
+            render={({ field }) => (
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={59}
+                value={pad2(Number(field.value))}
+                onChange={(e) => {
+                  const raw = Number(e.target.value);
+                  const v = Number.isFinite(raw) ? Math.max(0, Math.min(59, raw)) : 0;
+                  field.onChange(v);
+                }}
+                className={inputCls}
+              />
+            )}
           />
-        )}
-      />
+        </div>
+      </div>
     </div>
   );
 }

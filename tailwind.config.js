@@ -55,6 +55,15 @@ export default {
           '80%': { opacity: '1', transform: 'scale(1.1) translateY(-30px)' },
           '100%': { opacity: '0', transform: 'scale(0.8) translateY(-60px)' },
         },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(100%)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        badgeScaleIn: {
+          '0%': { opacity: '0', transform: 'scale(0.8)' },
+          '70%': { transform: 'scale(1.05)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
       },
       animation: {
         'fade-in-up': 'fade-in-up 0.5s ease-out forwards',
@@ -66,6 +75,8 @@ export default {
         shimmer: 'shimmer 2s linear infinite',
         pulse: 'pulse 2s ease-in-out infinite',
         'badge-fly': 'badge-fly 2.5s ease-out forwards',
+        slideUp: 'slideUp 0.3s ease-out forwards',
+        badgeScaleIn: 'badgeScaleIn 0.4s ease-out 0.1s forwards',
       },
       colors: {
         // 브랜드 색상

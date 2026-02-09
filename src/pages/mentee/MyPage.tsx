@@ -1,19 +1,16 @@
-import { useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
 
-import { logout as logoutApi } from '@/api/auth';
+import { BadgeDetailSheet } from '@/components/mentee/my/BadgeDetailSheet';
 import { BadgeSection } from '@/components/mentee/my/BadgeSection';
-import { ConsultButton } from '@/components/mentee/my/ConsultButton';
 import { MonthlyStudyCalendar } from '@/components/mentee/my/MonthlyStudyCalendar';
 import { SubjectAchievementSection } from '@/components/mentee/my/SubjectAchievementSection';
-import { WeeklyStudyStatusCard } from '@/components/mentee/my/WeeklyStudyStatusCard';
-import { Button } from '@/components/ui/Button';
 import { MOCK_SUBJECT_STUDY_TIMES } from '@/data/learningAnalysisMock';
 import { MOCK_INCOMPLETE_ASSIGNMENTS } from '@/data/menteeDetailMock';
 import {
   getLastSeenBadgeIds,
   setLastSeenBadgeIds,
 } from '@/lib/badgeCelebrationStorage';
+import { getLocalProfileImage } from '@/lib/profileImageStorage';
 import { getAttendanceDates, getQnaCount, toYmdLocal } from '@/lib/menteeActivityStorage';
 import { getSubmittedAssignments } from '@/lib/menteeAssignmentSubmissionStorage';
 import { useBadgeCelebrationStore } from '@/stores/useBadgeCelebrationStore';
@@ -21,8 +18,11 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import { useTodoStore } from '@/stores/useTodoStore';
 
 export function MyPage() {
-  const navigate = useNavigate();
-  const { logout, user: authUser } = useAuthStore();
+  const { user: authUser } = useAuthStore();
+  const [badgeDetail, setBadgeDetail] = useState<{ open: boolean; badge: Parameters<typeof BadgeDetailSheet>[0]['badge'] }>({
+    open: false,
+    badge: null,
+  });
 
   const dailyQuote = useMemo(() => {
     // "매일 바뀌는 멘트" (로컬 날짜 기준, 하루 동안은 고정)
@@ -41,17 +41,6 @@ export function MyPage() {
     const seed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
     return quotes[seed % quotes.length];
   }, []);
-
-  const handleLogout = async () => {
-    try {
-      await logoutApi();
-    } catch {
-      // ignore
-    } finally {
-      logout();
-      navigate('/login');
-    }
-  };
 
   const summary = useMemo(
     () => ({
@@ -272,58 +261,72 @@ export function MyPage() {
 
   return (
     <div className="relative px-4 pt-4 pb-4">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs text-gray-400">안녕하세요</p>
-          <h1 className="text-lg font-semibold text-gray-900">{authUser?.name ?? '멘티'}님</h1>
+      {/* 1. 상단: 핵심 정체성 (인스타 프로필처럼) */}
+      <section className="mb-6">
+        <div className="flex flex-col items-center text-center">
+          <div className="relative mb-3 h-20 w-20 shrink-0 overflow-hidden rounded-full bg-white border border-slate-100">
+            {(getLocalProfileImage() || authUser?.profileImage) ? (
+              <img src={getLocalProfileImage() || authUser?.profileImage || ''} alt="avatar" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-slate-400">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z" />
+                </svg>
+              </div>
+            )}
+          </div>
+          <h1 className="text-lg font-bold text-slate-900">{authUser?.name ?? '멘티'}님</h1>
+          <p className="mt-0.5 text-sm text-slate-500">이번 주 {summary.weekProgressPercent}% 달성</p>
         </div>
+      </section>
 
-        <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-gray-200">
-          {authUser?.profileImage ? (
-            <img src={authUser.profileImage} alt="avatar" className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-gray-400">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-          )}
+      {/* 2. 중단: 요약 정보 */}
+      <section className="mb-6 flex justify-center gap-12 border-y border-slate-100 py-4">
+        <div className="flex flex-col items-center">
+          <span className="text-base font-bold text-slate-900">{summary.totalStudyText}</span>
+          <span className="text-xs text-slate-500">학습시간</span>
         </div>
-      </div>
+        <div className="flex flex-col items-center">
+          <span className="text-base font-bold text-slate-900">{summary.completedText}</span>
+          <span className="text-xs text-slate-500">완료</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <span className="text-base font-bold text-slate-900">{badges.filter((b) => b.acquired).length}</span>
+          <span className="text-xs text-slate-500">배지</span>
+        </div>
+      </section>
 
-      <WeeklyStudyStatusCard
-        title="학습 현황"
-        percent={summary.weekProgressPercent}
-        totalStudyText={summary.totalStudyText}
-        completedText={summary.completedText}
+      {/* 3. 오늘의 문구 */}
+      <section className="space-y-4">
+        <div className="rounded-xl bg-white border border-slate-100 px-4 py-4">
+          <p className="whitespace-pre-line text-center text-sm font-medium leading-6 text-slate-700">
+            {summary.quote}
+          </p>
+        </div>
+      </section>
+
+      {/* 4. 과목별 달성률 */}
+      <section className="mt-6">
+        <SubjectAchievementSection title="과목별 달성률" items={subjects} />
+      </section>
+
+      <section className="mt-6">
+        <MonthlyStudyCalendar />
+      </section>
+
+      <section className="mt-6">
+        <BadgeSection
+          title="획득한 배지"
+          items={badges}
+          onBadgeClick={(b) => setBadgeDetail({ open: true, badge: b })}
+        />
+      </section>
+
+      <BadgeDetailSheet
+        open={badgeDetail.open}
+        badge={badgeDetail.badge}
+        onClose={() => setBadgeDetail((prev) => ({ ...prev, open: false }))}
       />
-
-      <div className="mt-4 rounded-2xl bg-gray-900 px-5 py-5 text-white shadow-sm ">
-        <div className="mb-2 text-3xl leading-none opacity-40">“</div>
-        <p className="whitespace-pre-line text-base font-extrabold leading-7 text-center">
-          {summary.quote}
-        </p>
-        <div className="mt-2 text-3xl leading-none text-right opacity-40">”</div>
-      </div>
-
-      <SubjectAchievementSection className="mt-6" title="과목별 달성률" items={subjects} />
-
-      <MonthlyStudyCalendar className="mt-6" />
-
-      <BadgeSection className="mt-6" title="획득한 배지" items={badges} onClickAll={() => {}} />
-
-      <div className="mt-6">
-        <Button variant="outline" className="w-full" onClick={handleLogout}>
-          로그아웃
-        </Button>
-      </div>
-      <ConsultButton formUrl="https://forms.gle/FchKdDcm23JdGHpK9" />
     </div>
   );
 }

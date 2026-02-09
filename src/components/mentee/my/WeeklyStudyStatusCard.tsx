@@ -26,8 +26,8 @@ export function WeeklyStudyStatusCard({
         <span className="text-sm font-semibold text-gray-700">{p}%</span>
       </div>
 
-      <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-        <div className="h-full rounded-full bg-[#0E9ABE]" style={{ width: `${p}%` }} />
+      <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+        <div className="h-full rounded-full bg-[hsl(var(--brand))]" style={{ width: `${p}%` }} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">

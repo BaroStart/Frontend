@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type YYYYMMDD = string;
 
@@ -88,15 +88,28 @@ function buildMonthCells(monthRef: Date): Cell[] {
   return cells;
 }
 
-// 과제랑 할일 있을 때 각각 점 1개로 표시했음
-function DotIndicator({ a, t }: { a: number; t: number }) {
+function DotIndicator({ a, t, selected = false }: { a: number; t: number; selected?: boolean }) {
   const hasA = a > 0;
   const hasT = t > 0;
 
   return (
-    <div className="mt-2 flex h-3 items-center justify-center gap-1">
-      {hasA && <span className="h-1.5 w-1.5 rounded-full bg-gray-900" />}
-      {hasT && <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />}
+    <div className="mt-1.5 flex h-2 items-center justify-center gap-0.5">
+      {hasA && (
+        <span
+          className={[
+            "h-1 w-1 shrink-0 rounded-full",
+            selected ? "bg-white/90" : "bg-[hsl(var(--brand))]",
+          ].join(" ")}
+        />
+      )}
+      {hasT && (
+        <span
+          className={[
+            "h-1 w-1 shrink-0 rounded-full",
+            selected ? "bg-white/60" : "bg-slate-400",
+          ].join(" ")}
+        />
+      )}
     </div>
   );
 }
@@ -117,42 +130,20 @@ function DayCell({
   t: number;
   onPick: () => void;
 }) {
-    const base =
-    "relative flex min-h-[72px] flex-col items-center justify-start rounded-xl p-1.5 transition";
-
-    const DateCircle = ({
-    children,
-    circleClassName = "",
-  }: {
-    children: React.ReactNode;
-    circleClassName?: string;
-  }) => (
-    <div className="mt-1 flex h-9 w-9 items-center justify-center rounded-full">
-      <div
-        className={[
-          "flex h-full w-full items-center justify-center rounded-full transition",
-          circleClassName,
-        ].join(" ")}
-      >
-        {children}
-      </div>
-    </div>
-  );
+  const base =
+    "relative flex min-h-[44px] flex-col items-center justify-start rounded p-0.5 transition";
 
   if (!inMonth) {
     return (
       <button
         type="button"
         onClick={onPick}
-        className={`${base} bg-white hover:bg-gray-50`}
+        className={`${base} bg-transparent hover:bg-slate-50/50`}
       >
-        <DateCircle circleClassName="group-hover:bg-gray-100">
-          <span className="text-base font-medium text-gray-300">
-            {date.getDate()}
-          </span>
-        </DateCircle>
-
-        <div className="mt-2 h-3" />
+        <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full">
+          <span className="text-xs font-medium text-slate-300">{date.getDate()}</span>
+        </div>
+        <div className="mt-1.5 h-2" />
       </button>
     );
   }
@@ -161,31 +152,27 @@ function DayCell({
     <button
       type="button"
       onClick={onPick}
-      className={[
-        base,
-        selected ? "bg-transparent" : "bg-white",
-        "focus:outline-none",
-      ].join(" ")}
+      className={[base, "focus:outline-none"].join(" ")}
     >
-      <div className="group mt-1 flex h-9 w-9 items-center justify-center rounded-full">
+      <div className="group mt-0.5 flex h-7 w-7 items-center justify-center rounded-full transition">
         <div
           className={[
             "flex h-full w-full items-center justify-center rounded-full transition",
-            selected ? "bg-gray-900" : "bg-transparent",
-            !selected ? "group-hover:bg-gray-100" : "",
+            selected ? "bg-[hsl(var(--brand))] text-white" : "bg-transparent",
+            !selected ? "group-hover:bg-slate-100" : "",
           ].join(" ")}
         >
           <span
             className={[
-              "text-base font-medium transition",
-              selected ? "text-white font-semibold" : "text-gray-800",
+              "text-xs font-medium transition",
+              selected ? "text-white font-semibold" : "text-slate-700",
             ].join(" ")}
           >
             {date.getDate()}
           </span>
         </div>
       </div>
-      <DotIndicator a={a} t={t} />
+      <DotIndicator a={a} t={t} selected={selected} />
     </button>
   );
 }
@@ -217,36 +204,36 @@ export function Calendar({
       }));
 
   return (
-    <section className="rounded-xl bg-white p-4">
+    <section className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm">
       <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={() => setMonthRef(addMonths(monthRef, -1))}
-          className="rounded-2xl px-3 py-2 text-2xl font-semibold text-gray-500 hover:bg-gray-50"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
           aria-label="이전 달"
         >
           ‹
         </button>
 
-        <div className="text-lg font-bold text-gray-900">{monthLabel}</div>
+        <div className="text-sm font-bold tracking-tight text-slate-900">{monthLabel}</div>
 
         <button
           type="button"
           onClick={() => setMonthRef(addMonths(monthRef, 1))}
-          className="rounded-2xl px-3 py-2 text-2xl font-semibold text-gray-500 hover:bg-gray-50"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
           aria-label="다음 달"
         >
           ›
         </button>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-2 text-center text-[12px] font-semibold text-gray-400">
+      <div className="mt-3 grid grid-cols-7 gap-0.5 text-center text-[10px] font-medium text-slate-400">
         {["일", "월", "화", "수", "목", "금", "토"].map((w) => (
           <div key={w}>{w}</div>
         ))}
       </div>
 
-      <div className="mt-3 grid grid-cols-7 gap-2">
+      <div className="mt-1.5 grid grid-cols-7 gap-0.5">
         {cells.map(({ date, inMonth }) => {
           const key = toKeyLocal(date);
 
@@ -278,14 +265,14 @@ export function Calendar({
         })}
       </div>
 
-      <div className="mt-4 flex items-center justify-center">
+      <div className="mt-3 flex items-center justify-center">
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-50"
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium text-slate-400 hover:bg-slate-50 hover:text-slate-600"
         >
-          {expanded ? "주간 캘린더 보기" : "월간 캘린더 보기"}
-          <span className="text-xs">{expanded ? "▴" : "▾"}</span>
+          {expanded ? "주간 보기" : "월간 보기"}
+          <span className="text-[10px]">{expanded ? "▴" : "▾"}</span>
         </button>
       </div>
     </section>
