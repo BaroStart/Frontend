@@ -48,6 +48,7 @@ export function AppRoutes() {
               path="/mentor/mentees/:menteeId/feedback/:assignmentId"
               element={<FeedbackWritePage />}
             />
+            <Route path="/mentor/feedback/:assignmentId" element={<FeedbackWritePage />} />
             <Route path="/mentor/assignments" element={<AssignmentManagePage />} />
             <Route path="/mentor/planner" element={<PlannerManagePage />} />
             <Route path="/mentor/feedback" element={<FeedbackManagePage />} />

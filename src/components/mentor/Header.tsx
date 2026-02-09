@@ -5,8 +5,8 @@ import { Bell, LogOut, Menu } from 'lucide-react';
 
 import { logout as logoutApi } from '@/api/auth';
 import { UserIcon } from '@/components/icons';
-import { MOCK_NOTIFICATIONS } from '@/data/menteeDetailMock';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useNotificationStore } from '@/stores/useNotificationStore';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -26,6 +26,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { notifications, unreadCount, markRead } = useNotificationStore();
 
   const getPageTitle = () => {
     if (location.pathname.includes('/assignments/new')) return '과제 등록';
@@ -64,7 +65,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          {/* TODO: API 연결 — MOCK_NOTIFICATIONS를 실제 알림 API로 교체 */}
+          {/* TODO: API 연결 — notifications를 실제 알림 API로 교체 */}
           <div className="relative">
             <button
               type="button"
@@ -77,7 +78,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               aria-label="알림"
             >
               <Bell size={20} />
-              {MOCK_NOTIFICATIONS.length > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute right-2 top-2 flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
@@ -95,24 +96,25 @@ export function Header({ onMenuClick }: HeaderProps) {
                   <div className="border-b border-border px-4 py-3">
                     <h3 className="text-sm font-semibold text-foreground">알림</h3>
                     <p className="text-xs text-muted-foreground">
-                      최근 알림 {MOCK_NOTIFICATIONS.length}개
+                      최근 알림 {notifications.length}개
                     </p>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
-                    {MOCK_NOTIFICATIONS.length === 0 ? (
+                    {notifications.length === 0 ? (
                       <div className="py-12 text-center">
                         <Bell className="mx-auto h-8 w-8 text-muted-foreground/30" />
                         <p className="mt-2 text-sm text-muted-foreground">알림이 없습니다</p>
                       </div>
                     ) : (
-                      MOCK_NOTIFICATIONS.map((n, index) => (
+                      notifications.map((n, index) => (
                         <div
                           key={n.id}
+                          onClick={() => markRead(n.id)}
                           className="border-b border-border/50 px-4 py-3 transition-colors last:border-b-0 hover:bg-secondary/50 cursor-pointer"
                           style={{ animationDelay: `${index * 50}ms` }}
                         >
                           <div className="flex items-start gap-3">
-                            <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-foreground/30" />
+                            <div className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${n.isRead ? 'bg-foreground/10' : 'bg-rose-500'}`} />
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-foreground">{n.title}</p>
                               <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">

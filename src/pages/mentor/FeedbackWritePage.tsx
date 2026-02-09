@@ -207,6 +207,11 @@ export function FeedbackWritePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assignmentId) return;
+    const numericId = Number(assignmentId);
+    if (Number.isNaN(numericId)) {
+      toast.error('유효하지 않은 과제 ID입니다. 피드백 목록에서 다시 접근해 주세요.');
+      return;
+    }
     const hasContent = feedbackItems.some((item) => item.text.trim());
     if (!hasContent) {
       toast.warning('피드백 내용을 입력해 주세요.');
@@ -220,7 +225,7 @@ export function FeedbackWritePage() {
         ? importantItems.map((i) => i.text).join('\n\n')
         : undefined;
       const { createFeedback } = await import('@/api/feedback');
-      await createFeedback(Number(assignmentId), content, summary);
+      await createFeedback(numericId, content, summary);
       queryClient.invalidateQueries({ queryKey: ['submittedAssignments'] });
       queryClient.invalidateQueries({ queryKey: ['feedbackItems', menteeId] });
       queryClient.invalidateQueries({ queryKey: ['mentees'] });
@@ -238,7 +243,7 @@ export function FeedbackWritePage() {
     setSelectedDate(date);
   };
 
-  if (!menteeId || !assignmentId) {
+  if (!assignmentId) {
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center">
         <p className="text-muted-foreground">잘못된 경로입니다.</p>

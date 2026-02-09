@@ -1,13 +1,16 @@
-import { X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { X } from 'lucide-react';
+
+import { fetchFeedbackListByMentor } from '@/api/feedback';
 import { Button } from '@/components/ui/Button';
 import { Calendar } from '@/components/ui/Calendar';
 import { Label } from '@/components/ui/Label';
 import { DefaultSelect } from '@/components/ui/select';
-import { useMentees } from '@/hooks/useMentees';
-import { useSubmittedAssignments } from '@/hooks/useSubmittedAssignments';
+import type { FeedbackListItemRes } from '@/generated';
+import { formatDateTime } from '@/lib/dateUtils';
+import { getSubjectLabel } from '@/lib/subjectLabels';
 
 interface FeedbackWriteModalProps {
   isOpen: boolean;
@@ -16,114 +19,104 @@ interface FeedbackWriteModalProps {
   initialAssignmentId?: string;
 }
 
+function parseDate(dateStr?: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
 export function FeedbackWriteModal({
   isOpen,
   onClose,
-  initialMenteeId,
-  initialAssignmentId,
+  initialMenteeId: _initialMenteeId,
+  initialAssignmentId: _initialAssignmentId,
 }: FeedbackWriteModalProps) {
   const navigate = useNavigate();
-  const [menteeId, setMenteeId] = useState<string>('');
+  const [feedbackList, setFeedbackList] = useState<FeedbackListItemRes[]>([]);
+  const [menteeName, setMenteeName] = useState<string>('');
   const [date, setDate] = useState<string>('');
   const [subject, setSubject] = useState<string>('');
   const [assignmentId, setAssignmentId] = useState<string>('');
   const [calendarYear, setCalendarYear] = useState(() => new Date().getFullYear());
   const [calendarMonth, setCalendarMonth] = useState(() => new Date().getMonth() + 1);
 
-  const { data: mentees = [] } = useMentees();
-  const { data: submittedAssignments = [] } = useSubmittedAssignments();
+  // 피드백 목록 API 로드
+  useEffect(() => {
+    if (!isOpen) return;
+    fetchFeedbackListByMentor()
+      .then(setFeedbackList)
+      .catch(() => setFeedbackList([]));
+  }, [isOpen]);
 
-  const pendingAssignments = useMemo(
-    () => submittedAssignments.filter((a) => !a.feedbackDone),
-    [submittedAssignments]
+  // 대기 중인 과제만 필터
+  const waitingItems = useMemo(
+    () => feedbackList.filter((f) => f.status === 'WAITING'),
+    [feedbackList],
   );
 
+  // 멘티 목록 (고유 이름)
+  const menteeOptions = useMemo(() => {
+    const names = Array.from(new Set(waitingItems.map((f) => f.menteeName).filter(Boolean))) as string[];
+    return names.sort().map((name) => ({ value: name, label: name }));
+  }, [waitingItems]);
+
+  // 필터링된 과제
   const filteredAssignments = useMemo(() => {
-    let result = pendingAssignments;
-    if (menteeId) {
-      result = result.filter((a) => a.menteeId === menteeId);
+    let result = waitingItems;
+    if (menteeName) {
+      result = result.filter((f) => f.menteeName === menteeName);
     }
     if (date) {
-      result = result.filter((a) => a.submittedAt.startsWith(date.replace(/-/g, '.')));
+      result = result.filter((f) => parseDate(f.submittedAt) === date);
     }
     if (subject) {
-      result = result.filter((a) => a.subject === subject);
+      result = result.filter((f) => getSubjectLabel(f.subject) === subject);
     }
     return result;
-  }, [pendingAssignments, menteeId, date, subject]);
+  }, [waitingItems, menteeName, date, subject]);
 
-  // 과제 목록에서 캘린더 하이라이트할 날짜 추출 (멘티 필터 적용)
+  // 캘린더 하이라이트 날짜
   const highlightDates = useMemo(() => {
-    const assignments = menteeId
-      ? pendingAssignments.filter((a) => a.menteeId === menteeId)
-      : pendingAssignments;
-    return assignments.map((a) => a.submittedAt.split(' ')[0].replace(/\./g, '-'));
-  }, [pendingAssignments, menteeId]);
+    const items = menteeName
+      ? waitingItems.filter((f) => f.menteeName === menteeName)
+      : waitingItems;
+    return items.map((f) => parseDate(f.submittedAt)).filter(Boolean);
+  }, [waitingItems, menteeName]);
 
+  // 과목 옵션
   const subjectOptions = useMemo(() => {
-    const assignments = menteeId
-      ? pendingAssignments.filter((a) => a.menteeId === menteeId)
-      : pendingAssignments;
-    const subjects = Array.from(new Set(assignments.map((a) => a.subject))).sort();
-    return subjects.map((s) => ({ value: s, label: s }));
-  }, [pendingAssignments, menteeId]);
+    const items = menteeName
+      ? waitingItems.filter((f) => f.menteeName === menteeName)
+      : waitingItems;
+    const subjects = Array.from(new Set(items.map((f) => getSubjectLabel(f.subject)).filter(Boolean)));
+    return subjects.sort().map((s) => ({ value: s, label: s }));
+  }, [waitingItems, menteeName]);
 
-  const menteeOptions = useMemo(
-    () =>
-      mentees.map((m) => ({
-        value: m.id,
-        label: `${m.name} (${m.grade} · ${m.track})`,
-      })),
-    [mentees]
-  );
-
+  // 과제 옵션
   const assignmentOptions = useMemo(
     () =>
-      filteredAssignments.map((a) => ({
-        value: a.id,
-        label: `${a.title} (${a.submittedAt})`,
+      filteredAssignments.map((f) => ({
+        value: String(f.assignmentId),
+        label: `${f.assignmentTitle ?? '과제'} (${formatDateTime(f.submittedAt)})`,
       })),
-    [filteredAssignments]
+    [filteredAssignments],
   );
 
+  // 모달 열릴 때 초기화
   useEffect(() => {
     if (!isOpen) {
-      setMenteeId('');
+      setMenteeName('');
       setDate('');
       setSubject('');
       setAssignmentId('');
-      return;
     }
-
-    if (initialMenteeId) {
-      setMenteeId(initialMenteeId);
-      const assignments = pendingAssignments.filter((a) => a.menteeId === initialMenteeId);
-      if (assignments.length > 0) {
-        const firstDate = assignments[0].submittedAt.split(' ')[0];
-        const [y, m] = firstDate.split('.').map(Number);
-        setCalendarYear(y);
-        setCalendarMonth(m);
-      }
-    }
-
-    if (initialAssignmentId) {
-      const assignment = pendingAssignments.find((a) => a.id === initialAssignmentId);
-      if (assignment) {
-        setAssignmentId(initialAssignmentId);
-        setMenteeId(assignment.menteeId);
-        setSubject(assignment.subject);
-        const dateStr = assignment.submittedAt.split(' ')[0].replace(/\./g, '-');
-        setDate(dateStr);
-      }
-    }
-  }, [isOpen, initialMenteeId, initialAssignmentId, pendingAssignments]);
+  }, [isOpen]);
 
   const handleSubmit = () => {
     if (!assignmentId) return;
-    const assignment = pendingAssignments.find((a) => a.id === assignmentId);
-    if (!assignment) return;
     onClose();
-    navigate(`/mentor/mentees/${assignment.menteeId}/feedback/${assignmentId}`);
+    navigate(`/mentor/feedback/${assignmentId}`);
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -157,8 +150,8 @@ export function FeedbackWriteModal({
           <div className="space-y-2">
             <Label>멘티</Label>
             <DefaultSelect
-              value={menteeId}
-              onValueChange={setMenteeId}
+              value={menteeName}
+              onValueChange={setMenteeName}
               options={menteeOptions}
               placeholder="멘티를 선택하세요"
             />
