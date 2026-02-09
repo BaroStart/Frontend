@@ -5,7 +5,9 @@ import { isApiSuccess } from '@/api/response';
 import { changeTodoStatus, createTodo, deleteTodo, fetchTodos, updateTodo } from '@/api/todos';
 import { toast } from '@/components/ui/Toast';
 import { STORAGE_KEYS } from '@/constants';
-import type { TimeSlot, ToDoRes } from '@/generated';
+import type { ToDoRes } from '@/generated';
+
+type TimeSlot = { startTime: string; endTime: string };
 
 export type TodoItem = {
   id: number;
@@ -121,7 +123,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
         id: typeof t.id === 'number' ? t.id : -(idx + 1),
         title: t.title ?? '',
         done: t.status === 'COMPLETED',
-        timeList: t.timeList ?? undefined,
+        timeList: t.startTime && t.endTime ? [{ startTime: t.startTime, endTime: t.endTime }] : undefined,
       }));
 
       // API가 빈 배열을 반환해도, 로컬에 저장된 데이터가 있으면 우선 사용 (다른 페이지 갔다 와도 유지)
@@ -220,7 +222,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     }));
 
     try {
-      await changeTodoStatus(id, { id, status, timeList });
+      await changeTodoStatus(id, { id, status, startTime: timeList?.[0]?.startTime, endTime: timeList?.[0]?.endTime });
       await get().loadSelectedDate();
     } catch {
       const dateKey = get().selectedDate;
@@ -262,7 +264,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     }));
 
     try {
-      await updateTodo({ id, title: trimmed, timeList });
+      await updateTodo({ id, title: trimmed, startTime: timeList?.[0]?.startTime, endTime: timeList?.[0]?.endTime });
       await get().loadSelectedDate();
     } catch {
       const dateKey = get().selectedDate;

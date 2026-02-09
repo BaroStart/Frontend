@@ -1,14 +1,12 @@
 import type {
   AssignmentCreateReq,
   AssignmentSubmitReq,
-  AssignmentTemplateFileListRes,
   GetAllMaterialsSubjectEnum,
   GetMenteeAssignmentsSubjectEnum,
-  GetTemplateFileListSubjectEnum,
 } from '@/generated';
 import { getSubjectEnum } from '@/lib/subjectLabels';
 
-import { assignmentsApi, assignmentTemplateFilesApi } from './clients';
+import { assignmentsApi } from './clients';
 
 // 과제 생성 (멘토)
 export async function createAssignment(body: AssignmentCreateReq) {
@@ -49,16 +47,6 @@ export async function fetchAssignmentMaterials(params?: {
 }) {
   const { data } = await assignmentsApi.getAllMaterials({
     subject: params?.subject as GetAllMaterialsSubjectEnum,
-  });
-  return data.result ?? [];
-}
-
-// 과제 템플릿 학습자료 목록 조회 (멘토 전용)
-export async function fetchTemplateFileList(
-  subject?: string,
-): Promise<AssignmentTemplateFileListRes[]> {
-  const { data } = await assignmentTemplateFilesApi.getTemplateFileList({
-    subject: subject as GetTemplateFileListSubjectEnum,
   });
   return data.result ?? [];
 }
