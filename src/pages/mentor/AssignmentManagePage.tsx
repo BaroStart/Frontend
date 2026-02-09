@@ -17,7 +17,7 @@ import {
   Upload,
 } from 'lucide-react';
 
-import { fetchAssignmentMaterials, fetchTemplateFileList } from '@/api/assignments';
+import { fetchAssignmentMaterials } from '@/api/assignments';
 import {
   createTemplate,
   deleteTemplate,
@@ -25,7 +25,9 @@ import {
   fetchTemplateList,
   updateTemplate,
 } from '@/api/assignmentTemplates';
+import { createLearningResource, fetchLearningResources } from '@/api/learningResources';
 import { getSubjectEnum, getSubjectLabel } from '@/lib/subjectLabels';
+import { uploadFileViaPreAuthenticatedUrl } from '@/lib/storageUpload';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/Dialog';
@@ -36,18 +38,18 @@ import { DefaultSelect } from '@/components/ui/select';
 import { Tabs } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/Toast';
 import { ASSIGNMENT_TEMPLATES, type AssignmentTemplate } from '@/data/assignmentTemplates';
-import { getTodayDateStr } from '@/lib/dateUtils';
+import { formatDateTime, getTodayDateStr } from '@/lib/dateUtils';
 import {
   deleteMaterial,
   getMaterialBlob,
   type MaterialMeta,
-  saveMaterial,
 } from '@/lib/materialStorage';
 import type {
   AssignmentTemplateCreateReqSubjectEnum,
   AssignmentTemplateDetailRes,
-  AssignmentTemplateFileListRes,
   AssignmentTemplateListRes,
+  LearningResourceCreateReqSubjectEnum,
+  LearningResourceListItemRes,
 } from '@/generated';
 
 type TabType = 'materials' | 'goals' | 'templates';
@@ -150,12 +152,10 @@ export function AssignmentManagePage() {
       .catch(() => setGoals([]));
   };
 
-  // 초기화 + URL 탭 동기화 (마운트 시 1회)
-  useEffect(() => {
-    // 학습자료 조회
-    fetchAssignmentMaterials()
-      .then((apiMaterials) => {
-        const mapped: MaterialMeta[] = apiMaterials.map((m) => ({
+  const loadMaterials = useCallback(() => {
+    const assignmentPromise = fetchAssignmentMaterials()
+      .then((apiMaterials): MaterialMeta[] =>
+        apiMaterials.map((m) => ({
           id: `api-${m.assignmentId}`,
           title: m.assignmentTitle ?? m.fileName ?? '제목 없음',
           fileName: m.fileName ?? '',
@@ -166,12 +166,44 @@ export function AssignmentManagePage() {
           uploadedAt: '',
           source: 'seolstudy' as const,
           fileUrl: m.fileUrl ?? undefined,
-        }));
-        setMaterials(mapped);
-      })
-      .catch(() => {
-        setMaterials([]);
-      });
+        })),
+      )
+      .catch((): MaterialMeta[] => []);
+
+    const learningPromise = fetchLearningResources()
+      .then((resources): MaterialMeta[] =>
+        resources.map((r) => {
+          const bytes = r.fileSize ?? 0;
+          const sizeStr =
+            bytes >= 1024 * 1024
+              ? `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+              : `${(bytes / 1024).toFixed(1)} KB`;
+          return {
+            id: `lr-${r.id}`,
+            title: r.fileName ?? '제목 없음',
+            fileName: r.fileName ?? '',
+            fileSize: sizeStr,
+            fileType: (r.fileName?.endsWith('.pdf') ? 'pdf' : 'other') as MaterialMeta['fileType'],
+            subject: getSubjectLabel(r.subject),
+            subCategory: '',
+            uploadedAt: formatDateTime(r.createdAt),
+            source: 'mentor' as const,
+            fileUrl: r.fileUrl ?? undefined,
+          };
+        }),
+      )
+      .catch((): MaterialMeta[] => []);
+
+    Promise.all([assignmentPromise, learningPromise]).then(
+      ([assignmentMaterials, learningMaterials]) => {
+        setMaterials([...learningMaterials, ...assignmentMaterials]);
+      },
+    );
+  }, []);
+
+  // 초기화 + URL 탭 동기화 (마운트 시 1회)
+  useEffect(() => {
+    loadMaterials();
 
     // 과제 목표(템플릿) 목록 조회
     loadGoals();
@@ -238,14 +270,20 @@ export function AssignmentManagePage() {
 
   const handleUploadConfirm = async (items: { file: File; meta: MaterialMeta }[]) => {
     for (const { file, meta } of items) {
-      const fullMeta = {
-        ...meta,
-        id: `mat-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      };
-      await saveMaterial(fullMeta, file);
-      setMaterials((prev) => [fullMeta, ...prev]);
+      const subjectEnum = getSubjectEnum(meta.subject) as LearningResourceCreateReqSubjectEnum;
+      const fileName = `learning-resources/${file.name}`;
+
+      const { uploadUrl } = await uploadFileViaPreAuthenticatedUrl({ file, fileName });
+
+      await createLearningResource({
+        subject: subjectEnum,
+        fileName: file.name,
+        fileUrl: uploadUrl,
+        fileSize: file.size,
+      });
     }
     setUploadModal({ open: false, files: [] });
+    loadMaterials();
   };
 
   const handleDeleteMaterial = async (material: MaterialMeta) => {
@@ -257,7 +295,7 @@ export function AssignmentManagePage() {
   const handleSaveGoal = async (req: {
     subject: string;
     name: string;
-    files: { fileName: string; url: string }[];
+    learningResourceIds: number[];
   }) => {
     const subjectEnum = getSubjectEnum(req.subject) as AssignmentTemplateCreateReqSubjectEnum;
     try {
@@ -268,7 +306,7 @@ export function AssignmentManagePage() {
           title: req.name,
           description: '',
           content: '',
-          files: req.files,
+          learningResourceIds: req.learningResourceIds,
         });
         toast.success('과제 목표가 수정되었습니다.');
       } else {
@@ -278,7 +316,7 @@ export function AssignmentManagePage() {
           title: req.name,
           description: '',
           content: '',
-          files: req.files,
+          learningResourceIds: req.learningResourceIds,
         });
         toast.success('과제 목표가 추가되었습니다.');
       }
@@ -565,15 +603,81 @@ export function AssignmentManagePage() {
                 }
               />
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredGoals.map((goal) => (
-                  <LearningGoalCard
-                    key={goal.id}
-                    goal={goal}
-                    onEdit={() => goal.id != null && handleEditGoal(goal.id)}
-                    onDelete={() => goal.id != null && handleDeleteGoal(goal.id)}
-                  />
-                ))}
+              <div className="overflow-hidden rounded-xl border border-border/50">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[500px]">
+                    <thead>
+                      <tr className="border-b border-border bg-secondary/50">
+                        {['과제 목표 이름', '과목', '추가자료', '관리'].map((header) => (
+                          <th
+                            key={header}
+                            className="px-4 py-3 text-left text-sm font-semibold text-foreground/60"
+                          >
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredGoals.map((goal) => {
+                        const subjectLabel = getSubjectLabel(goal.subject);
+                        return (
+                          <tr
+                            key={goal.id}
+                            className="group border-b border-border/50 transition-colors hover:bg-secondary/30"
+                          >
+                            <td className="px-4 py-3">
+                              <p className="text-sm font-semibold text-foreground">{goal.name}</p>
+                            </td>
+                            <td className="px-4 py-3">
+                              {subjectLabel && (
+                                <span className="inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">
+                                  {subjectLabel}
+                                </span>
+                              )}
+                            </td>
+                            <td className="max-w-[280px] px-4 py-3">
+                              {(goal.fileNames?.length ?? 0) > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {goal.fileNames!.map((fileName, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="inline-flex items-center rounded-md border border-border/60 bg-secondary/50 px-2 py-0.5 text-[11px] text-foreground/60"
+                                    >
+                                      {fileName}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">-</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1 opacity-70 transition-opacity group-hover:opacity-100">
+                                <button
+                                  type="button"
+                                  onClick={() => goal.id != null && handleEditGoal(goal.id)}
+                                  className="rounded p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                                  title="수정"
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => goal.id != null && handleDeleteGoal(goal.id)}
+                                  className="rounded p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                                  title="삭제"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
@@ -990,70 +1094,6 @@ function MaterialUploadModal({
   );
 }
 
-// 과제 목표 카드
-function LearningGoalCard({
-  goal,
-  onEdit,
-  onDelete,
-}: {
-  goal: AssignmentTemplateListRes;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const subjectLabel = getSubjectLabel(goal.subject);
-  return (
-    <div className="group rounded-xl border border-border/50 bg-secondary/30 p-5 transition-all hover:shadow-soft">
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
-          <Target className="h-5 w-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-foreground">{goal.name}</h3>
-            {subjectLabel && (
-              <span className="shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
-                {subjectLabel}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="ml-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-          <button
-            type="button"
-            onClick={onEdit}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
-          >
-            <Edit2 className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-500"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
-      {(goal.fileNames?.length ?? 0) > 0 && (
-        <div className="mt-3 border-t border-border/50 pt-3">
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-foreground/40">
-            추가자료
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {goal.fileNames!.map((fileName, idx) => (
-              <span
-                key={idx}
-                className="inline-flex items-center rounded-md border border-border/60 bg-secondary/50 px-2 py-1 text-[11px] text-foreground/60"
-              >
-                {fileName}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // 과제 목표 모달
 function LearningGoalModal({
@@ -1065,7 +1105,7 @@ function LearningGoalModal({
   onSave: (data: {
     subject: string;
     name: string;
-    files: { fileName: string; url: string }[];
+    learningResourceIds: number[];
   }) => void;
   onClose: () => void;
 }) {
@@ -1074,13 +1114,13 @@ function LearningGoalModal({
     goal?.subject ? getSubjectLabel(goal.subject) : '국어',
   );
 
-  // 템플릿 학습자료 목록 (API)
-  const [templateFiles, setTemplateFiles] = useState<AssignmentTemplateFileListRes[]>([]);
+  // 학습자료 목록 (API)
+  const [templateFiles, setTemplateFiles] = useState<LearningResourceListItemRes[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
 
   const loadFiles = useCallback(() => {
     setFilesLoading(true);
-    fetchTemplateFileList()
+    fetchLearningResources()
       .then(setTemplateFiles)
       .catch(() => setTemplateFiles([]))
       .finally(() => setFilesLoading(false));
@@ -1090,26 +1130,23 @@ function LearningGoalModal({
     loadFiles();
   }, [loadFiles]);
 
-  // 수정 시: 기존 파일 URL 목록으로 초기 선택 복원
-  const [selectedUrls, setSelectedUrls] = useState<Set<string>>(() => {
+  // 수정 시: 기존 파일 ID 목록으로 초기 선택 복원
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(() => {
     if (!goal?.files?.length) return new Set();
-    return new Set(goal.files.map((f) => f.url).filter(Boolean) as string[]);
+    return new Set(goal.files.map((f) => f.id).filter((id): id is number => id != null));
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    const files = templateFiles
-      .filter((f) => f.url && selectedUrls.has(f.url))
-      .map((f) => ({ fileName: f.fileName ?? '', url: f.url! }));
-    onSave({ subject, name: name.trim(), files });
+    onSave({ subject, name: name.trim(), learningResourceIds: Array.from(selectedIds) });
   };
 
-  const toggleFile = (url: string) => {
-    setSelectedUrls((prev) => {
+  const toggleFile = (id: number) => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(url)) next.delete(url);
-      else next.add(url);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -1158,15 +1195,16 @@ function LearningGoalModal({
               ) : (
                 <div className="divide-y divide-border/50">
                   {templateFiles.map((file) => {
-                    const url = file.url ?? '';
+                    const id = file.id;
+                    if (id == null) return null;
                     return (
                       <label
-                        key={url}
+                        key={id}
                         className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-secondary/50"
                       >
                         <Checkbox
-                          checked={selectedUrls.has(url)}
-                          onCheckedChange={() => toggleFile(url)}
+                          checked={selectedIds.has(id)}
+                          onCheckedChange={() => toggleFile(id)}
                         />
                         <div className="flex flex-1 items-center gap-2">
                           <span className="text-sm">{file.fileName}</span>

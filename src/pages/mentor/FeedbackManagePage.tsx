@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import {
@@ -15,6 +15,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
+import { fetchFeedbackListByMentor } from '@/api/feedback';
 import {
   createFeedbackTemplate,
   deleteFeedbackTemplateById,
@@ -30,15 +31,12 @@ import { FilterTabs } from '@/components/ui/FilterTabs';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Tabs } from '@/components/ui/tabs';
 import type {
+  FeedbackListItemRes,
   FeedbackTemplateCreateReqSubjectEnum,
   FeedbackTemplateListRes,
   FeedbackTemplateRes,
 } from '@/generated';
-import { useMentees } from '@/hooks/useMentees';
-import { useSubmittedAssignments } from '@/hooks/useSubmittedAssignments';
 import { formatDateTime } from '@/lib/dateUtils';
-import { getDeadlineStatus, getRemainingMs } from '@/lib/feedbackDeadline';
-import { getAllCompletedFeedback } from '@/lib/mentorFeedbackStorage';
 import { getSubjectEnum, getSubjectLabel } from '@/lib/subjectLabels';
 
 type TabType = 'feedback' | 'templates' | 'analytics';
@@ -57,12 +55,12 @@ export function FeedbackManagePage() {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>('feedback');
   const [templates, setTemplates] = useState<FeedbackTemplateListRes[]>([]);
+  const [feedbackList, setFeedbackList] = useState<FeedbackListItemRes[]>([]);
   const [subjectFilter, setSubjectFilter] = useState<string>('전체');
   const [templateSearch, setTemplateSearch] = useState('');
   const [feedbackStatusFilter, setFeedbackStatusFilter] = useState<
     'all' | 'pending' | 'completed' | 'overdue'
   >('all');
-  // 모달 상태 통합: null | create | edit | view (edit/view는 상세 조회 후 열림)
   const [templateModal, setTemplateModal] = useState<
     | null
     | { mode: 'create' }
@@ -70,36 +68,35 @@ export function FeedbackManagePage() {
     | { mode: 'view'; template: FeedbackTemplateRes }
   >(null);
 
-
-  const { data: submittedAssignments = [] } = useSubmittedAssignments();
-  const { data: mentees = [] } = useMentees();
-
   const loadTemplates = () => {
     fetchFeedbackTemplateList().then(setTemplates).catch(() => setTemplates([]));
   };
+  const loadFeedbackList = () => {
+    fetchFeedbackListByMentor().then(setFeedbackList).catch(() => setFeedbackList([]));
+  };
 
-  // 초기화: URL 탭 + 템플릿 로드
   useEffect(() => {
     const tabParam = searchParams.get('tab') as TabType | null;
     if (tabParam && ['feedback', 'templates', 'analytics'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
     loadTemplates();
+    loadFeedbackList();
   }, [searchParams]);
 
-  const pendingFeedback = submittedAssignments
-    .filter((a) => !a.feedbackDone)
-    .sort((a, b) => {
-      const statusA = getDeadlineStatus(a.submittedAt);
-      const statusB = getDeadlineStatus(b.submittedAt);
-      const order = { overdue: 0, urgent: 1, ok: 2 };
-      if (order[statusA] !== order[statusB]) return order[statusA] - order[statusB];
-      return getRemainingMs(a.submittedAt) - getRemainingMs(b.submittedAt);
-    });
-  const completedStoredFeedback = getAllCompletedFeedback();
-  const overdueCount = pendingFeedback.filter(
-    (a) => getDeadlineStatus(a.submittedAt) === 'overdue',
-  ).length;
+  // API status → 필터 매핑
+  const waitingItems = useMemo(
+    () => feedbackList.filter((f) => f.status === 'WAITING'),
+    [feedbackList],
+  );
+  const completedItems = useMemo(
+    () => feedbackList.filter((f) => f.status === 'COMPLETED'),
+    [feedbackList],
+  );
+  const deadlineItems = useMemo(
+    () => feedbackList.filter((f) => f.status === 'DEADLINE'),
+    [feedbackList],
+  );
 
   const tabs = [
     { id: 'feedback' as TabType, label: '피드백 목록', icon: FileText },
@@ -138,167 +135,14 @@ export function FeedbackManagePage() {
         </div>
 
         {activeTab === 'feedback' && (
-          <div className="space-y-4 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <FilterTabs
-                items={[
-                  {
-                    id: 'all' as const,
-                    label: `전체 (${pendingFeedback.length + completedStoredFeedback.length})`,
-                  },
-                  { id: 'pending' as const, label: `대기 (${pendingFeedback.length - overdueCount})` },
-                  { id: 'completed' as const, label: `완료 (${completedStoredFeedback.length})` },
-                  { id: 'overdue' as const, label: `마감 (${overdueCount})` },
-                ]}
-                value={feedbackStatusFilter}
-                onChange={setFeedbackStatusFilter}
-              />
-            </div>
-
-            <div className="overflow-hidden rounded-xl border border-border/50">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[700px]">
-                  <thead className="sticky top-0 bg-secondary/50">
-                    <tr className="border-b border-border">
-                      {FEEDBACK_TABLE_HEADERS.map((header) => (
-                        <th
-                          key={header}
-                          className="px-5 py-3 text-left text-sm font-semibold text-foreground/60"
-                        >
-                          {header}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(feedbackStatusFilter === 'all' ||
-                      feedbackStatusFilter === 'pending' ||
-                      feedbackStatusFilter === 'overdue') &&
-                      pendingFeedback
-                        .filter((a) => {
-                          const status = getDeadlineStatus(a.submittedAt);
-                          if (feedbackStatusFilter === 'overdue') return status === 'overdue';
-                          if (feedbackStatusFilter === 'pending') return status !== 'overdue';
-                          return true;
-                        })
-                        .map((assignment) => {
-                          const mentee = mentees.find((m) => m.id === assignment.menteeId);
-                          const deadlineStatus = getDeadlineStatus(assignment.submittedAt);
-                          const deadlineBadge =
-                            deadlineStatus === 'overdue' ? (
-                              <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                                마감
-                              </span>
-                            ) : (
-                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                                대기
-                              </span>
-                            );
-                          const SubjectIcon = SUBJECT_ICONS[assignment.subject] ?? Hexagon;
-                          return (
-                            <tr
-                              key={assignment.id}
-                              className="border-b border-border/50 transition-colors hover:bg-secondary/30"
-                            >
-                              <td className="px-5 py-3 text-sm font-semibold text-foreground">
-                                {assignment.title}
-                              </td>
-                              <td className="px-5 py-3">
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
-                                  <SubjectIcon className="h-3.5 w-3.5" />
-                                  {assignment.subject}
-                                </span>
-                              </td>
-                              <td className="px-5 py-3 text-sm text-foreground/70">
-                                {mentee?.name ?? '-'}
-                              </td>
-                              <td className="px-5 py-3 text-sm text-foreground/50">
-                                {assignment.submittedAt}
-                              </td>
-                              <td className="px-5 py-3">{deadlineBadge}</td>
-                              <td className="px-5 py-3">
-                                <Link
-                                  to={`/mentor/mentees/${assignment.menteeId}/feedback/${assignment.id}`}
-                                >
-                                  <Button size="sm">피드백 작성</Button>
-                                </Link>
-                              </td>
-                            </tr>
-                          );
-                        })}
-
-                    {(feedbackStatusFilter === 'all' || feedbackStatusFilter === 'completed') &&
-                      completedStoredFeedback.map((stored) => {
-                        const mentee = mentees.find((m) => m.id === stored.menteeId);
-                        return (
-                          <tr
-                            key={`${stored.menteeId}-${stored.assignmentId}`}
-                            className="border-b border-border/50 transition-colors hover:bg-secondary/30"
-                          >
-                            <td className="px-5 py-3 text-sm font-semibold text-foreground">
-                              {stored.assignmentTitle ?? '과제'}
-                            </td>
-                            <td className="px-5 py-3">
-                              {stored.subject && (() => {
-                                const StoredSubjectIcon = SUBJECT_ICONS[stored.subject] ?? Hexagon;
-                                return (
-                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
-                                    <StoredSubjectIcon className="h-3.5 w-3.5" />
-                                    {stored.subject}
-                                  </span>
-                                );
-                              })()}
-                            </td>
-                            <td className="px-5 py-3 text-sm text-foreground/70">
-                              {mentee?.name ?? '-'}
-                            </td>
-                            <td className="px-5 py-3 text-sm text-foreground/50">
-                              {stored.submittedAt ?? stored.feedbackDate}
-                            </td>
-                            <td className="px-5 py-3">
-                              <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                                완료
-                              </span>
-                            </td>
-                            <td className="px-5 py-3">
-                              <Link
-                                to={`/mentor/mentees/${stored.menteeId}/feedback/${stored.assignmentId}`}
-                              >
-                                <Button size="sm" variant="outline">
-                                  보기 / 수정
-                                </Button>
-                              </Link>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
-              </div>
-
-              {((feedbackStatusFilter === 'all' &&
-                pendingFeedback.length === 0 &&
-                completedStoredFeedback.length === 0) ||
-                (feedbackStatusFilter === 'pending' &&
-                  pendingFeedback.length - overdueCount === 0) ||
-                (feedbackStatusFilter === 'completed' && completedStoredFeedback.length === 0) ||
-                (feedbackStatusFilter === 'overdue' && overdueCount === 0)) &&
-                (() => {
-                  const emptyText = {
-                    all: '피드백이 없습니다.',
-                    pending: '대기 중인 피드백이 없습니다.',
-                    completed: '완료된 피드백이 없습니다.',
-                    overdue: '마감된 피드백이 없습니다.',
-                  }[feedbackStatusFilter];
-                  return (
-                    <div className="flex min-h-[200px] flex-col items-center justify-center py-8">
-                      <Inbox className="h-10 w-10 text-muted-foreground/30" />
-                      <p className="mt-3 text-sm text-foreground/60">{emptyText}</p>
-                    </div>
-                  );
-                })()}
-            </div>
-          </div>
+          <FeedbackListTab
+            feedbackStatusFilter={feedbackStatusFilter}
+            onFilterChange={setFeedbackStatusFilter}
+            waitingItems={waitingItems}
+            completedItems={completedItems}
+            deadlineItems={deadlineItems}
+            allItems={feedbackList}
+          />
         )}
 
         {activeTab === 'templates' && (
@@ -462,6 +306,153 @@ export function FeedbackManagePage() {
           onClose={() => setTemplateModal(null)}
         />
       )}
+    </div>
+  );
+}
+
+// 피드백 목록 탭 (API 연동)
+function FeedbackListTab({
+  feedbackStatusFilter,
+  onFilterChange,
+  waitingItems,
+  completedItems,
+  deadlineItems,
+  allItems,
+}: {
+  feedbackStatusFilter: 'all' | 'pending' | 'completed' | 'overdue';
+  onFilterChange: (v: 'all' | 'pending' | 'completed' | 'overdue') => void;
+  waitingItems: FeedbackListItemRes[];
+  completedItems: FeedbackListItemRes[];
+  deadlineItems: FeedbackListItemRes[];
+  allItems: FeedbackListItemRes[];
+}) {
+  const displayed = useMemo(() => {
+    switch (feedbackStatusFilter) {
+      case 'pending':
+        return waitingItems;
+      case 'completed':
+        return completedItems;
+      case 'overdue':
+        return deadlineItems;
+      default:
+        return allItems;
+    }
+  }, [feedbackStatusFilter, waitingItems, completedItems, deadlineItems, allItems]);
+
+  const statusBadge = (status?: string) => {
+    switch (status) {
+      case 'COMPLETED':
+        return (
+          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+            완료
+          </span>
+        );
+      case 'DEADLINE':
+        return (
+          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+            마감
+          </span>
+        );
+      default:
+        return (
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+            대기
+          </span>
+        );
+    }
+  };
+
+  return (
+    <div className="space-y-4 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <FilterTabs
+          items={[
+            { id: 'all' as const, label: `전체 (${allItems.length})` },
+            { id: 'pending' as const, label: `대기 (${waitingItems.length})` },
+            { id: 'completed' as const, label: `완료 (${completedItems.length})` },
+            { id: 'overdue' as const, label: `마감 (${deadlineItems.length})` },
+          ]}
+          value={feedbackStatusFilter}
+          onChange={onFilterChange}
+        />
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-border/50">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px]">
+            <thead className="sticky top-0 bg-secondary/50">
+              <tr className="border-b border-border">
+                {FEEDBACK_TABLE_HEADERS.map((header) => (
+                  <th
+                    key={header}
+                    className="px-5 py-3 text-left text-sm font-semibold text-foreground/60"
+                  >
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {displayed.map((item) => {
+                const subjectLabel = getSubjectLabel(item.subject);
+                const SubjectIcon = SUBJECT_ICONS[subjectLabel] ?? Hexagon;
+                const isCompleted = item.status === 'COMPLETED';
+                return (
+                  <tr
+                    key={item.assignmentId}
+                    className="border-b border-border/50 transition-colors hover:bg-secondary/30"
+                  >
+                    <td className="px-5 py-3 text-sm font-semibold text-foreground">
+                      {item.assignmentTitle ?? '과제'}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/70">
+                        <SubjectIcon className="h-3.5 w-3.5" />
+                        {subjectLabel}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-foreground/70">
+                      {item.menteeName ?? '-'}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-foreground/50">
+                      {formatDateTime(item.submittedAt)}
+                    </td>
+                    <td className="px-5 py-3">{statusBadge(item.status)}</td>
+                    <td className="px-5 py-3">
+                      {isCompleted ? (
+                        <Link to={`/mentor/feedback/${item.assignmentId}`}>
+                          <Button size="sm" variant="outline">
+                            보기 / 수정
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Link to={`/mentor/feedback/${item.assignmentId}`}>
+                          <Button size="sm">피드백 작성</Button>
+                        </Link>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {displayed.length === 0 && (() => {
+          const emptyText = {
+            all: '피드백이 없습니다.',
+            pending: '대기 중인 피드백이 없습니다.',
+            completed: '완료된 피드백이 없습니다.',
+            overdue: '마감된 피드백이 없습니다.',
+          }[feedbackStatusFilter];
+          return (
+            <div className="flex min-h-[200px] flex-col items-center justify-center py-8">
+              <Inbox className="h-10 w-10 text-muted-foreground/30" />
+              <p className="mt-3 text-sm text-foreground/60">{emptyText}</p>
+            </div>
+          );
+        })()}
+      </div>
     </div>
   );
 }

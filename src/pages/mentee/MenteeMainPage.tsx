@@ -9,12 +9,13 @@ import { useTodoStore } from "@/stores/useTodoStore";
 import { TimeTable, type TimelineItem } from "@/components/mentee/main/TimeTable";
 import { API_CONFIG } from "@/api/config";
 import type { TimeRangeValue } from "@/components/mentee/TimeRangeModal";
-import type { TimeSlot } from "@/generated";
+type TimeSlot = { startTime: string; endTime: string };
 import { useAuthStore } from "@/stores/useAuthStore";
 import { getLocalProfileImage } from "@/lib/profileImageStorage";
 import { DmIcon, ListIcon, TimeIcon, UserIcon } from "@/components/icons";
 import { MOCK_INCOMPLETE_ASSIGNMENTS } from "@/data/menteeDetailMock";
 import { getSubmittedAssignments } from "@/lib/menteeAssignmentSubmissionStorage";
+import { useCommentThread } from "@/hooks/useCommentThread";
 
 export function MenteeMainPage() {
   const navigate = useNavigate();
@@ -63,25 +64,7 @@ export function MenteeMainPage() {
     remove,
   } = useTodoStore();
 
-  // const thread = { root: null, replies: [] };
-
-  const thread = {
-    root: {
-      id: "root-1",
-      author: "나",
-      content: "오늘 영어 독해가 너무 어려웠어요.\n특히 주제 찾기가 헷갈려요.",
-      createdAtText: "방금",
-    },
-    replies: [
-      {
-        id: "r-1",
-        author: "멘토",
-        content: "좋아. 주제 찾기는 ‘반복되는 키워드’부터 체크하자!\n내일 예시 자료 줄게.",
-        parentId: "root-1",
-        createdAtText: "1분 전",
-      },
-    ],
-  };
+  const { thread, handleSubmit: handleCommentSubmit, handleSendReply } = useCommentThread(user);
 
   const pad2 = (n: number) => String(n).padStart(2, "0");
   const dateKey = `${selectedDate.getFullYear()}-${pad2(selectedDate.getMonth() + 1)}-${pad2(selectedDate.getDate())}`;
@@ -212,7 +195,8 @@ export function MenteeMainPage() {
             <CommentModal
               open={commentOpen}
               onClose={() => setCommentOpen(false)}
-              onSubmit={(values) => console.log("submit", values)}
+              onSubmit={handleCommentSubmit}
+              onSendReply={handleSendReply}
               thread={thread}
             />
             <button
@@ -303,9 +287,9 @@ export function MenteeMainPage() {
         ) : (
           <TimeTable
             className="mt-0"
-          items={timelineItems}
-          dateKey={dateKey}
-          selectedDate={selectedDate}
+            items={timelineItems}
+            dateKey={dateKey}
+            selectedDate={selectedDate}
             startHour={6}
             endHour={24}
           />

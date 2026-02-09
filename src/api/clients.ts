@@ -1,12 +1,14 @@
 import {
   AssignmentAPIApi,
   AssignmentTemplateAPIApi,
-  AssignmentTemplateFileAPIApi,
   AuthAPIApi,
   CommentAPIApi,
   Configuration,
   ExampleAPIApi,
+  FeedbackAPIApi,
   FeedbackTemplateAPIApi,
+  LearningResourceAPIApi,
+  NotificationAPIApi,
   MenteeAPIApi,
   ObjectStorageAPIApi,
   ToDoAPIApi,
@@ -24,5 +26,7 @@ export const menteeApi = new MenteeAPIApi(config, '', axiosInstance);
 export const storagesApi = new ObjectStorageAPIApi(config, '', axiosInstance);
 export const todosApi = new ToDoAPIApi(config, '', axiosInstance);
 export const assignmentTemplatesApi = new AssignmentTemplateAPIApi(config, '', axiosInstance);
+export const feedbacksApi = new FeedbackAPIApi(config, '', axiosInstance);
 export const feedbackTemplatesApi = new FeedbackTemplateAPIApi(config, '', axiosInstance);
-export const assignmentTemplateFilesApi = new AssignmentTemplateFileAPIApi(config, '', axiosInstance);
+export const notificationsApi = new NotificationAPIApi(config, '', axiosInstance);
+export const learningResourcesApi = new LearningResourceAPIApi(config, '', axiosInstance);

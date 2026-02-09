@@ -4,9 +4,11 @@ import { Outlet } from 'react-router-dom';
 import { Header } from '@/components/mentor/Header';
 import { Sidebar } from '@/components/mentor/Sidebar';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useSSE } from '@/hooks/useSSE';
 
 export function MentorLayout() {
   useDocumentTitle('설스터디 | 멘토 대시보드');
+  useSSE();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 

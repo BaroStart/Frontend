@@ -1,39 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import {
-  fetchFeedbackDetail,
-  submitFeedback,
-  type SubmitFeedbackPayload,
-} from '@/api/feedback';
-
-/** 피드백 상세 조회 */
-export function useFeedbackDetail(
-  menteeId: string | undefined,
-  assignmentId: string | undefined,
-  options?: { enabled?: boolean },
-) {
-  return useQuery({
-    queryKey: ['feedbackDetail', menteeId, assignmentId],
-    queryFn: () => {
-      if (!menteeId || !assignmentId) return Promise.resolve(null);
-      return fetchFeedbackDetail(menteeId, assignmentId);
-    },
-    enabled: (options?.enabled ?? true) && !!menteeId && !!assignmentId,
-  });
-}
+import { createFeedback } from '@/api/feedback';
 
 /** 피드백 제출 */
-export function useSubmitFeedback(menteeId: string, assignmentId: string) {
+export function useSubmitFeedback(assignmentId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: SubmitFeedbackPayload) =>
-      submitFeedback(menteeId, assignmentId, payload),
+    mutationFn: ({ content, summary }: { content: string; summary?: string }) =>
+      createFeedback(assignmentId, content, summary),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['feedbackDetail', menteeId, assignmentId],
-      });
-      queryClient.invalidateQueries({ queryKey: ['feedbackItems', menteeId] });
       queryClient.invalidateQueries({ queryKey: ['submittedAssignments'] });
       queryClient.invalidateQueries({ queryKey: ['mentees'] });
     },

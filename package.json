@@ -64,5 +64,6 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.15.0",
     "vite": "^7.2.4"
-  }
+  },
+  "packageManager": "pnpm@9.12.0+sha256.a61b67ff6cc97af864564f4442556c22a04f2e5a7714fbee76a1011361d9b726"
 }
