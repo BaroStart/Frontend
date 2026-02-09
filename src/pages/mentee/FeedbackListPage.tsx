@@ -105,8 +105,8 @@ export function FeedbackListPage() {
     : (filterTabs[0]?.value ?? "ALL");
 
   return (
-    <div className="px-4 pt-5 pb-24">
-      <header className="mb-6">
+    <div className="flex min-h-0 flex-col px-4 pt-5 pb-24">
+      <header className="mb-6 shrink-0">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center">
           <div className="flex justify-start">
             <button
@@ -137,7 +137,7 @@ export function FeedbackListPage() {
         </div>
       </header>
 
-      <div className="space-y-6">
+      <div className="min-h-0 flex-1 space-y-6">
         <PlannerSummaryCard
           title="플래너 총평"
           message="집중 시간이 꾸준히 늘고 있고, 과제 미루는 횟수도 줄었어요. 다음 주는 영어 독해 루틴을 하루 10분만 더 확보해보면 더 좋아질 것 같아요."
@@ -145,7 +145,7 @@ export function FeedbackListPage() {
           updatedText="오늘"
         />
 
-        <div className="pt-2">
+        <div className="shrink-0 pt-2">
           <SubjectFilterChip
             items={filterTabs}
             value={effectiveSubject}

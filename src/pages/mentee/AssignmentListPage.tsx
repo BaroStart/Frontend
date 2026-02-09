@@ -103,8 +103,8 @@ export function AssignmentListPage() {
   const dateText = formatKoreanDate(selectedDate);
 
   return (
-    <div className="flex h-full flex-col gap-2 bg-white px-4 pt-5 pb-20">
-      <header className="mb-6">
+    <div className="flex min-h-0 flex-col gap-2 px-4 pt-5 pb-24">
+      <header className="mb-6 shrink-0">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center">
           <div className="flex justify-start">
             <button
@@ -135,7 +135,7 @@ export function AssignmentListPage() {
         </div>
       </header>
 
-      <div className="mb-3 px-1">
+      <div className="mb-3 shrink-0 px-1">
         <SubjectFilterChip
           items={[
             { label: "전체", value: "ALL" },
@@ -148,7 +148,7 @@ export function AssignmentListPage() {
         />
       </div>
 
-      <div className="flex-1 space-y-4 px-1 pb-20 sm:px-2">
+      <div className="min-h-0 flex-1 space-y-4 px-1 sm:px-2">
         {pending.length > 0 || completed.length > 0 ? (
           [...pending, ...completed].map((assignment) => (
             <button
